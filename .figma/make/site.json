@@ -1,0 +1,10 @@
+{
+  "description": "Provides a mobile-first web design platform that enables users to create and optimize responsive, user-friendly interfaces for seamless mobile experiences.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
