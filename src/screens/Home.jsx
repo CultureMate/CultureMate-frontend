@@ -6,8 +6,8 @@ const CATEGORY_COLORS = {
   '축제/행사': '#D97706', '문화/예술': '#8B5CF6',
 }
 
-const hotEvents    = EVENTS.filter(e => e.hot).slice(0, 6)
-const nearbyEvents = EVENTS.slice(0, 6)
+const hotEvents = [...EVENTS].sort((a, b) => Number(b.hot) - Number(a.hot)).slice(0, 6)
+const nearbyEvents = [...EVENTS].sort((a, b) => a.startDate.localeCompare(b.startDate)).slice(0, 6)
 
 function formatShortDate(e) {
   const sd = parseInt(e.startDate.split('-')[2])
@@ -29,7 +29,7 @@ function ddayLabel(startDate) {
 function HotCard({ event }) {
   const color = CATEGORY_COLORS[event.category] ?? '#FF6B47'
   return (
-    <div className="flex-shrink-0 w-[200px] md:w-auto rounded-2xl overflow-hidden shadow-sm cursor-pointer">
+    <div className="flex-shrink-0 w-[200px] md:w-auto rounded-2xl overflow-hidden shadow-sm active:scale-95 transition-transform cursor-pointer">
       <div className="relative h-[130px] md:h-[160px] bg-gray-100">
         <img src={event.img} alt={event.title} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
