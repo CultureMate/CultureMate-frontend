@@ -23,8 +23,10 @@ function todayLocal() {
 
 export default function EventList() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const category = searchParams.get('category') || '전체'
-  const district = searchParams.get('district') || ''
+  const selectedCategories = searchParams.getAll('category')
+  const districts = searchParams.getAll('district')
+  const categoryKey = selectedCategories.join('\0')
+  const districtKey = districts.join('\0')
   const keyword = searchParams.get('keyword') || ''
   const from = searchParams.get('from') || todayLocal()
   const to = searchParams.get('to') || ''
@@ -41,11 +43,11 @@ export default function EventList() {
       page: 0,
       size: 30,
       ...(to ? { to } : {}),
-      ...(category !== '전체' ? { category } : {}),
-      ...(district ? { district } : {}),
+      ...(categoryKey ? { category: categoryKey.split('\0') } : {}),
+      ...(districtKey ? { district: districtKey.split('\0') } : {}),
       ...(keyword ? { keyword } : {}),
     }),
-    [category, district, keyword, from, to],
+    [categoryKey, districtKey, keyword, from, to],
   )
 
   useEffect(() => {
@@ -71,9 +73,14 @@ export default function EventList() {
 
   const setCategory = (next) => {
     const params = new URLSearchParams(searchParams)
-    if (next === '전체') params.delete('category')
-    else params.set('category', next)
+    params.delete('category')
+    if (next !== '전체') params.append('category', next)
     setSearchParams(params)
+  }
+
+  const isCategoryActive = (cat) => {
+    if (cat === '전체') return selectedCategories.length === 0
+    return selectedCategories.includes(cat)
   }
 
   const submitSearch = (e) => {
@@ -102,9 +109,9 @@ export default function EventList() {
             className="flex-1 bg-transparent text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none"
           />
         </form>
-        {district && (
+        {districts.length > 0 && (
           <p className="text-xs text-[#6B7280] mb-2">
-            자치구 필터: <span className="font-semibold text-[#1A1A2E]">{district}</span>
+            자치구 필터: <span className="font-semibold text-[#1A1A2E]">{districts.join(', ')}</span>
             <button
               type="button"
               className="ml-2 text-[#FF6B47] font-semibold"
@@ -128,7 +135,7 @@ export default function EventList() {
               type="button"
               onClick={() => setCategory(cat)}
               className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold ${
-                category === cat ? 'bg-[#1A1A2E] text-white' : 'bg-[#F3F4F6] text-[#6B7280]'
+                isCategoryActive(cat) ? 'bg-[#1A1A2E] text-white' : 'bg-[#F3F4F6] text-[#6B7280]'
               }`}
             >
               {cat}

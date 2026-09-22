@@ -94,7 +94,8 @@ export async function logout() {
   }
 }
 
-export const KAKAO_LOGIN_START = 'http://localhost:8080/api/auth/kakao/start'
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api'
+export const KAKAO_LOGIN_START = `${API_BASE_URL}/auth/kakao/start`
 
 export async function getComments(eventId) {
   try {

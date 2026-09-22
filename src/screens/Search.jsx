@@ -58,6 +58,7 @@ export default function Search() {
   const [categories, setCategories] = useState([])
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
+  const [dateError, setDateError] = useState('')
 
   const filled = useMemo(() => {
     let n = 0
@@ -76,12 +77,18 @@ export default function Search() {
     setCategories([])
     setFrom('')
     setTo('')
+    setDateError('')
   }
 
   const submit = () => {
+    if (from && to && from > to) {
+      setDateError('종료일은 시작일 이후여야 합니다.')
+      return
+    }
+    setDateError('')
     const params = new URLSearchParams()
-    if (districts[0]) params.set('district', districts[0])
-    if (categories[0]) params.set('category', categories[0])
+    districts.forEach((district) => params.append('district', district))
+    categories.forEach((category) => params.append('category', category))
     if (from) params.set('from', from)
     if (to) params.set('to', to)
     navigate(`/events?${params.toString()}`)
@@ -147,7 +154,10 @@ export default function Search() {
                 <input
                   type="date"
                   value={from}
-                  onChange={(e) => setFrom(e.target.value)}
+                  onChange={(e) => {
+                    setFrom(e.target.value)
+                    setDateError('')
+                  }}
                   className="mt-1 w-full rounded-xl border border-[#E5E7EB] px-3 py-2 text-sm text-[#1A1A2E]"
                 />
               </label>
@@ -156,11 +166,15 @@ export default function Search() {
                 <input
                   type="date"
                   value={to}
-                  onChange={(e) => setTo(e.target.value)}
+                  onChange={(e) => {
+                    setTo(e.target.value)
+                    setDateError('')
+                  }}
                   className="mt-1 w-full rounded-xl border border-[#E5E7EB] px-3 py-2 text-sm text-[#1A1A2E]"
                 />
               </label>
             </div>
+            {dateError && <p className="text-xs text-[#FF6B47] mt-2">{dateError}</p>}
           </div>
         </div>
       </div>
