@@ -1,71 +1,21 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { getFavorites, getMe, logout } from '../api/culture'
+const CAT_ICONS = {
+  '공연': '🎭', '전시': '🖼️', '교육/체험': '🎨', '스포츠': '⚽',
+  '음악': '🎵', '영화': '🎬', '축제/행사': '🎪', '문화/예술': '🏛️',
+}
+const CATEGORIES = ['공연', '전시', '교육/체험', '스포츠', '음악', '영화', '축제/행사', '문화/예술']
+const SELECTED_INTERESTS = ['음악', '전시']
+
+const STATS = [
+  { label: '저장한 행사', value: 3,  icon: '❤️' },
+  { label: '다녀온 행사', value: 2,  icon: '✅' },
+  { label: '이번 달 예정', value: 1, icon: '📅' },
+  { label: '리뷰',        value: 0,  icon: '✏️' },
+]
 
 export default function MyPage() {
-  const navigate = useNavigate()
-  const [me, setMe] = useState(null)
-  const [favCount, setFavCount] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    Promise.all([getMe(), getFavorites().catch(() => [])])
-      .then(([member, favorites]) => {
-        if (cancelled) return
-        setMe(member)
-        setFavCount(favorites?.length || 0)
-        setError('')
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err.message)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const onLogout = async () => {
-    try {
-      await logout()
-      setMe(null)
-      navigate('/login')
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  if (loading) {
-    return <p className="p-8 text-sm text-[#6B7280]">불러오는 중…</p>
-  }
-
-  if (!me) {
-    return (
-      <div className="flex flex-col min-h-full bg-[#FAFAF8]">
-        <div className="px-5 md:px-8 lg:px-10 pt-12 md:pt-8 pb-8 bg-[#1A1A2E]">
-          <h1 className="font-display text-white text-2xl font-bold">마이페이지</h1>
-          <p className="text-white/50 text-sm mt-2">로그인하면 관심 행사와 댓글을 이용할 수 있어요.</p>
-        </div>
-        <div className="px-5 md:px-8 lg:px-10 py-10 max-w-md">
-          {error && <p className="text-sm text-[#FF6B47] mb-3">{error}</p>}
-          <Link
-            to="/login"
-            className="block text-center w-full py-3.5 rounded-2xl font-bold bg-[#FF6B47] text-white"
-          >
-            카카오 로그인
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col min-h-full bg-[#FAFAF8]">
+      {/* Header */}
       <div className="px-5 md:px-8 lg:px-10 pt-12 md:pt-8 pb-8 bg-[#1A1A2E]">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-4">
@@ -73,8 +23,8 @@ export default function MyPage() {
               <span className="text-2xl">🦊</span>
             </div>
             <div>
-              <h1 className="font-display text-white text-2xl font-bold">{me.nickname || 'CultureMate 회원'}</h1>
-              <p className="text-white/50 text-sm mt-0.5">회원번호 {me.memberId}</p>
+              <h1 className="font-display text-white text-2xl font-bold">김서울</h1>
+              <p className="text-white/50 text-sm mt-0.5">seoul@kakao.com</p>
               <div className="flex items-center gap-1.5 mt-1.5">
                 <div className="w-4 h-4 bg-[#FFE500] rounded-full flex items-center justify-center">
                   <span className="text-[8px] font-black text-black">K</span>
@@ -84,32 +34,84 @@ export default function MyPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6">
-            <Link to="/favorites" className="bg-white/10 rounded-xl p-3 text-center">
-              <span className="text-xl">❤️</span>
-              <p className="text-white font-bold text-lg mt-1">{favCount}</p>
-              <p className="text-white/50 text-[10px] mt-0.5">저장한 행사</p>
-            </Link>
-            <div className="bg-white/10 rounded-xl p-3 text-center">
-              <span className="text-xl">📍</span>
-              <p className="text-white font-bold text-base mt-1 truncate">{me.residence || '미설정'}</p>
-              <p className="text-white/50 text-[10px] mt-0.5">거주지</p>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
+            {STATS.map(stat => (
+              <div key={stat.label} className="bg-white/10 rounded-xl p-3 text-center">
+                <span className="text-xl">{stat.icon}</span>
+                <p className="text-white font-bold text-lg mt-1">{stat.value}</p>
+                <p className="text-white/50 text-[10px] mt-0.5 leading-tight">{stat.label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
+      {/* Content */}
       <div className="flex-1 overflow-y-auto pb-24 hide-scrollbar">
-        <div className="max-w-5xl mx-auto px-5 md:px-8 lg:px-10 pt-5">
-          {error && <p className="text-sm text-[#FF6B47] mb-3">{error}</p>}
-          <div className="bg-white rounded-2xl overflow-hidden shadow-sm max-w-lg">
-            <button type="button" onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-4">
-              <span className="text-base">🚪</span>
-              <span className="text-sm font-medium flex-1 text-left text-[#1A1A2E]">로그아웃</span>
-              <span className="text-[#9CA3AF] text-sm">›</span>
-            </button>
+        <div className="max-w-5xl mx-auto px-5 md:px-8 lg:px-10 lg:grid lg:grid-cols-[1fr_320px] lg:gap-6 lg:items-start pt-5">
+
+          <div className="flex flex-col gap-4">
+            {/* 거주지 */}
+            <div className="max-w-2xl bg-white rounded-2xl overflow-hidden shadow-sm">
+              <div className="px-4 py-3 border-b border-[#F3F4F6] flex items-center justify-between">
+                <p className="font-semibold text-[#1A1A2E] text-sm">📍 거주지 정보</p>
+                <button className="text-[#FF6B47] text-xs font-semibold border border-[#FF6B47] px-2.5 py-1 rounded-lg">수정</button>
+              </div>
+              <div className="px-4 py-4">
+                <p className="text-[#9CA3AF] text-xs font-medium">거주 구</p>
+                <p className="text-[#1A1A2E] font-semibold text-base mt-0.5">마포구</p>
+              </div>
+            </div>
+
+            {/* 관심 카테고리 */}
+            <div className="max-w-2xl bg-white rounded-2xl overflow-hidden shadow-sm">
+              <div className="px-4 py-3 border-b border-[#F3F4F6]">
+                <p className="font-semibold text-[#1A1A2E] text-sm">⭐ 관심 카테고리</p>
+              </div>
+              <div className="px-4 py-4 flex flex-wrap gap-2">
+                {CATEGORIES.map(cat => {
+                  const selected = SELECTED_INTERESTS.includes(cat)
+                  return (
+                    <div
+                      key={cat}
+                      className={`px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 border ${
+                        selected ? 'bg-[#FF6B47] text-white border-[#FF6B47]' : 'bg-white text-[#6B7280] border-[#E5E7EB]'
+                      }`}
+                    >
+                      <span>{CAT_ICONS[cat] ?? '🎪'}</span>{cat}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-[#9CA3AF] mt-4">프로필 수정·회원탈퇴 API는 아직 준비 중입니다.</p>
+
+          <div className="flex flex-col gap-4 mt-4 lg:mt-0">
+            {/* 설정 */}
+            <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+              {[{ icon: '🔔', label: '알림 설정' }, { icon: '🔒', label: '개인정보 처리방침' }].map((item, i, arr) => (
+                <button key={item.label} className={`w-full flex items-center gap-3 px-4 py-4 ${i < arr.length - 1 ? 'border-b border-[#F3F4F6]' : ''}`}>
+                  <span className="text-base">{item.icon}</span>
+                  <span className="text-sm font-medium flex-1 text-left text-[#1A1A2E]">{item.label}</span>
+                  <span className="text-[#9CA3AF] text-sm">›</span>
+                </button>
+              ))}
+            </div>
+
+            {/* 로그아웃 / 탈퇴 */}
+            <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+              <button className="w-full flex items-center gap-3 px-4 py-4 border-b border-[#F3F4F6]">
+                <span className="text-base">🚪</span>
+                <span className="text-sm font-medium flex-1 text-left text-[#1A1A2E]">로그아웃</span>
+                <span className="text-[#9CA3AF] text-sm">›</span>
+              </button>
+              <button className="w-full flex items-center gap-3 px-4 py-4">
+                <span className="text-base">🗑️</span>
+                <span className="text-sm font-medium flex-1 text-left text-[#EF4444]">회원탈퇴</span>
+                <span className="text-[#9CA3AF] text-sm">›</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
