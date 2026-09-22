@@ -1,70 +1,52 @@
-# Getting Started with Create React App
+# CultureMate UI
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+ZIP으로 제공된 서울 문화행사 React 화면을 현재 프로젝트에 옮긴 시연용 UI입니다.
 
-## Available Scripts
+## 실행
 
-In the project directory, you can run:
+Node.js 20 이상에서:
 
-### `npm start`
+```bash
+npm install
+npm start
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+브라우저에서 `http://localhost:3000`을 엽니다. 배포용 빌드는 `npm run build`로 만듭니다.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 화면
 
-### `npm test`
+Figma에서 가져온 화면을 URL로 각각 미리 볼 수 있습니다. 메뉴·카드·버튼은 디자인 시안이며 클릭 동작은 연결되어 있지 않습니다.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+| URL | 화면 |
+| --- | --- |
+| `/` | 홈 |
+| `/events` | 행사 목록 |
+| `/events/1` | 행사 상세 시안 |
+| `/search` | 검색 |
+| `/favorites` | 관심 목록 |
+| `/my` | 마이페이지 |
+| `/login` | 로그인 |
+| `/profile` | 프로필 설정 |
 
-### `npm run build`
+원본 ZIP은 UI 시안입니다. 행사 데이터와 사용자 정보는 화면 표시용 샘플입니다. 검색, 필터, 관심 목록 저장, 로그인, 댓글, 탭 전환, 원문·지도 이동은 구현되어 있지 않습니다. 이미지와 글꼴은 외부 URL을 사용하므로 인터넷 연결 상태에 따라 표시가 달라질 수 있습니다.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## API 통신
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+API 요청을 작성할 때는 [src/api/axios.js](src/api/axios.js)의 공통 Axios 인스턴스를 가져와 사용합니다. 개발 중 `/api` 요청은 CRA 프록시를 통해 `http://localhost:8080`으로 전달됩니다. 다른 API 주소를 사용한다면 `REACT_APP_API_BASE_URL` 환경 변수를 설정하세요. 이 값은 브라우저에 노출되므로 비밀키를 넣으면 안 됩니다.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```js
+import api from './api/axios'
 
-### `npm run eject`
+// 실제 API 경로와 응답 형식이 정해진 뒤 페이지에서 사용
+const { data } = await api.get('/events')
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+현재 시안 화면은 API를 호출하지 않습니다. Axios 인스턴스와 개발 프록시 설정만 남겨 두었습니다.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## React 수업 방식과 연결
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+[참고 저장소의 `fe/react-app`](https://github.com/Unpart/LG_CNS_INSPIRE_6TH/tree/main/fe/react-app)처럼 `Routes`와 `Route`로 화면 파일을 구분하고, 페이지 코드는 `src/screens`, Axios 설정은 `src/api/axios.js`에 두었습니다. 이후 기능 구현 시 각 화면에서 `useState`로 입력 상태를 관리하고 `useEffect`에서 데이터를 불러오며, 공통 API 인스턴스를 사용해 통신할 수 있습니다.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Figma UI의 Tailwind 스타일은 유지합니다. 수업 저장소에 있는 Bootstrap·styled-components 스타일은 이 화면에 섞지 않았습니다.
 
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+현재 환경에 설치되어 있던 Create React App과 Tailwind CSS 3을 사용합니다. ZIP에 들어 있던 Figma Make 전용 설정과 문서는 실행 구성에 포함하지 않았습니다.
