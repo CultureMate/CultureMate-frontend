@@ -2,7 +2,7 @@ export default function Login() {
   return (
     <div className="min-h-dvh flex">
 
-      {/* Left panel — desktop only */}
+      {/* ── 왼쪽 패널 (데스크탑) ── */}
       <div className="hidden lg:flex flex-1 bg-[#1A1A2E] flex-col justify-between p-14 relative overflow-hidden">
         <div className="absolute top-[-100px] right-[-80px] w-80 h-80 rounded-full bg-[#FF6B47]/10" />
         <div className="absolute bottom-[-60px] left-[-40px] w-60 h-60 rounded-full bg-[#8B5CF6]/10" />
@@ -35,13 +35,13 @@ export default function Login() {
         <p className="text-white/20 text-sm relative z-10">© 2026 서울문화 · Seoul Cultural Events</p>
       </div>
 
-      {/* Right panel / full screen on mobile */}
+      {/* ── 오른쪽 패널 / 모바일 전체 ── */}
       <div className="flex-1 lg:max-w-md bg-[#1A1A2E] lg:bg-white flex flex-col relative overflow-hidden">
         <div className="lg:hidden absolute top-[-80px] right-[-60px] w-64 h-64 rounded-full bg-[#FF6B47]/10 pointer-events-none" />
         <div className="lg:hidden absolute bottom-40 right-[-30px] w-48 h-48 rounded-full bg-[#00C4A0]/10 pointer-events-none" />
 
         <div className="flex-1 flex flex-col justify-center px-8 lg:px-10 pt-16 lg:pt-0">
-          {/* Mobile logo */}
+          {/* 모바일 로고 */}
           <div className="lg:hidden flex flex-col items-center mb-10">
             <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#FF6B47] to-[#8B5CF6] flex items-center justify-center mb-5 shadow-2xl shadow-[#FF6B47]/30">
               <span className="text-4xl">🎪</span>
@@ -55,14 +55,15 @@ export default function Login() {
             </p>
           </div>
 
-          {/* Desktop heading */}
+          {/* 데스크탑 제목 */}
           <div className="hidden lg:block mb-10">
             <h2 className="font-display text-[#1A1A2E] text-3xl font-bold">시작하기</h2>
             <p className="text-[#6B7280] text-sm mt-2">카카오 계정으로 간편하게 로그인하세요</p>
           </div>
 
+          {/* 카카오 로그인 버튼 */}
           <button
-            className="w-full rounded-2xl py-4 flex items-center justify-center gap-3 font-bold text-base"
+            className="w-full rounded-2xl py-4 flex items-center justify-center gap-3 active:opacity-90 transition-opacity font-bold text-base"
             style={{ backgroundColor: '#FFE500', color: '#1A1A2E', boxShadow: '0 8px 24px rgba(255,229,0,0.3)' }}
           >
             <div className="w-6 h-6 bg-[#1A1A2E] rounded-full flex items-center justify-center flex-shrink-0">
