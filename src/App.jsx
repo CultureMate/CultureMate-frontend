@@ -14,7 +14,7 @@ const NAV_ITEMS = [
   { icon: '🏠', label: '홈', path: '/' },
   { icon: '📋', label: '목록', path: '/events' },
   { icon: '🗺️', label: '코스', path: '/course' },
-  { icon: '🤍', label: '관심', path: '/favorites' },
+  { icon: '❤️', label: '관심', path: '/favorites' },
   { icon: '👤', label: '마이', path: '/my' },
 ]
 
@@ -28,7 +28,7 @@ function AppLayout() {
         <div className="px-3 lg:px-5 py-6 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF6B47] to-[#8B5CF6] flex items-center justify-center flex-shrink-0">
-              <span className="text-xl">🎭</span>
+              <span className="text-xl">🎪</span>
             </div>
             <span className="hidden lg:block font-display text-white font-bold text-lg leading-tight">서울문화</span>
           </div>
@@ -39,6 +39,9 @@ function AppLayout() {
               className={`flex items-center gap-3 px-3 py-3 rounded-xl ${isActive(item.path) ? 'bg-[#FF6B47] text-white' : 'text-white/50'}`}>
               <span className="text-xl flex-shrink-0">{item.icon}</span>
               <span className="hidden lg:block text-sm font-semibold">{item.label}</span>
+              {['/course', '/favorites', '/my'].includes(item.path) && (
+                <span className="hidden lg:block text-[10px] text-white/30">🔒</span>
+              )}
             </div>
           ))}
         </div>
@@ -52,7 +55,7 @@ function AppLayout() {
         <main className="flex-1 min-w-0 pb-16 md:pb-0">
           <Outlet />
         </main>
-        <nav aria-label="모바일 주 메뉴" className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#F3F4F6] flex z-20"
+        {pathname.startsWith('/events/') ? null : <nav aria-label="모바일 주 메뉴" className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#F3F4F6] flex z-20"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
           {NAV_ITEMS.map(item => (
             <div key={item.path} aria-label={item.label} aria-current={isActive(item.path) ? 'page' : undefined}
@@ -61,7 +64,7 @@ function AppLayout() {
               <span className={`text-[10px] font-semibold ${isActive(item.path) ? 'text-[#FF6B47]' : 'text-[#9CA3AF]'}`}>{item.label}</span>
             </div>
           ))}
-        </nav>
+        </nav>}
       </div>
     </div>
   )
@@ -74,10 +77,12 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/events" element={<EventList />} />
+          <Route path="/events/filter" element={<EventList showFilterSheet filterPreview />} />
           <Route path="/events/:id" element={<EventDetail />} />
           <Route path="/search" element={<Search />} />
           <Route path="/course" element={<Course />} />
           <Route path="/favorites" element={<Favorites />} />
+          <Route path="/favorites/calendar" element={<Favorites view="calendar" />} />
           <Route path="/my" element={<MyPage />} />
           <Route path="/login-prompt" element={<LoginPrompt />} />
         </Route>

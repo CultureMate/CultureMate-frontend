@@ -69,9 +69,15 @@ function EventsCalendar() {
           if (!day) return <div key={`e${idx}`} />
           const isToday = day === 22
           const color   = dayColorMap.get(day)
+          const isRangeStart = !!color && !dayColorMap.has(day - 1)
+          const isRangeEnd = !!color && !dayColorMap.has(day + 1)
+          const isRangeMid = !!color && !isRangeStart && !isRangeEnd
           return (
             <div key={day} className="relative flex items-center justify-center h-10">
-              <button className="relative z-10 w-9 h-9 rounded-full flex flex-col items-center justify-center">
+              {isRangeMid && <div className="absolute inset-y-1.5 inset-x-0 opacity-20" style={{ backgroundColor: color }} />}
+              {isRangeStart && !isRangeEnd && <div className="absolute inset-y-1.5 right-0 left-1/2 opacity-20 rounded-l-full" style={{ backgroundColor: color }} />}
+              {isRangeEnd && !isRangeStart && <div className="absolute inset-y-1.5 left-0 right-1/2 opacity-20 rounded-r-full" style={{ backgroundColor: color }} />}
+              <button className="relative z-10 w-9 h-9 rounded-full flex flex-col items-center justify-center transition-all active:scale-90">
                 <span className={`text-sm font-semibold leading-none ${isToday ? 'text-[#FF6B47]' : 'text-[#1A1A2E]'}`}>{day}</span>
                 {color && <div className="w-1 h-1 rounded-full mt-0.5" style={{ backgroundColor: color }} />}
               </button>
@@ -83,8 +89,8 @@ function EventsCalendar() {
   )
 }
 
-export default function Favorites() {
-  const tab = 'list'
+export default function Favorites({ view = 'list' }) {
+  const tab = view
 
   return (
     <div className="flex flex-col min-h-full bg-[#FAFAF8]">
