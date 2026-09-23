@@ -1,4 +1,4 @@
-import { BrowserRouter, Outlet, Route, Routes, useLocation } from 'react-router-dom'
+import { BrowserRouter, Link, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import Home from './screens/Home'
 import EventList from './screens/EventList'
 import EventDetail from './screens/EventDetail'
@@ -35,14 +35,14 @@ function AppLayout() {
         </div>
         <div className="flex flex-col gap-1 p-2 lg:p-3 flex-1">
           {NAV_ITEMS.map(item => (
-            <div key={item.path} aria-label={item.label} aria-current={isActive(item.path) ? 'page' : undefined}
+            <Link key={item.path} to={item.path} aria-label={item.label} aria-current={isActive(item.path) ? 'page' : undefined}
               className={`flex items-center gap-3 px-3 py-3 rounded-xl ${isActive(item.path) ? 'bg-[#FF6B47] text-white' : 'text-white/50'}`}>
               <span className="text-xl flex-shrink-0">{item.icon}</span>
               <span className="hidden lg:block text-sm font-semibold">{item.label}</span>
               {['/course', '/favorites', '/my'].includes(item.path) && (
                 <span className="hidden lg:block text-[10px] text-white/30">🔒</span>
               )}
-            </div>
+            </Link>
           ))}
         </div>
         <div className="p-3 border-t border-white/10 flex items-center gap-3">
@@ -55,14 +55,14 @@ function AppLayout() {
         <main className="flex-1 min-w-0 pb-16 md:pb-0">
           <Outlet />
         </main>
-        {pathname.startsWith('/events/') ? null : <nav aria-label="모바일 주 메뉴" className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#F3F4F6] flex z-20"
+        {pathname.startsWith('/events/') && pathname !== '/events/hot' ? null : <nav aria-label="모바일 주 메뉴" className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#F3F4F6] flex z-20"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
           {NAV_ITEMS.map(item => (
-            <div key={item.path} aria-label={item.label} aria-current={isActive(item.path) ? 'page' : undefined}
+            <Link key={item.path} to={item.path} aria-label={item.label} aria-current={isActive(item.path) ? 'page' : undefined}
               className="flex-1 flex flex-col items-center gap-0.5 py-3">
               <span className={`w-10 h-8 flex items-center justify-center rounded-xl text-xl ${isActive(item.path) ? 'bg-[#FFF0EC]' : ''}`}>{item.icon}</span>
               <span className={`text-[10px] font-semibold ${isActive(item.path) ? 'text-[#FF6B47]' : 'text-[#9CA3AF]'}`}>{item.label}</span>
-            </div>
+            </Link>
           ))}
         </nav>}
       </div>
@@ -77,6 +77,7 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/events" element={<EventList />} />
+          <Route path="/events/hot" element={<Home showAllHot />} />
           <Route path="/events/filter" element={<EventList showFilterSheet filterPreview />} />
           <Route path="/events/:id" element={<EventDetail />} />
           <Route path="/search" element={<Search />} />
