@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getEventDetail } from '../api/events'
 import { CATEGORY_COLOR } from '../data/events'
 import DemoNotice from '../components/DemoNotice'
@@ -57,6 +57,8 @@ export default function EventDetail() {
 
 function EventDetailView({ event }) {
   const navigate = useNavigate()
+  const { state } = useLocation()
+  const returnTo = /^\/events(?:\?|$)/.test(state?.returnTo || '') ? state.returnTo : '/'
   const colors = CATEGORY_COLOR[event.category] ?? { bg: '#F3F4F6', text: '#6B7280' }
   const originalUrl = /^https?:\/\//i.test(event.originalUrl || '') ? event.originalUrl : null
 
@@ -65,7 +67,7 @@ function EventDetailView({ event }) {
       {event.isMock && <div className="px-5 pt-5"><DemoNotice /></div>}
       {/* 데스크탑 뒤로가기 */}
       <div className="hidden lg:flex items-center px-5 md:px-8 lg:px-10 pt-4 pb-2 max-w-5xl mx-auto w-full">
-        <button aria-label="홈으로" onClick={() => navigate('/')} className="w-10 h-10 bg-white border border-[#E5E7EB] rounded-full flex items-center justify-center shadow-sm">
+        <button aria-label={returnTo === '/' ? '홈으로' : '목록으로'} onClick={() => navigate(returnTo)} className="w-10 h-10 bg-white border border-[#E5E7EB] rounded-full flex items-center justify-center shadow-sm">
           <span className="text-[#1A1A2E] text-lg">←</span>
         </button>
       </div>
@@ -74,7 +76,7 @@ function EventDetailView({ event }) {
       <div className="relative h-56 md:h-72 lg:h-80 bg-gray-100">
         {event.img && <img src={event.img} alt={event.title} className="w-full h-full object-cover" />}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/30" />
-        <button aria-label="홈으로" onClick={() => navigate('/')} className="lg:hidden absolute top-12 left-5 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+        <button aria-label={returnTo === '/' ? '홈으로' : '목록으로'} onClick={() => navigate(returnTo)} className="lg:hidden absolute top-12 left-5 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
           <span className="text-white text-lg">←</span>
         </button>
         <div className="absolute top-12 right-5 bg-black/40 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1.5">

@@ -24,3 +24,6 @@ yarn-error.log*
 
 # environment files
 .env
+
+# docs
+/docs

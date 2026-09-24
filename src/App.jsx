@@ -55,7 +55,7 @@ function AppLayout() {
         <main className="flex-1 min-w-0 pb-16 md:pb-0">
           <Outlet />
         </main>
-        {pathname.startsWith('/events/') && pathname !== '/events/hot' ? null : <nav aria-label="모바일 주 메뉴" className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#F3F4F6] flex z-20"
+        {pathname.startsWith('/events/') && !['/events/hot', '/events/filter'].includes(pathname) ? null : <nav aria-label="모바일 주 메뉴" className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#F3F4F6] flex z-20"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
           {NAV_ITEMS.map(item => (
             <Link key={item.path} to={item.path} aria-label={item.label} aria-current={isActive(item.path) ? 'page' : undefined}
@@ -78,7 +78,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/events" element={<EventList />} />
           <Route path="/events/hot" element={<Home showAllHot />} />
-          <Route path="/events/filter" element={<EventList showFilterSheet filterPreview />} />
+          <Route path="/events/filter" element={<EventList initialFilterOpen />} />
           <Route path="/events/:id" element={<EventDetail />} />
           <Route path="/search" element={<Search />} />
           <Route path="/course" element={<Course />} />
