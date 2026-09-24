@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getEventDetail } from '../api/events'
 import { CATEGORY_COLOR } from '../data/events'
 import DemoNotice from '../components/DemoNotice'
+import EventMap from '../components/EventMap'
 
 function Field({ icon, label, value }) {
   return (
@@ -129,28 +130,7 @@ function EventDetailView({ event }) {
               </div>
             </div>}
 
-            {/* 지도 */}
-            <div className="rounded-2xl overflow-hidden border border-[#E5E7EB] mb-4">
-              <div className="bg-[#F9FAFB] px-4 py-3 flex items-center gap-2 border-b border-[#E5E7EB]">
-                <span className="text-lg">📍</span>
-                <span className="text-sm font-bold text-[#1A1A2E]">지도</span>
-                <span className="text-xs text-[#9CA3AF] ml-1">{event.place}</span>
-              </div>
-              <div className="relative bg-[#E8F0E8] h-[200px] md:h-[240px] flex flex-col items-center justify-center gap-3">
-                <div className="relative z-10 flex flex-col items-center gap-2">
-                  <div className="w-12 h-12 bg-[#FFE500] rounded-full flex items-center justify-center shadow-lg">
-                    <span className="text-xl">🗺️</span>
-                  </div>
-                  <p className="text-[#374151] text-sm font-semibold">{event.place}</p>
-                  <p className="text-[#6B7280] text-xs">{event.district}</p>
-                  {event.place && <a href={`https://map.kakao.com/link/search/${encodeURIComponent(event.place)}`} target="_blank" rel="noreferrer"
-                    className="mt-1 bg-[#FFE500] text-[#1A1A2E] text-xs font-bold px-4 py-2 rounded-full shadow-sm flex items-center gap-1.5"
-                  >
-                    카카오맵에서 보기 →
-                  </a>}
-                </div>
-              </div>
-            </div>
+            <EventMap key={event.eventId} event={event} />
 
           </div>
         </div>
