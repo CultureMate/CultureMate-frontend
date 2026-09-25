@@ -4,7 +4,7 @@ import api from '../api/axios'
 import Home from './Home'
 import EventDetail from './EventDetail'
 
-jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn() } }))
+jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn() } }))
 jest.mock('../api/comments', () => ({ getComments: () => Promise.resolve([]), createComment: jest.fn(), updateComment: jest.fn(), deleteComment: jest.fn(), getCommentError: () => '댓글 오류' }))
 jest.mock('../api/auth', () => ({ getCurrentMember: () => Promise.resolve(null) }))
 
@@ -19,6 +19,7 @@ function renderHome(props = {}) {
 beforeEach(() => {
   process.env.REACT_APP_DATA_MODE = 'api'
   api.get.mockReset()
+  api.post.mockReset().mockImplementation((path, body, config) => Promise.resolve({ data: { eventId: config.params.eventId, viewCount: 124 } }))
   api.get.mockImplementation(path => Promise.resolve({ data: { events: path.includes('hot-events') ? [hot] : [upcoming] } }))
 })
 
@@ -29,7 +30,7 @@ test('loads the two API sections, keeps server order and links URL-shaped IDs', 
   expect(screen.getAllByRole('status')).toHaveLength(2)
   const card = await screen.findByRole('link', { name: /인기 전시/ })
   expect(card).toHaveAttribute('href', `/events/${encodeURIComponent(eventId)}`)
-  expect(screen.getByText('조회수 1,234')).toBeInTheDocument()
+  expect(screen.getByLabelText('조회수 1,234')).toHaveTextContent('👁1,234')
   expect(screen.getByText('D-3')).toBeInTheDocument()
   expect(screen.getByText(/문화회관 · 10월 1일/)).toBeInTheDocument()
   expect(api.get).toHaveBeenCalledWith('/main/upcoming-events', expect.objectContaining({ params: { limit: 6 } }))

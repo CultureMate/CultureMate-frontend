@@ -5,7 +5,7 @@ import EventList from './EventList'
 import Search from './Search'
 import EventDetail from './EventDetail'
 
-jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn() } }))
+jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn() } }))
 jest.mock('../api/comments', () => ({ getComments: () => Promise.resolve([]), createComment: jest.fn(), updateComment: jest.fn(), deleteComment: jest.fn(), getCommentError: () => '댓글 오류' }))
 jest.mock('../api/auth', () => ({ getCurrentMember: () => Promise.resolve(null) }))
 const eventId = 'https://culture.seoul.go.kr/event?id=12&name=서울'
@@ -29,6 +29,7 @@ function renderEvents(initial = '/events') {
 beforeEach(() => {
   process.env.REACT_APP_DATA_MODE = 'api'
   api.get.mockReset()
+  api.post.mockReset().mockImplementation((path, body, config) => Promise.resolve({ data: { eventId: config.params.eventId, viewCount: 1 } }))
   api.get.mockResolvedValue(result([event]))
   jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-09-24T01:00:00Z').getTime())
 })
