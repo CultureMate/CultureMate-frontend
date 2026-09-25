@@ -6,6 +6,8 @@ import Search from './Search'
 import EventDetail from './EventDetail'
 
 jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn() } }))
+jest.mock('../api/comments', () => ({ getComments: () => Promise.resolve([]), createComment: jest.fn(), updateComment: jest.fn(), deleteComment: jest.fn(), getCommentError: () => '댓글 오류' }))
+jest.mock('../api/auth', () => ({ getCurrentMember: () => Promise.resolve(null) }))
 const eventId = 'https://culture.seoul.go.kr/event?id=12&name=서울'
 const event = { eventId, title: '서울 사진 전시', category: '전시/미술', district: '마포구', place: '문화회관', startDate: '2026-10-10', endDate: '2026-10-12' }
 const result = events => ({ data: { events, count: events.length, totalCount: events.length } })
