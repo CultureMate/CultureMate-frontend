@@ -4,6 +4,7 @@ import { getEventDetail } from '../api/events'
 import { CATEGORY_COLOR } from '../data/events'
 import DemoNotice from '../components/DemoNotice'
 import EventMap from '../components/EventMap'
+import EventComments from '../components/EventComments'
 import EventViewCount from '../components/EventViewCount'
 
 function Field({ icon, label, value }) {
@@ -129,6 +130,8 @@ function EventDetailView({ event }) {
             </div>}
 
             <EventMap key={event.eventId} event={event} />
+
+            <EventComments event={event} />
 
           </div>
         </div>

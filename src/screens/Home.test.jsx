@@ -5,6 +5,8 @@ import Home from './Home'
 import EventDetail from './EventDetail'
 
 jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn() } }))
+jest.mock('../api/comments', () => ({ getComments: () => Promise.resolve([]), createComment: jest.fn(), updateComment: jest.fn(), deleteComment: jest.fn(), getCommentError: () => '댓글 오류' }))
+jest.mock('../api/auth', () => ({ getCurrentMember: () => Promise.resolve(null) }))
 
 const eventId = 'https://culture.seoul.go.kr/event?id=12&name=서울'
 const hot = { eventId, title: '인기 전시', viewCount: 1234, imageUrl: null }
