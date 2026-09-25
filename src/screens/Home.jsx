@@ -29,7 +29,11 @@ function HotCard({ event }) {
         {event.place && <p className="text-[#6B7280] text-xs truncate">{event.place}</p>}
         <div className="flex items-center justify-between gap-2 mt-1">
           {event.startDate && <p className="text-[#1A1A2E] text-xs font-medium">{formatShortDate(event)}</p>}
-          <p className="text-[#6B7280] text-[11px]">조회수 {Number.isFinite(event.viewCount) ? event.viewCount.toLocaleString('ko-KR') : '-'}</p>
+          <p aria-label={`조회수 ${Number.isFinite(event.viewCount) ? event.viewCount.toLocaleString('ko-KR') : '-'}`}
+            className="text-[#6B7280] text-[11px] flex items-center gap-1">
+            <span aria-hidden="true">👁</span>
+            <span>{Number.isFinite(event.viewCount) ? event.viewCount.toLocaleString('ko-KR') : '-'}</span>
+          </p>
         </div>
       </div>
     </Link>
