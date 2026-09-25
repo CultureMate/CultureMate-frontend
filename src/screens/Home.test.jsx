@@ -4,7 +4,7 @@ import api from '../api/axios'
 import Home from './Home'
 import EventDetail from './EventDetail'
 
-jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn() } }))
+jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn() } }))
 
 const eventId = 'https://culture.seoul.go.kr/event?id=12&name=서울'
 const hot = { eventId, title: '인기 전시', viewCount: 1234, imageUrl: null }
@@ -17,6 +17,7 @@ function renderHome(props = {}) {
 beforeEach(() => {
   process.env.REACT_APP_DATA_MODE = 'api'
   api.get.mockReset()
+  api.post.mockReset().mockResolvedValue({ data: { eventId, summary: '행사 소개문' } })
   api.get.mockImplementation(path => Promise.resolve({ data: { events: path.includes('hot-events') ? [hot] : [upcoming] } }))
 })
 
@@ -123,7 +124,7 @@ test('offline home opens its sample and supports a direct detail visit', async (
   fireEvent.click(card)
   expect(await screen.findByRole('heading', { name: '서울 재즈 페스티벌 2026' })).toBeInTheDocument()
   expect(screen.getByText('데모 데이터')).toBeInTheDocument()
-  expect(screen.getByText('샘플 소개문')).toBeInTheDocument()
+  expect(await screen.findByText('샘플 소개문')).toBeInTheDocument()
   expect(api.get).not.toHaveBeenCalledWith('/events/detail', expect.anything())
   unmount()
   render(<MemoryRouter initialEntries={['/events/mock-1']}><Routes>

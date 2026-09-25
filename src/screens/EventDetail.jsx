@@ -4,6 +4,7 @@ import { getEventDetail } from '../api/events'
 import { CATEGORY_COLOR } from '../data/events'
 import DemoNotice from '../components/DemoNotice'
 import EventMap from '../components/EventMap'
+import EventSummary from '../components/EventSummary'
 
 function Field({ icon, label, value }) {
   return (
@@ -119,18 +120,9 @@ function EventDetailView({ event }) {
               </div>
             </div>
 
-            {/* AI 소개문 */}
-            {event.description && <div className="rounded-2xl overflow-hidden border border-[#FF6B47]/20 mb-4">
-              <div className="bg-gradient-to-br from-[#FF6B47]/10 to-[#8B5CF6]/10 px-4 py-3 flex items-center gap-2 border-b border-[#FF6B47]/10">
-                <span className="text-lg">✨</span>
-                <span className="text-sm font-bold text-[#FF6B47]">{event.isMock ? '샘플 소개문' : 'AI 소개문'}</span>
-              </div>
-              <div className="bg-white px-4 py-4">
-                <p className="text-[#1A1A2E] text-sm leading-relaxed">{event.description}</p>
-              </div>
-            </div>}
+            <EventSummary event={event} />
 
-            <EventMap key={event.eventId} event={event} />
+            <EventMap event={event} />
 
           </div>
         </div>
