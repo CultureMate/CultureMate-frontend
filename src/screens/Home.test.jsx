@@ -19,7 +19,11 @@ function renderHome(props = {}) {
 beforeEach(() => {
   process.env.REACT_APP_DATA_MODE = 'api'
   api.get.mockReset()
-  api.post.mockReset().mockImplementation((path, body, config) => Promise.resolve({ data: { eventId: config.params.eventId, viewCount: 124 } }))
+  api.post.mockReset().mockImplementation((path, body, config) => Promise.resolve({
+    data: path === '/events/summary'
+      ? { eventId: config.params.eventId, summary: '행사 소개문' }
+      : { eventId: config.params.eventId, viewCount: 124 },
+  }))
   api.get.mockImplementation(path => Promise.resolve({ data: { events: path.includes('hot-events') ? [hot] : [upcoming] } }))
 })
 
@@ -126,7 +130,7 @@ test('offline home opens its sample and supports a direct detail visit', async (
   fireEvent.click(card)
   expect(await screen.findByRole('heading', { name: '서울 재즈 페스티벌 2026' })).toBeInTheDocument()
   expect(screen.getByText('데모 데이터')).toBeInTheDocument()
-  expect(screen.getByText('샘플 소개문')).toBeInTheDocument()
+  expect(await screen.findByText('샘플 소개문')).toBeInTheDocument()
   expect(api.get).not.toHaveBeenCalledWith('/events/detail', expect.anything())
   unmount()
   render(<MemoryRouter initialEntries={['/events/mock-1']}><Routes>

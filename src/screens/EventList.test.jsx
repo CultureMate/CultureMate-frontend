@@ -29,7 +29,11 @@ function renderEvents(initial = '/events') {
 beforeEach(() => {
   process.env.REACT_APP_DATA_MODE = 'api'
   api.get.mockReset()
-  api.post.mockReset().mockImplementation((path, body, config) => Promise.resolve({ data: { eventId: config.params.eventId, viewCount: 1 } }))
+  api.post.mockReset().mockImplementation((path, body, config) => Promise.resolve({
+    data: path === '/events/summary'
+      ? { eventId: config.params.eventId, summary: '행사 소개문' }
+      : { eventId: config.params.eventId, viewCount: 1 },
+  }))
   api.get.mockResolvedValue(result([event]))
   jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-09-24T01:00:00Z').getTime())
 })
