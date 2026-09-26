@@ -5,6 +5,8 @@ import { CATEGORY_COLOR } from '../data/events'
 import DemoNotice from '../components/DemoNotice'
 import EventMap from '../components/EventMap'
 import EventSummary from '../components/EventSummary'
+import EventComments from '../components/EventComments'
+import EventViewCount from '../components/EventViewCount'
 
 function Field({ icon, label, value }) {
   return (
@@ -81,10 +83,7 @@ function EventDetailView({ event }) {
         <button aria-label={returnTo === '/' ? '홈으로' : '목록으로'} onClick={() => navigate(returnTo)} className="lg:hidden absolute top-12 left-5 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
           <span className="text-white text-lg">←</span>
         </button>
-        <div className="absolute top-12 right-5 bg-black/40 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1.5">
-          <span className="text-white/70 text-xs">👁</span>
-          <span className="text-white text-xs font-semibold">{event.viewCount ?? 0}</span>
-        </div>
+        <EventViewCount eventId={event.eventId} initialCount={event.viewCount} isMock={event.isMock} />
         <div className="absolute bottom-5 left-5 right-5">
           <span className="text-white text-xs font-bold px-2.5 py-1 rounded-full inline-block mb-2" style={{ backgroundColor: colors.text }}>
             {event.category}
@@ -122,7 +121,9 @@ function EventDetailView({ event }) {
 
             <EventSummary event={event} />
 
-            <EventMap event={event} />
+            <EventMap key={event.eventId} event={event} />
+
+            <EventComments event={event} />
 
           </div>
         </div>

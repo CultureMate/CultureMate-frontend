@@ -14,7 +14,11 @@ test('URL-shaped event IDs use the query API exactly once', async () => {
   api.post.mockResolvedValue({ data: { eventId, summary: '  두 문장 소개문입니다.  ', createdAt: '2026-09-25T10:00:00' } })
   const controller = new AbortController()
   await expect(getEventSummary(eventId, controller.signal)).resolves.toMatchObject({ summary: '두 문장 소개문입니다.', isMock: false })
-  expect(api.post).toHaveBeenCalledWith('/events/summary', null, { params: { eventId }, signal: controller.signal })
+  expect(api.post).toHaveBeenCalledWith('/events/summary', null, {
+    params: { eventId },
+    signal: controller.signal,
+    timeout: 35000,
+  })
 })
 
 test('malformed and mismatched responses are rejected', async () => {

@@ -19,7 +19,11 @@ export async function getEventSummary(eventId, signal) {
   }
 
   // eventId가 URL일 수 있으므로 path 대신 query parameter로 전달합니다.
-  const { data } = await api.post('/events/summary', null, { params: { eventId }, signal })
+  const { data } = await api.post('/events/summary', null, {
+    params: { eventId },
+    signal,
+    timeout: 35000,
+  })
   if (!data || String(data.eventId) !== String(eventId) || typeof data.summary !== 'string' || !data.summary.trim()) {
     throw new Error('AI 소개문 응답 형식을 확인해 주세요.')
   }
