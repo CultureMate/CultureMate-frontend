@@ -45,10 +45,10 @@ function AppLayout() {
             </Link>
           ))}
         </div>
-        <div className="p-3 border-t border-white/10 flex items-center gap-3">
+        <Link to="/login" aria-label="로그인" className="p-3 border-t border-white/10 flex items-center gap-3 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-white transition-colors">
           <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 text-sm">👤</div>
           <span className="hidden lg:block text-white/40 text-xs font-medium">로그인</span>
-        </div>
+        </Link>
       </nav>
 
       <div className="flex-1 flex flex-col min-w-0 relative">
