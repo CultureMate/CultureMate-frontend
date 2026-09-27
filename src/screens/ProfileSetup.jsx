@@ -74,21 +74,25 @@ export default function ProfileSetup() {
     try {
       setLoading(true)
 
-      // 현재 백엔드에서 확인된 회원정보 수정 API
+      // 프로필 정보 + 관심 카테고리를 함께 저장
       await api.put('/auth/me', {
         nickname: nickname.trim(),
         residence,
+        interestCategories: [...interests],
       })
 
-      navigate('/')
+      // 프로필 설정 완료 후 메인으로 이동
+      navigate('/', { replace: true })
     } catch (err) {
       console.error('프로필 저장 실패:', err)
 
+      // 로그인 세션이 없거나 만료된 경우 로그인 화면으로 이동
       if (err.response?.status === 401) {
-        setError('로그인이 만료되었습니다. 다시 로그인해주세요.')
-      } else {
-        setError('프로필 저장에 실패했습니다. 잠시 후 다시 시도해주세요.')
+        navigate('/login', { replace: true })
+        return
       }
+
+      setError('프로필 저장에 실패했습니다. 잠시 후 다시 시도해주세요.')
     } finally {
       setLoading(false)
     }
