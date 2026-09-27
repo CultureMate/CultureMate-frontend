@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getKakaoLoginUrl } from '../api/auth'
 
 export default function Login() {
   const [loading, setLoading] = useState(false)
@@ -9,7 +10,7 @@ export default function Login() {
     setLoading(true)
 
     // 카카오 OAuth는 백엔드에서 처리
-    window.location.href = '/api/auth/kakao/start'
+    window.location.href = getKakaoLoginUrl()
   }
 
   return (
