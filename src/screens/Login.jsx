@@ -9,8 +9,7 @@ export default function Login() {
     setLoading(true)
 
     // 카카오 OAuth는 백엔드에서 처리
-    window.location.href =
-      'http://localhost:8080/api/auth/kakao/start'
+    window.location.href = '/api/auth/kakao/start'
   }
 
   return (
