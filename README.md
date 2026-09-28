@@ -118,6 +118,7 @@ GET /api/events?district=강남구&district=마포구&category=전시&category=�
 - 행사 좌표가 없으면 임의 위치로 검색하지 않고 안내를 표시합니다. 좌표가 있는 다른 행사를 기준으로 선택할 수 있습니다.
 - 코스 저장 payload는 `{ name, stops }`이며 각 stop에 0부터 시작하는 `order`를 보냅니다. 행사는 `{ type: "EVENT", eventId, order }`, 장소는 `{ type: "PLACE", placeId, placeType, name, address, latitude, longitude, order }` 형식입니다.
 - 현재 백엔드에는 코스 저장 API가 아직 없어 `auto`/`mock` 모드에서는 연결 불가 시 브라우저에 개발용 코스로 저장합니다. 백엔드가 `POST /api/courses`를 제공하면 같은 화면에서 서버 저장으로 자동 전환됩니다.
+- `auto` 모드에서도 실행 중인 서버가 `PLACES_UNAVAILABLE` 또는 `PLACES_QUOTA_EXCEEDED`를 반환하면 샘플 장소로 바꾸지 않고 오류를 표시합니다. 서버가 실제로 연결되지 않을 때만 데모 장소로 대체합니다.
 
 ### 카카오맵 연동 (FR-13)
 

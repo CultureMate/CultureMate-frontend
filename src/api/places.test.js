@@ -25,3 +25,10 @@ test('행사 사이와 사진 API 경로를 계약대로 만든다', async () =>
   expect(api.get).toHaveBeenCalledWith('/places/between', { params: { eventId1: 'e1', eventId2: 'e2', type: 'restaurant' }, signal: undefined })
   expect(getPlacePhotoUrl('places/photo name', 500)).toBe('/api/places/photo?name=places%2Fphoto+name&maxWidthPx=500')
 })
+
+test('실행 중인 장소 서버의 명시적 오류를 샘플 데이터로 숨기지 않는다', async () => {
+  process.env.REACT_APP_DATA_MODE = 'auto'
+  const error = { response: { status: 503, data: { code: 'PLACES_UNAVAILABLE' } } }
+  api.get.mockRejectedValue(error)
+  await expect(getNearbyPlaces({ latitude: 37.5, longitude: 127.1, types: ['cafe'] })).rejects.toBe(error)
+})

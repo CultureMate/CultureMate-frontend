@@ -57,7 +57,8 @@ export async function getNearbyPlaces({ latitude, longitude, types = ['cafe', 'r
     const { data } = await api.get('/places/nearby', { params, signal })
     return { places: parsePlaces(data, normalizedTypes), isMock: false }
   } catch (error) {
-    if (!signal?.aborted && canUseMock(error)) return loadMock()
+    const placesServiceError = String(error.response?.data?.code || '').startsWith('PLACES_')
+    if (!signal?.aborted && !placesServiceError && canUseMock(error)) return loadMock()
     throw error
   }
 }
