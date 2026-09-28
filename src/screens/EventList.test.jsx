@@ -146,11 +146,11 @@ test('keyword submit resets page, and browser Back restores the previous query',
   expect(screen.getByTestId('url')).toHaveTextContent('page=2')
 })
 
-test('pagination requests another page and categories return to page zero', async () => {
+test('page number requests another page and categories return to page zero', async () => {
   api.get.mockResolvedValue({ data: { events: [event], count: 1, totalCount: 10 } })
   renderEvents()
   await screen.findByText('10개의 행사')
-  fireEvent.click(screen.getByRole('button', { name: '다음' }))
+  fireEvent.click(screen.getByRole('button', { name: '2페이지' }))
   await waitFor(() => expect(screen.getByRole('button', { name: '2페이지' })).toHaveAttribute('aria-current', 'page'))
   expect(api.get.mock.calls[1][1].params.get('page')).toBe('1')
   expect(screen.getByRole('button', { name: '다음' })).toBeDisabled()
@@ -168,6 +168,27 @@ test('pagination shows ten page indices and supports direct page entry', async (
   fireEvent.submit(screen.getByRole('form', { name: '페이지 직접 이동' }))
   await waitFor(() => expect(api.get.mock.calls[1][1].params.get('page')).toBe('10'))
   expect(await screen.findByRole('button', { name: '11페이지' })).toHaveAttribute('aria-current', 'page')
+})
+
+test('previous and next move between groups of ten pages', async () => {
+  api.get.mockResolvedValue({ data: { events: [event], count: 1, totalCount: 210 } })
+  renderEvents('/events?page=11')
+  await screen.findByText('210개의 행사')
+  const pageNumbers = () => within(screen.getByLabelText('페이지 번호')).getAllByRole('button').map(button => button.textContent)
+  expect(pageNumbers()).toEqual(['11', '12', '13', '14', '15', '16', '17', '18', '19', '20'])
+
+  fireEvent.click(screen.getByRole('button', { name: '다음' }))
+  await waitFor(() => expect(api.get.mock.calls[1][1].params.get('page')).toBe('20'))
+  await screen.findByRole('button', { name: '21페이지' })
+  expect(pageNumbers()).toEqual(['21', '22', '23', '24', '25', '26', '27', '28', '29', '30'])
+
+  fireEvent.change(screen.getByRole('spinbutton', { name: '페이지' }), { target: { value: '12' } })
+  fireEvent.submit(screen.getByRole('form', { name: '페이지 직접 이동' }))
+  await screen.findByRole('button', { name: '12페이지', current: 'page' })
+  fireEvent.click(screen.getByRole('button', { name: '이전' }))
+  await waitFor(() => expect(api.get.mock.calls[3][1].params.get('page')).toBe('9'))
+  await screen.findByRole('button', { name: '10페이지', current: 'page' })
+  expect(pageNumbers()).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'])
 })
 
 test('past events are hidden by default and the toggle requests them from page zero', async () => {

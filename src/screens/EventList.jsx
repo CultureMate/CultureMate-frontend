@@ -63,6 +63,8 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
   const [pageInput, setPageInput] = useState(String(currentPage + 1))
   const blockStart = Math.floor(currentPage / 10) * 10
   const pages = Array.from({ length: Math.min(10, totalPages - blockStart) }, (_, index) => blockStart + index)
+  const hasPreviousBlock = blockStart > 0
+  const hasNextBlock = blockStart + 10 < totalPages
 
   useEffect(() => { setPageInput(String(currentPage + 1)) }, [currentPage])
 
@@ -78,14 +80,14 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
 
   return (
     <nav aria-label="행사 페이지" className="mt-6 flex flex-wrap items-center justify-center gap-2">
-      <button type="button" disabled={currentPage === 0} onClick={() => onPageChange(currentPage - 1)} className="px-3 py-2 bg-white rounded-xl disabled:opacity-40">이전</button>
+      <button type="button" disabled={!hasPreviousBlock} onClick={() => onPageChange(blockStart - 1)} className="px-3 py-2 bg-white rounded-xl disabled:opacity-40">이전</button>
       <div className="flex flex-wrap items-center justify-center gap-1" aria-label="페이지 번호">
         {pages.map(page => <button key={page} type="button" aria-label={`${page + 1}페이지`} aria-current={page === currentPage ? 'page' : undefined}
           onClick={() => onPageChange(page)} className={`min-w-9 px-2 py-2 rounded-xl text-sm ${page === currentPage ? 'bg-[#1A1A2E] text-white font-bold' : 'bg-white text-[#374151]'}`}>
           {page + 1}
         </button>)}
       </div>
-      <button type="button" disabled={currentPage + 1 >= totalPages} onClick={() => onPageChange(currentPage + 1)} className="px-3 py-2 bg-white rounded-xl disabled:opacity-40">다음</button>
+      <button type="button" disabled={!hasNextBlock} onClick={() => onPageChange(blockStart + 10)} className="px-3 py-2 bg-white rounded-xl disabled:opacity-40">다음</button>
       <form aria-label="페이지 직접 이동" onSubmit={submitPage} className="basis-full sm:basis-auto flex items-center justify-center gap-2 mt-2 sm:mt-0 sm:ml-2">
         <label htmlFor="event-page-input" className="text-sm text-[#6B7280]">페이지</label>
         <input id="event-page-input" type="number" min="1" max={totalPages} value={pageInput} onChange={event => setPageInput(event.target.value)}
