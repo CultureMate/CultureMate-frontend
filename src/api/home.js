@@ -5,7 +5,8 @@ import { getMockEvents } from '../data/mockEvents'
 // FR-07: 쿠키로 회원 거주지를 판단하므로 기본 요청에는 district를 보내지 않습니다.
 async function loadEvents(path, params, signal) {
   const loadMock = () => {
-    const events = getMockEvents().sort(path.includes('hot-events')
+    const source = getMockEvents()
+    const events = (path.includes('upcoming-events') ? source.filter(event => event.dDay >= 0) : source).sort(path.includes('hot-events')
       ? (a, b) => b.viewCount - a.viewCount
       : (a, b) => a.startDate.localeCompare(b.startDate))
     return { events: events.slice(0, params.limit), isMock: true }
