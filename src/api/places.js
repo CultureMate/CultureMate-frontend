@@ -10,6 +10,11 @@ const placeType = value => value === 'restaurant' ? 'restaurant' : 'cafe'
 
 function normalizePlace(place, fallbackType) {
   if (!place?.placeId || !place?.name) return null
+  const openingHours = place.openingHours ?? place.regularOpeningHours
+  const weekdayDescriptions = Array.isArray(openingHours)
+    ? openingHours
+    : openingHours?.weekdayDescriptions ?? place.weekdayDescriptions ?? []
+  const photoName = place.photoName || ''
   return {
     placeId: String(place.placeId),
     name: place.name,
@@ -19,10 +24,14 @@ function normalizePlace(place, fallbackType) {
     latitude: Number(place.latitude),
     longitude: Number(place.longitude),
     mapUrl: place.mapUrl || '',
-    photoName: place.photoName || '',
+    imageUrl: place.imageUrl || place.photoUrl || (photoName ? getPlacePhotoUrl(photoName) : ''),
+    photoName,
     photoAttribution: place.photoAttribution || '',
     businessStatus: place.businessStatus || '',
-    openNow: typeof place.openNow === 'boolean' ? place.openNow : null,
+    openNow: typeof place.openNow === 'boolean' ? place.openNow
+      : typeof openingHours?.openNow === 'boolean' ? openingHours.openNow : null,
+    openingHours: Array.isArray(weekdayDescriptions) ? weekdayDescriptions : [],
+    todayHours: place.todayHours || place.openingHoursText || '',
     placeType: placeType(place.placeType || fallbackType),
   }
 }
@@ -37,7 +46,9 @@ function mockPlaces({ latitude, longitude, types }) {
     latitude: Number(latitude) + (index + 1) * 0.0007,
     longitude: Number(longitude) + (typeIndex + 1) * 0.0006,
     mapUrl: `https://map.kakao.com/?q=${encodeURIComponent(name)}`,
+    imageUrl: `https://images.unsplash.com/photo-${placeType(type) === 'cafe' ? '1501339847302-ac426a4a7cbb' : '1517248135467-4c7edcad34c4'}?w=640&h=420&fit=crop&auto=format`,
     openNow: index % 3 !== 2,
+    todayHours: '오늘 10:00~22:00',
     placeType: placeType(type),
   })))
 }
@@ -66,6 +77,11 @@ export async function getNearbyPlaces({ latitude, longitude, types = ['cafe', 'r
 export async function getPlacesBetween({ eventId1, eventId2, type = 'cafe' }, signal) {
   const { data } = await api.get('/places/between', { params: { eventId1, eventId2, type: placeType(type) }, signal })
   return parsePlaces(data, [type])
+}
+
+export async function getPlaceDetails(placeId, type = 'cafe', signal) {
+  const { data } = await api.get('/places/details', { params: { placeId }, signal })
+  return normalizePlace(data, type)
 }
 
 export function getPlacePhotoUrl(name, maxWidthPx = 640) {

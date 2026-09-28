@@ -39,6 +39,10 @@ jest.mock('./screens/Course', () => () => (
   <div>COURSE_PAGE</div>
 ))
 
+jest.mock('./screens/SharedCourse', () => () => (
+  <div>SHARED_COURSE_PAGE</div>
+))
+
 jest.mock('./screens/Favorites', () => () => (
   <div>FAVORITES_PAGE</div>
 ))
@@ -177,6 +181,16 @@ describe('로그인 필요 탭 보호', () => {
     render(<App />)
 
     expect(await screen.findByText('COURSE_PAGE')).toBeInTheDocument()
+  })
+
+  test('공유 코스 경로는 비로그인 상태에서도 화면에 진입한다', async () => {
+    getCurrentMember.mockResolvedValue(null)
+    window.history.replaceState({}, '', '/shared/courses/share-1')
+
+    render(<App />)
+
+    expect(await screen.findByText('SHARED_COURSE_PAGE')).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/shared/courses/share-1')
   })
 })
 
