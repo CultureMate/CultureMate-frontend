@@ -1,5 +1,15 @@
 import api from './axios'
 
+export function getKakaoLoginUrl() {
+  const defaultBaseUrl = process.env.NODE_ENV === 'production'
+    ? '/api'
+    : 'http://localhost:8080/api'
+  const baseUrl = (process.env.REACT_APP_AUTH_BASE_URL || defaultBaseUrl)
+    .replace(/\/+$/, '')
+
+  return `${baseUrl}/auth/kakao/start`
+}
+
 export async function getCurrentMember(signal) {
   try {
     const { data } = await api.get('/auth/me', { signal })
