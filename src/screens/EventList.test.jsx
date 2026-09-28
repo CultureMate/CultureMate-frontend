@@ -134,6 +134,21 @@ test('completed ranges restart on the third click; clearing and reset restart se
   expect(screen.getByLabelText('종료일')).toHaveTextContent('2026-09-24')
 })
 
+test('calendar keeps its layout while allowing direct year and month navigation', () => {
+  renderEvents('/search')
+
+  fireEvent.change(screen.getByRole('combobox', { name: '연도 선택' }), { target: { value: '2025' } })
+  fireEvent.change(screen.getByRole('combobox', { name: '월 선택' }), { target: { value: '11' } })
+
+  expect(screen.getByRole('combobox', { name: '연도 선택' })).toHaveValue('2025')
+  expect(screen.getByRole('combobox', { name: '월 선택' })).toHaveValue('11')
+  expect(screen.getByRole('button', { name: '2025-11-10' })).toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: '2025-11-10' }))
+  expect(screen.getByLabelText('시작일')).toHaveTextContent('2025-11-10')
+  expect(screen.getByLabelText('종료일')).toHaveTextContent('2025-11-10')
+})
+
 test('keyword submit resets page, and browser Back restores the previous query', async () => {
   renderEvents('/events?page=2&district=마포구')
   await screen.findByText('1개의 행사')

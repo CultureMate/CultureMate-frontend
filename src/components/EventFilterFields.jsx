@@ -37,11 +37,15 @@ function DatePicker({ from, to, onChange }) {
     }
   }
   const [year, monthNumber] = month.split('-').map(Number)
+  const yearOptions = Array.from({ length: 11 }, (_, index) => year - 5 + index)
   const offset = new Date(year, monthNumber - 1, 1).getDay()
   const count = new Date(year, monthNumber, 0).getDate()
+  const moveTo = (nextYear, nextMonth) => {
+    setMonth(`${nextYear}-${String(nextMonth).padStart(2, '0')}`)
+  }
   const changeMonth = direction => {
     const next = new Date(year, monthNumber - 1 + direction, 1)
-    setMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`)
+    moveTo(next.getFullYear(), next.getMonth() + 1)
   }
   return (
     <fieldset className="mb-4">
@@ -55,7 +59,22 @@ function DatePicker({ from, to, onChange }) {
       <div className="bg-[#FAFAF8] border border-[#E5E7EB] rounded-2xl p-3 max-w-lg">
         <div className="flex justify-between items-center mb-2">
           <button type="button" aria-label="이전 달" onClick={() => changeMonth(-1)} className="w-10 h-10 rounded-xl hover:bg-white">←</button>
-          <p aria-live="polite" className="font-semibold text-sm">{year}년 {monthNumber}월</p>
+          <div className="flex items-center justify-center gap-2">
+            <label className="sr-only" htmlFor="event-calendar-year">연도 선택</label>
+            <select id="event-calendar-year" aria-label="연도 선택" value={year}
+              onChange={event => moveTo(Number(event.target.value), monthNumber)}
+              className="rounded-lg border border-[#E5E7EB] bg-white px-2 py-2 text-sm font-semibold text-[#1A1A2E]">
+              {yearOptions.map(option => <option key={option} value={option}>{option}년</option>)}
+            </select>
+            <label className="sr-only" htmlFor="event-calendar-month">월 선택</label>
+            <select id="event-calendar-month" aria-label="월 선택" value={monthNumber}
+              onChange={event => moveTo(year, Number(event.target.value))}
+              className="rounded-lg border border-[#E5E7EB] bg-white px-2 py-2 text-sm font-semibold text-[#1A1A2E]">
+              {Array.from({ length: 12 }, (_, index) => index + 1).map(option => (
+                <option key={option} value={option}>{option}월</option>
+              ))}
+            </select>
+          </div>
           <button type="button" aria-label="다음 달" onClick={() => changeMonth(1)} className="w-10 h-10 rounded-xl hover:bg-white">→</button>
         </div>
         <div className="grid grid-cols-7 gap-y-1 text-center">
