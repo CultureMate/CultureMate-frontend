@@ -63,9 +63,11 @@ export default function EventMap({ event }) {
   }, [eventId, place, district, title, latitude, longitude, lat, lng, retry])
 
   if (!hasCoordinates) {
+    const searchLink = getKakaoMapLink(event)
     return (
-      <section aria-label="행사 위치" className="rounded-2xl border border-[#E5E7EB] mb-4 bg-white p-4">
+      <section aria-label="행사 위치" className="rounded-2xl border border-[#E5E7EB] mb-4 bg-white p-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-[#6B7280]">위치 정보 없음</p>
+        {searchLink && <a href={searchLink} target="_blank" rel="noreferrer" className="shrink-0 rounded-full bg-[#FFE500] px-4 py-2 text-xs font-bold text-[#1A1A2E]">카카오맵에서 보기 →</a>}
       </section>
     )
   }

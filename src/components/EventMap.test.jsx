@@ -39,6 +39,17 @@ test('missing coordinates hide the map and show the location fallback', () => {
   expect(screen.getByText('위치 정보 없음')).toBeInTheDocument()
   expect(screen.queryByLabelText('행사 위치 지도')).not.toBeInTheDocument()
   expect(loadKakaoMaps).not.toHaveBeenCalled()
+  expect(screen.getByRole('link', { name: /카카오맵에서 보기/ })).toHaveAttribute(
+    'href',
+    `https://map.kakao.com/link/search/${encodeURIComponent('서울 강남구 코엑스')}`
+  )
+})
+
+test('missing coordinates and place show no empty map link', () => {
+  render(<EventMap event={{ ...event, place: '', latitude: null, longitude: null }} />)
+  expect(screen.getByText('위치 정보 없음')).toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: /카카오맵에서 보기/ })).not.toBeInTheDocument()
+  expect(loadKakaoMaps).not.toHaveBeenCalled()
 })
 
 test('missing key gives usable guidance without a broken map', async () => {
