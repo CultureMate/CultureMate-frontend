@@ -5,12 +5,12 @@ import api from '../api/axios'
 import { CATEGORIES, DISTRICTS } from '../data/events'
 
 const CAT_ICONS = {
-  '공연': '🎭',
-  '전시': '🖼️',
+  공연: '🎭',
+  전시: '🖼️',
   '교육/체험': '🎨',
-  '스포츠': '⚽',
-  '음악': '🎵',
-  '영화': '🎬',
+  스포츠: '⚽',
+  음악: '🎵',
+  영화: '🎬',
   '축제/행사': '🎪',
   '문화/예술': '🏛️',
 }
@@ -24,13 +24,16 @@ export default function MyPage() {
   const [interests, setInterests] = useState(new Set())
 
   const [editMode, setEditMode] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] =
+    useState(false)
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
   const [error, setError] = useState('')
+  const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -40,7 +43,9 @@ export default function MyPage() {
         setLoading(true)
         setError('')
 
-        const data = await getCurrentMember(controller.signal)
+        const data = await getCurrentMember(
+          controller.signal
+        )
 
         if (!data) {
           navigate('/login', { replace: true })
@@ -194,12 +199,24 @@ export default function MyPage() {
     }
   }
 
+  const openDeleteConfirm = () => {
+    setDeleteError('')
+    setShowDeleteConfirm(true)
+  }
+
+  const closeDeleteConfirm = () => {
+    if (deleting) return
+
+    setDeleteError('')
+    setShowDeleteConfirm(false)
+  }
+
   const handleDeleteMember = async () => {
     if (deleting) return
 
     try {
       setDeleting(true)
-      setError('')
+      setDeleteError('')
 
       await api.delete('/auth/me')
 
@@ -213,7 +230,9 @@ export default function MyPage() {
         return
       }
 
-      setError('회원탈퇴 처리에 실패했습니다.')
+      setDeleteError(
+        '회원탈퇴 처리에 실패했습니다.'
+      )
     } finally {
       setDeleting(false)
     }
@@ -233,7 +252,8 @@ export default function MyPage() {
     return (
       <div className="min-h-full bg-[#FAFAF8] flex items-center justify-center px-6">
         <p className="text-[#6B7280] text-sm font-medium text-center">
-          {error || '회원정보를 확인할 수 없습니다.'}
+          {error ||
+            '회원정보를 확인할 수 없습니다.'}
         </p>
       </div>
     )
@@ -296,10 +316,8 @@ export default function MyPage() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto pb-24 hide-scrollbar">
         <div className="max-w-5xl mx-auto px-5 md:px-8 lg:px-10 lg:grid lg:grid-cols-[1fr_320px] lg:gap-6 lg:items-start pt-5">
-
           {/* 왼쪽 */}
           <div className="flex flex-col gap-4">
-
             {/* 회원정보 */}
             <div className="max-w-2xl bg-white rounded-2xl overflow-hidden shadow-sm">
               <div className="px-4 py-3 border-b border-[#F3F4F6] flex items-center justify-between">
@@ -413,7 +431,8 @@ export default function MyPage() {
                       onClick={handleSave}
                       disabled={
                         saving ||
-                        nickname.trim().length < 2 ||
+                        nickname.trim().length <
+                          2 ||
                         !residence
                       }
                       className="flex-1 py-2.5 rounded-xl bg-[#FF6B47] text-white text-sm font-semibold disabled:opacity-40"
@@ -459,7 +478,8 @@ export default function MyPage() {
                 <div className="px-4 py-4 flex flex-wrap gap-2">
                   {interests.size === 0 ? (
                     <p className="text-[#9CA3AF] text-sm">
-                      선택한 관심 카테고리가 없습니다.
+                      선택한 관심 카테고리가
+                      없습니다.
                     </p>
                   ) : (
                     [...interests].map(cat => (
@@ -468,7 +488,8 @@ export default function MyPage() {
                         className="px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 border bg-[#FFF0EC] text-[#FF6B47] border-[#FFD5C9]"
                       >
                         <span>
-                          {CAT_ICONS[cat] ?? '🎪'}
+                          {CAT_ICONS[cat] ??
+                            '🎪'}
                         </span>
                         {cat}
                       </span>
@@ -540,9 +561,7 @@ export default function MyPage() {
 
               <button
                 type="button"
-                onClick={() =>
-                  setShowDeleteConfirm(true)
-                }
+                onClick={openDeleteConfirm}
                 disabled={deleting}
                 className="w-full flex items-center gap-3 px-4 py-4 active:bg-[#FFF0EC] disabled:opacity-50"
               >
@@ -564,11 +583,7 @@ export default function MyPage() {
         <>
           <div
             className="fixed inset-0 bg-black/50 z-40"
-            onClick={() => {
-              if (!deleting) {
-                setShowDeleteConfirm(false)
-              }
-            }}
+            onClick={closeDeleteConfirm}
           />
 
           <div
@@ -594,12 +609,21 @@ export default function MyPage() {
               없습니다.
             </p>
 
+            {deleteError && (
+              <div
+                role="alert"
+                className="bg-[#FFF0EC] rounded-xl px-4 py-3 mb-4"
+              >
+                <p className="text-[#EF4444] text-xs font-medium">
+                  {deleteError}
+                </p>
+              </div>
+            )}
+
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() =>
-                  setShowDeleteConfirm(false)
-                }
+                onClick={closeDeleteConfirm}
                 disabled={deleting}
                 className="flex-1 py-3 rounded-xl border border-[#E5E7EB] text-sm font-semibold text-[#6B7280]"
               >

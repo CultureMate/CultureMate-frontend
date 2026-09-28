@@ -3,6 +3,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react'
 import {
   MemoryRouter,
@@ -132,14 +133,14 @@ test('닉네임 거주지 관심사를 함께 수정한다', async () => {
     })
   )
 
-  // 기존 관심사 '공연' 해제
+  // 기존 관심사 공연 해제
   fireEvent.click(
     screen.getByRole('button', {
       name: /공연/,
     })
   )
 
-  // 새 관심사 '음악' 추가
+  // 새 관심사 음악 추가
   fireEvent.click(
     screen.getByRole('button', {
       name: /음악/,
@@ -214,14 +215,10 @@ test('회원정보 저장 실패 시 기존 회원정보를 유지한다', async
     )
   ).toBeInTheDocument()
 
-  // 저장 실패 시 editMode가 유지되므로
-  // 입력창에는 사용자가 수정하던 값이 남아 있음
   expect(
     screen.getByDisplayValue('실패유저')
   ).toBeInTheDocument()
 
-  // 실제 member 데이터는 변경되지 않았으므로
-  // 상단 프로필에는 기존 닉네임 유지
   expect(
     screen.getByRole('heading', {
       name: '테스트유저',
@@ -361,7 +358,7 @@ test('회원탈퇴 성공 후 로그인 화면으로 이동한다', async () => 
   ).toBeInTheDocument()
 })
 
-test('회원탈퇴 실패 시 오류 메시지를 표시한다', async () => {
+test('회원탈퇴 실패 메시지를 탈퇴 확인 모달 내부에 표시한다', async () => {
   api.delete.mockRejectedValue(
     new Error('delete failed')
   )
@@ -382,13 +379,16 @@ test('회원탈퇴 실패 시 오류 메시지를 표시한다', async () => {
     })
   )
 
+  const dialog =
+    await screen.findByRole('dialog')
+
   expect(
-    await screen.findByText(
+    await within(dialog).findByText(
       '회원탈퇴 처리에 실패했습니다.'
     )
   ).toBeInTheDocument()
 
   expect(
-    screen.getByRole('dialog')
+    within(dialog).getByRole('alert')
   ).toBeInTheDocument()
 })
