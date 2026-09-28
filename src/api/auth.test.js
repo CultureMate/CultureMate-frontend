@@ -1,9 +1,15 @@
 import api from './axios'
-import { getCurrentMember } from './auth'
+import { getCurrentMember, getKakaoLoginUrl } from './auth'
 
 jest.mock('./axios', () => ({ __esModule: true, default: { get: jest.fn() } }))
 
 beforeEach(() => { api.get.mockReset() })
+
+test('builds the Kakao login URL from the configured auth API base URL', () => {
+  process.env.REACT_APP_AUTH_BASE_URL = 'https://api.example.com/api/'
+  expect(getKakaoLoginUrl()).toBe('https://api.example.com/api/auth/kakao/start')
+  delete process.env.REACT_APP_AUTH_BASE_URL
+})
 
 test('returns the current member using the session cookie request', async () => {
   const member = { memberId: 7, nickname: '문화인', residence: '마포구' }

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+
 import {
   BrowserRouter,
   Link,
@@ -30,22 +31,37 @@ const NAV_ITEMS = [
 ]
 
 /**
- * 카카오 로그인 성공 후 백엔드가
- * /?login=success 로 리다이렉트하면 회원정보를 확인한다.
+ * 카카오 로그인 처리
  *
- * 최신 백엔드 명세 기준:
+ * 성공:
+ * - /?login=success
  * - 세션 없음 -> /login
  * - residence 없음 -> /profile
  * - residence 있음 -> /
+ *
+ * 취소:
+ * - /?login=cancelled
+ * - /login으로 이동하면서 취소 안내 전달
  */
-function LoginSuccessHandler() {
+function LoginResultHandler() {
   const location = useLocation()
   const navigate = useNavigate()
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
+    const loginResult = params.get('login')
 
-    if (params.get('login') !== 'success') {
+    if (loginResult === 'cancelled') {
+      navigate('/login', {
+        replace: true,
+        state: {
+          loginCancelled: true,
+        },
+      })
+      return
+    }
+
+    if (loginResult !== 'success') {
       return
     }
 
@@ -58,21 +74,33 @@ function LoginSuccessHandler() {
         if (cancelled) return
 
         if (!member) {
-          navigate('/login', { replace: true })
+          navigate('/login', {
+            replace: true,
+          })
           return
         }
 
         if (!member.residence?.trim()) {
-          navigate('/profile', { replace: true })
+          navigate('/profile', {
+            replace: true,
+          })
           return
         }
 
-        navigate('/', { replace: true })
+        navigate('/', {
+          replace: true,
+        })
       } catch (error) {
         if (cancelled) return
 
-        console.error('로그인 후 회원정보 확인 실패:', error)
-        navigate('/login', { replace: true })
+        console.error(
+          '로그인 후 회원정보 확인 실패:',
+          error
+        )
+
+        navigate('/login', {
+          replace: true,
+        })
       }
     }
 
@@ -90,7 +118,9 @@ function AppLayout() {
   const { pathname } = useLocation()
 
   const isActive = path =>
-    path === '/' ? pathname === '/' : pathname.startsWith(path)
+    path === '/'
+      ? pathname === '/'
+      : pathname.startsWith(path)
 
   return (
     <div className="flex min-h-dvh bg-[#FAFAF8]">
@@ -101,7 +131,9 @@ function AppLayout() {
         <div className="px-3 lg:px-5 py-6 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF6B47] to-[#8B5CF6] flex items-center justify-center flex-shrink-0">
-              <span className="text-xl">🎪</span>
+              <span className="text-xl">
+                🎪
+              </span>
             </div>
 
             <span className="hidden lg:block font-display text-white font-bold text-lg leading-tight">
@@ -116,7 +148,11 @@ function AppLayout() {
               key={item.path}
               to={item.path}
               aria-label={item.label}
-              aria-current={isActive(item.path) ? 'page' : undefined}
+              aria-current={
+                isActive(item.path)
+                  ? 'page'
+                  : undefined
+              }
               className={`flex items-center gap-3 px-3 py-3 rounded-xl ${
                 isActive(item.path)
                   ? 'bg-[#FF6B47] text-white'
@@ -131,7 +167,11 @@ function AppLayout() {
                 {item.label}
               </span>
 
-              {['/course', '/favorites', '/my'].includes(item.path) && (
+              {[
+                '/course',
+                '/favorites',
+                '/my',
+              ].includes(item.path) && (
                 <span className="hidden lg:block text-[10px] text-white/30">
                   🔒
                 </span>
@@ -140,7 +180,12 @@ function AppLayout() {
           ))}
         </div>
 
-        <div className="p-3 border-t border-white/10 flex items-center gap-3">
+        {/* develop / PR 19의 로그인 Link 유지 */}
+        <Link
+          to="/login"
+          aria-label="로그인"
+          className="p-3 border-t border-white/10 flex items-center gap-3 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-white transition-colors"
+        >
           <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 text-sm">
             👤
           </div>
@@ -148,7 +193,7 @@ function AppLayout() {
           <span className="hidden lg:block text-white/40 text-xs font-medium">
             로그인
           </span>
-        </div>
+        </Link>
       </nav>
 
       <div className="flex-1 flex flex-col min-w-0 relative">
@@ -157,12 +202,16 @@ function AppLayout() {
         </main>
 
         {pathname.startsWith('/events/') &&
-        !['/events/hot', '/events/filter'].includes(pathname) ? null : (
+        ![
+          '/events/hot',
+          '/events/filter',
+        ].includes(pathname) ? null : (
           <nav
             aria-label="모바일 주 메뉴"
             className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#F3F4F6] flex z-20"
             style={{
-              paddingBottom: 'env(safe-area-inset-bottom)',
+              paddingBottom:
+                'env(safe-area-inset-bottom)',
             }}
           >
             {NAV_ITEMS.map(item => (
@@ -170,12 +219,18 @@ function AppLayout() {
                 key={item.path}
                 to={item.path}
                 aria-label={item.label}
-                aria-current={isActive(item.path) ? 'page' : undefined}
+                aria-current={
+                  isActive(item.path)
+                    ? 'page'
+                    : undefined
+                }
                 className="flex-1 flex flex-col items-center gap-0.5 py-3"
               >
                 <span
                   className={`w-10 h-8 flex items-center justify-center rounded-xl text-xl ${
-                    isActive(item.path) ? 'bg-[#FFF0EC]' : ''
+                    isActive(item.path)
+                      ? 'bg-[#FFF0EC]'
+                      : ''
                   }`}
                 >
                   {item.icon}
@@ -202,32 +257,84 @@ function AppLayout() {
 export default function App() {
   return (
     <BrowserRouter>
-      <LoginSuccessHandler />
+      <LoginResultHandler />
 
       <Routes>
         <Route element={<AppLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/events" element={<EventList />} />
-          <Route path="/events/hot" element={<Home showAllHot />} />
+          <Route
+            path="/"
+            element={<Home />}
+          />
+
+          <Route
+            path="/events"
+            element={<EventList />}
+          />
+
+          <Route
+            path="/events/hot"
+            element={<Home showAllHot />}
+          />
+
           <Route
             path="/events/filter"
-            element={<EventList initialFilterOpen />}
+            element={
+              <EventList initialFilterOpen />
+            }
           />
-          <Route path="/events/:id" element={<EventDetail />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/course" element={<Course />} />
-          <Route path="/favorites" element={<Favorites />} />
+
+          <Route
+            path="/events/:id"
+            element={<EventDetail />}
+          />
+
+          <Route
+            path="/search"
+            element={<Search />}
+          />
+
+          <Route
+            path="/course"
+            element={<Course />}
+          />
+
+          <Route
+            path="/favorites"
+            element={<Favorites />}
+          />
+
           <Route
             path="/favorites/calendar"
-            element={<Favorites view="calendar" />}
+            element={
+              <Favorites view="calendar" />
+            }
           />
-          <Route path="/my" element={<MyPage />} />
-          <Route path="/login-prompt" element={<LoginPrompt />} />
+
+          <Route
+            path="/my"
+            element={<MyPage />}
+          />
+
+          <Route
+            path="/login-prompt"
+            element={<LoginPrompt />}
+          />
         </Route>
 
-        <Route path="/login" element={<Login />} />
-        <Route path="/profile" element={<ProfileSetup />} />
-        <Route path="*" element={<Home />} />
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+        <Route
+          path="/profile"
+          element={<ProfileSetup />}
+        />
+
+        <Route
+          path="*"
+          element={<Home />}
+        />
       </Routes>
     </BrowserRouter>
   )
