@@ -6,6 +6,13 @@ export function isEventDate(value) {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
 }
 
+export function includePastForSelectedDate(filters, now = Date.now()) {
+  const today = new Date(now + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  return filters.from && filters.from < today
+    ? { ...filters, includePast: true }
+    : filters
+}
+
 export function readEventFilters(search = '') {
   const params = new URLSearchParams(search)
   const values = key => [...new Set(params.getAll(key).map(value => value.trim()).filter(Boolean))]
@@ -26,19 +33,20 @@ export function readEventFilters(search = '') {
 
 // Spring의 List<String> 파라미터에 맞게 district=A&district=B 형식으로 전달합니다.
 export function createEventParams(filters, includePaging = true) {
+  const normalized = includePastForSelectedDate(filters)
   const params = new URLSearchParams()
   for (const key of ['district', 'category']) {
-    for (const value of [...new Set(filters[key] || [])]) {
+    for (const value of [...new Set(normalized[key] || [])]) {
       if (value.trim()) params.append(key, value.trim())
     }
   }
   for (const key of ['from', 'to']) {
-    if (filters[key]) params.set(key, filters[key])
+    if (normalized[key]) params.set(key, normalized[key])
   }
-  if (filters.keyword?.trim()) params.set('keyword', filters.keyword.trim())
-  if (filters.includePast) params.set('includePast', 'true')
+  if (normalized.keyword?.trim()) params.set('keyword', normalized.keyword.trim())
+  if (normalized.includePast) params.set('includePast', 'true')
   if (includePaging) {
-    params.set('page', String(filters.page || 0))
+    params.set('page', String(normalized.page || 0))
     params.set('size', String(EVENT_PAGE_SIZE))
   }
   return params

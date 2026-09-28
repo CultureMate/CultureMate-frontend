@@ -154,16 +154,26 @@ export default function EventComments({ event }) {
       {event.isMock && <span className="text-xs text-[#9CA3AF]">샘플 · 조회만 가능</span>}
     </div>
     {!event.isMock && member === undefined && <p role="status" className="mt-3 text-sm text-[#6B7280]">로그인 상태를 확인하고 있습니다.</p>}
-    {!event.isMock && member === null && <p className="mt-3 text-sm text-[#6B7280]"><Link to="/login" className="font-semibold text-[#FF6B47] underline">로그인</Link> 후 댓글과 답글을 작성할 수 있습니다.</p>}
+    {!event.isMock && member === null && <p className="mt-3 text-sm text-[#6B7280]">로그인하시면 댓글 작성 및 확인이 가능합니다.</p>}
     {member && <CommentForm label="댓글 작성" placeholder="행사에 대한 이야기를 남겨보세요" submitting={submitting} onSubmit={content => add(null, content)} />}
     {actionError && <p role="alert" className="mt-3 rounded-xl bg-[#FFF0EC] px-3 py-2 text-sm text-[#B93820]">{getCommentError(actionError, '처리')}</p>}
-    <div className="mt-4">
+    <div className="relative mt-4">
+      {!event.isMock && member === null && (
+        <div className="absolute inset-0 z-10 flex min-h-28 items-center justify-center rounded-xl bg-white/60 backdrop-blur-[1px]">
+          <Link to="/login" className="rounded-xl bg-[#FF6B47] px-5 py-3 text-sm font-bold text-white shadow-sm">
+            로그인하기
+          </Link>
+        </div>
+      )}
+      <div className={!event.isMock && member === null ? 'pointer-events-none select-none blur-sm' : ''}
+        aria-hidden={!event.isMock && member === null ? 'true' : undefined}>
       {loading && <p role="status" className="py-5 text-sm text-[#6B7280]">댓글을 불러오는 중입니다.</p>}
       {error && <div role="alert" className="py-5 text-sm text-[#6B7280]"><p>{getCommentError(error)}</p>
         <button type="button" onClick={() => setRetry(value => value + 1)} className="mt-2 font-semibold text-[#FF6B47]">다시 시도</button></div>}
       {!loading && !error && comments.length === 0 && <p className="py-5 text-sm text-[#6B7280]">첫 댓글을 남겨보세요.</p>}
       {!loading && !error && roots.map(comment => <CommentItem key={comment.commentId} comment={comment} replies={repliesFor(comment.commentId)}
         member={member} submitting={submitting} onReply={(parentId, content) => add(parentId, content)} onUpdate={update} onDelete={remove} />)}
+      </div>
     </div>
   </section>
 }

@@ -1,14 +1,22 @@
 import {
+  fireEvent,
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react'
 
 import App from './App'
 import { getCurrentMember } from './api/auth'
+import api from './api/axios'
 
 jest.mock('./api/auth', () => ({
   getCurrentMember: jest.fn(),
+}))
+
+jest.mock('./api/axios', () => ({
+  __esModule: true,
+  default: { post: jest.fn() },
 }))
 
 jest.mock('./screens/Home', () => () => (
@@ -141,5 +149,66 @@ describe('로그인 성공 후 프로필 완성 여부 확인', () => {
       expect(window.location.pathname).toBe('/')
       expect(window.location.search).toBe('')
     })
+  })
+})
+
+describe('로그인 필요 탭 보호', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  test.each(['/course', '/favorites', '/my'])(
+    '비로그인 상태에서 %s 진입 시 로그인 안내 화면으로 이동한다',
+    async path => {
+      getCurrentMember.mockResolvedValue(null)
+      window.history.replaceState({}, '', path)
+
+      render(<App />)
+
+      expect(await screen.findByText('LOGIN_PROMPT_PAGE')).toBeInTheDocument()
+      expect(window.location.pathname).toBe('/login-prompt')
+    }
+  )
+
+  test('로그인 상태에서는 코스 탭에 진입한다', async () => {
+    getCurrentMember.mockResolvedValue({ memberId: 1 })
+    window.history.replaceState({}, '', '/course')
+
+    render(<App />)
+
+    expect(await screen.findByText('COURSE_PAGE')).toBeInTheDocument()
+  })
+})
+
+describe('앱 메뉴 로그인 상태', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    window.history.replaceState({}, '', '/')
+  })
+
+  test('비로그인 상태에서는 로그인 링크를 표시한다', async () => {
+    getCurrentMember.mockResolvedValue(null)
+    render(<App />)
+
+    expect(await screen.findByRole('link', { name: '로그인' })).toHaveAttribute('href', '/login')
+    expect(screen.queryByRole('button', { name: '로그아웃' })).not.toBeInTheDocument()
+  })
+
+  test('로그인 상태에서는 확인 후 로그아웃한다', async () => {
+    getCurrentMember.mockResolvedValue({ memberId: 1 })
+    api.post.mockResolvedValue({ status: 204 })
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: '로그아웃' }))
+    const dialog = screen.getByRole('dialog', { name: '로그아웃' })
+    expect(within(dialog).getByText('로그아웃 하시겠어요?')).toBeInTheDocument()
+    expect(api.post).not.toHaveBeenCalled()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: '로그아웃' }))
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/logout'))
+    expect(await screen.findByText('HOME_PAGE')).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/')
+    expect(screen.getByRole('link', { name: '로그인' })).toHaveAttribute('href', '/login')
+    expect(screen.queryByRole('button', { name: '로그아웃' })).not.toBeInTheDocument()
   })
 })

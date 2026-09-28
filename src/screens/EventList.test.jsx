@@ -4,10 +4,11 @@ import api from '../api/axios'
 import EventList from './EventList'
 import Search from './Search'
 import EventDetail from './EventDetail'
+import { getCurrentMember } from '../api/auth'
 
-jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn() } }))
+jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn(), delete: jest.fn() } }))
 jest.mock('../api/comments', () => ({ getComments: () => Promise.resolve([]), createComment: jest.fn(), updateComment: jest.fn(), deleteComment: jest.fn(), getCommentError: () => '댓글 오류' }))
-jest.mock('../api/auth', () => ({ getCurrentMember: () => Promise.resolve(null) }))
+jest.mock('../api/auth', () => ({ getCurrentMember: jest.fn() }))
 const eventId = 'https://culture.seoul.go.kr/event?id=12&name=서울'
 const event = { eventId, title: '서울 사진 전시', category: '전시/미술', district: '마포구', place: '문화회관', startDate: '2026-10-10', endDate: '2026-10-12', viewCount: 1234 }
 const result = events => ({ data: { events, count: events.length, totalCount: events.length } })
@@ -29,6 +30,8 @@ function renderEvents(initial = '/events') {
 beforeEach(() => {
   localStorage.clear()
   process.env.REACT_APP_DATA_MODE = 'api'
+  getCurrentMember.mockReset()
+  getCurrentMember.mockResolvedValue(null)
   api.get.mockReset()
   api.post.mockReset().mockImplementation((path, body, config) => Promise.resolve({
     data: path === '/events/summary'
@@ -56,15 +59,40 @@ test('loads real results and preserves filters when returning from URL-ID detail
   expect(screen.getByRole('button', { name: '마포구 조건 해제' })).toBeInTheDocument()
 })
 
-test('행사를 코스에 담고 다시 누르면 제거한다', async () => {
+test('추가 버튼은 로그인 사용자에게만 표시한다', async () => {
+  const { unmount } = renderEvents()
+  await screen.findByText('1개의 행사')
+  expect(screen.queryByRole('button', { name: /관심행사 추가/ })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /코스에 추가/ })).not.toBeInTheDocument()
+  unmount()
+
+  getCurrentMember.mockResolvedValue({ memberId: 1 })
   renderEvents()
-  const addButton = await screen.findByRole('button', { name: '+ 코스에 담기' })
-  fireEvent.click(addButton)
-  expect(screen.getByRole('button', { name: '✓ 코스에 담음' })).toHaveAttribute('aria-pressed', 'true')
-  expect(screen.getByRole('link', { name: '코스 만들기 →' })).toHaveAttribute('href', '/course')
-  expect(JSON.parse(localStorage.getItem('culturemate.course-draft.v1'))[0].eventId).toBe(eventId)
-  fireEvent.click(screen.getByRole('button', { name: '✓ 코스에 담음' }))
-  expect(screen.getByRole('button', { name: '+ 코스에 담기' })).toHaveAttribute('aria-pressed', 'false')
+  expect(await screen.findByRole('button', { name: /관심행사 추가/ })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /코스에 추가/ })).toBeInTheDocument()
+})
+
+test('a saved favorite can be cancelled from the card, and failures are shown', async () => {
+  getCurrentMember.mockResolvedValue({ memberId: 1 })
+  api.post.mockResolvedValue({ data: { eventId } })
+  api.delete.mockResolvedValueOnce({})
+  renderEvents()
+
+  const add = await screen.findByRole('button', { name: /관심행사 추가/ })
+  expect(add).toHaveTextContent('🤍 관심행사')
+  fireEvent.click(add)
+  const cancel = await screen.findByRole('button', { name: /관심행사 취소/ })
+  expect(cancel).toHaveTextContent('❤️ 저장됨')
+  expect(cancel).toBeEnabled()
+  expect(api.post).toHaveBeenCalledWith('/favorites', { eventId })
+
+  fireEvent.click(cancel)
+  await screen.findByRole('button', { name: /관심행사 추가/ })
+  expect(api.delete).toHaveBeenCalledWith('/favorites', { params: { eventId } })
+
+  api.post.mockRejectedValueOnce({ response: { status: 500 } })
+  fireEvent.click(screen.getByRole('button', { name: /관심행사 추가/ }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('관심행사 저장에 실패했습니다.')
 })
 
 test('filter changes are drafts until Apply, cancel discards them, dates support multiple months', async () => {
@@ -103,7 +131,7 @@ test('filter changes are drafts until Apply, cancel discards them, dates support
   expect(api.get.mock.calls[3][1].params.has('to')).toBe(false)
 })
 
-test('a single date submits the same start and end, then an earlier date completes the range', async () => {
+test('a past date range automatically enables the past-events filter', async () => {
   renderEvents('/search')
   fireEvent.click(screen.getByRole('button', { name: '2026-09-24' }))
   expect(screen.getByLabelText('시작일')).toHaveTextContent('2026-09-24')
@@ -120,8 +148,10 @@ test('a single date submits the same start and end, then an earlier date complet
   expect(dialog.getByRole('button', { name: '2026-09-22' })).toHaveAttribute('aria-pressed', 'true')
   fireEvent.click(dialog.getByRole('button', { name: '필터 적용하기' }))
   await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2))
-  expect(api.get.mock.calls[1][1].params.get('from')).toBe('2026-09-24')
+  expect(api.get.mock.calls[1][1].params.get('from')).toBe('2026-09-20')
   expect(api.get.mock.calls[1][1].params.get('to')).toBe('2026-09-24')
+  expect(screen.getByRole('checkbox', { name: '지난 행사 보기' })).toBeChecked()
+  expect(screen.getByTestId('url')).toHaveTextContent('includePast=true')
 })
 
 test('completed ranges restart on the third click; clearing and reset restart selection', () => {
@@ -142,6 +172,21 @@ test('completed ranges restart on the third click; clearing and reset restart se
   pick('2026-09-24')
   expect(screen.getByLabelText('시작일')).toHaveTextContent('2026-09-24')
   expect(screen.getByLabelText('종료일')).toHaveTextContent('2026-09-24')
+})
+
+test('calendar keeps its layout while allowing direct year and month navigation', () => {
+  renderEvents('/search')
+
+  fireEvent.change(screen.getByRole('combobox', { name: '연도 선택' }), { target: { value: '2025' } })
+  fireEvent.change(screen.getByRole('combobox', { name: '월 선택' }), { target: { value: '11' } })
+
+  expect(screen.getByRole('combobox', { name: '연도 선택' })).toHaveValue('2025')
+  expect(screen.getByRole('combobox', { name: '월 선택' })).toHaveValue('11')
+  expect(screen.getByRole('button', { name: '2025-11-10' })).toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: '2025-11-10' }))
+  expect(screen.getByLabelText('시작일')).toHaveTextContent('2025-11-10')
+  expect(screen.getByLabelText('종료일')).toHaveTextContent('2025-11-10')
 })
 
 test('keyword submit resets page, and browser Back restores the previous query', async () => {

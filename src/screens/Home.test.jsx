@@ -42,6 +42,30 @@ test('loads the two API sections, keeps server order and links URL-shaped IDs', 
   expect(screen.getByRole('link', { name: /어떤 문화행사/ })).toHaveAttribute('href', '/search')
 })
 
+test('HOT carousel shows arrows only toward remaining cards and scrolls by most of a page', async () => {
+  const widths = [
+    jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(300),
+    jest.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(900),
+  ]
+  const scrollBy = jest.fn()
+  HTMLElement.prototype.scrollBy = scrollBy
+  try {
+    renderHome()
+    const list = (await screen.findByRole('link', { name: /인기 전시/ })).parentElement
+    fireEvent.click(await screen.findByRole('button', { name: '다음 HOT 행사' }))
+    expect(screen.queryByRole('button', { name: '이전 HOT 행사' })).not.toBeInTheDocument()
+    expect(scrollBy).toHaveBeenCalledWith({ left: 240, behavior: 'smooth' })
+
+    Object.defineProperty(list, 'scrollLeft', { configurable: true, value: 600 })
+    fireEvent.scroll(list)
+    expect(screen.getByRole('button', { name: '이전 HOT 행사' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '다음 HOT 행사' })).not.toBeInTheDocument()
+  } finally {
+    widths.forEach(spy => spy.mockRestore())
+    delete HTMLElement.prototype.scrollBy
+  }
+})
+
 test('an error in HOT does not hide upcoming events and retry only reloads HOT', async () => {
   api.get.mockImplementation(path => path.includes('hot-events')
     ? Promise.reject({ response: { status: 502 } })
