@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 import {
   BrowserRouter,
   Link,
+  Navigate,
   Outlet,
   Route,
   Routes,
@@ -21,6 +22,9 @@ import Login from './screens/Login'
 import LoginPrompt from './screens/LoginPrompt'
 import ProfileSetup from './screens/ProfileSetup'
 import { getCurrentMember } from './api/auth'
+import api from './api/axios'
+import useCurrentMember from './hooks/useCurrentMember'
+import EventDialog from './components/EventDialog'
 
 const NAV_ITEMS = [
   { icon: '🏠', label: '홈', path: '/' },
@@ -124,11 +128,39 @@ function LoginResultHandler() {
 
 function AppLayout() {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const { member, clearMember } = useCurrentMember()
+  const [logoutOpen, setLogoutOpen] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
+  const [logoutError, setLogoutError] = useState('')
 
   const isActive = path =>
     path === '/'
       ? pathname === '/'
       : pathname.startsWith(path)
+
+  const handleLogout = async () => {
+    if (loggingOut) return
+    setLoggingOut(true)
+    setLogoutError('')
+
+    try {
+      await api.post('/auth/logout')
+      clearMember()
+      setLogoutOpen(false)
+      navigate('/', { replace: true })
+    } catch (error) {
+      if (error.response?.status === 401) {
+        clearMember()
+        setLogoutOpen(false)
+        navigate('/', { replace: true })
+        return
+      }
+      setLogoutError('로그아웃에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    } finally {
+      setLoggingOut(false)
+    }
+  }
 
   return (
     <div className="flex min-h-dvh bg-[#FAFAF8]">
@@ -179,7 +211,7 @@ function AppLayout() {
                 '/course',
                 '/favorites',
                 '/my',
-              ].includes(item.path) && (
+              ].includes(item.path) && !member && (
                 <span className="hidden lg:block text-[10px] text-white/30">
                   🔒
                 </span>
@@ -188,8 +220,28 @@ function AppLayout() {
           ))}
         </div>
 
-        {/* develop / PR 19의 로그인 Link 유지 */}
-        <Link
+        {member === undefined ? <div
+          aria-label="로그인 상태 확인 중"
+          className="p-3 border-t border-white/10 flex items-center gap-3 text-white/30"
+        >
+          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 text-sm">
+            👤
+          </div>
+          <span className="hidden lg:block text-xs font-medium">확인 중...</span>
+        </div> : member ? <button
+          type="button"
+          onClick={() => { setLogoutError(''); setLogoutOpen(true) }}
+          aria-label="로그아웃"
+          className="p-3 border-t border-white/10 flex items-center gap-3 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-white transition-colors"
+        >
+          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 text-sm">
+            🚪
+          </div>
+
+          <span className="hidden lg:block text-white/40 text-xs font-medium">
+            로그아웃
+          </span>
+        </button> : <Link
           to="/login"
           aria-label="로그인"
           className="p-3 border-t border-white/10 flex items-center gap-3 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-white transition-colors"
@@ -201,7 +253,7 @@ function AppLayout() {
           <span className="hidden lg:block text-white/40 text-xs font-medium">
             로그인
           </span>
-        </Link>
+        </Link>}
       </nav>
 
       <div className="flex-1 flex flex-col min-w-0 relative">
@@ -258,8 +310,48 @@ function AppLayout() {
           </nav>
         )}
       </div>
+
+      {logoutOpen && <EventDialog title="로그아웃" id="logout-confirm-title" onClose={() => !loggingOut && setLogoutOpen(false)}>
+        <p className="text-sm text-[#6B7280]">로그아웃 하시겠어요?</p>
+        {logoutError && <p role="alert" className="mt-3 text-sm text-[#B93820]">{logoutError}</p>}
+        <div className="mt-6 flex justify-end gap-3">
+          <button type="button" disabled={loggingOut} onClick={() => setLogoutOpen(false)}
+            className="rounded-xl border border-[#E5E7EB] px-5 py-3 text-sm font-semibold disabled:opacity-50">
+            취소
+          </button>
+          <button type="button" disabled={loggingOut} onClick={handleLogout}
+            className="rounded-xl bg-[#FF6B47] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">
+            {loggingOut ? '로그아웃 중...' : '로그아웃'}
+          </button>
+        </div>
+      </EventDialog>}
     </div>
   )
+}
+
+function RequireAuth({ children }) {
+  const location = useLocation()
+  const { member, error } = useCurrentMember()
+
+  if (member === undefined) {
+    return (
+      <div role="status" className="flex min-h-[50vh] items-center justify-center text-sm text-[#6B7280]">
+        로그인 상태를 확인하고 있습니다.
+      </div>
+    )
+  }
+
+  if (!member) {
+    return (
+      <Navigate
+        to="/login-prompt"
+        replace
+        state={{ from: location.pathname, authError: Boolean(error) }}
+      />
+    )
+  }
+
+  return children
 }
 
 export default function App() {
@@ -303,24 +395,24 @@ export default function App() {
 
           <Route
             path="/course"
-            element={<Course />}
+            element={<RequireAuth><Course /></RequireAuth>}
           />
 
           <Route
             path="/favorites"
-            element={<Favorites />}
+            element={<RequireAuth><Favorites /></RequireAuth>}
           />
 
           <Route
             path="/favorites/calendar"
             element={
-              <Favorites view="calendar" />
+              <RequireAuth><Favorites view="calendar" /></RequireAuth>
             }
           />
 
           <Route
             path="/my"
-            element={<MyPage />}
+            element={<RequireAuth><MyPage /></RequireAuth>}
           />
 
           <Route

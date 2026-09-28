@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getHomeError, getHotEvents, getUpcomingEvents } from '../api/home'
 import { CATEGORY_COLOR } from '../data/events'
@@ -14,7 +14,7 @@ function HotCard({ event }) {
   const [imageFailed, setImageFailed] = useState(false)
   const color = CATEGORY_COLOR[event.category]?.text ?? '#FF6B47'
   return (
-    <Link to={eventPath(event)} className="flex-shrink-0 w-[200px] md:w-auto rounded-2xl overflow-hidden shadow-sm active:scale-95 transition-transform focus-visible:outline focus-visible:outline-[#FF6B47]">
+    <Link to={eventPath(event)} className="snap-start flex-shrink-0 w-[200px] md:w-auto rounded-2xl overflow-hidden shadow-sm active:scale-95 transition-transform focus-visible:outline focus-visible:outline-[#FF6B47]">
       <div className="relative h-[130px] md:h-[160px] bg-gray-100">
         {event.imageUrl && !imageFailed ? (
           <img src={event.imageUrl} alt="" loading="lazy" onError={() => setImageFailed(true)} className="w-full h-full object-cover" />
@@ -37,6 +37,55 @@ function HotCard({ event }) {
         </div>
       </div>
     </Link>
+  )
+}
+
+function ScrollButton({ direction, onClick }) {
+  const previous = direction < 0
+  return (
+    <button type="button" aria-label={previous ? '이전 HOT 행사' : '다음 HOT 행사'} onClick={onClick}
+      className={`md:hidden absolute top-[65px] -translate-y-1/2 ${previous ? 'left-0' : 'right-0'} z-10 w-9 h-9 rounded-full bg-white/95 shadow-md text-[#1A1A2E] font-bold flex items-center justify-center`}>
+      {previous ? '‹' : '›'}
+    </button>
+  )
+}
+
+// 폰 너비에서는 가로로 넘기고, md 이상에서는 기존 그리드로 보여준다.
+function HotCarousel({ events }) {
+  const listRef = useRef(null)
+  const [edges, setEdges] = useState({ start: true, end: true })
+
+  const updateEdges = useCallback(() => {
+    const list = listRef.current
+    if (!list) return
+    const start = list.scrollLeft <= 4
+    const end = list.scrollLeft + list.clientWidth >= list.scrollWidth - 4
+    setEdges(prev => (prev.start === start && prev.end === end ? prev : { start, end }))
+  }, [])
+
+  useEffect(() => {
+    updateEdges()
+    window.addEventListener('resize', updateEdges)
+    return () => window.removeEventListener('resize', updateEdges)
+  }, [events, updateEdges])
+
+  const scrollByPage = direction => {
+    const list = listRef.current
+    if (list) list.scrollBy({ left: direction * list.clientWidth * 0.8, behavior: 'smooth' })
+  }
+
+  return (
+    <div className="relative">
+      {!edges.start && <ScrollButton direction={-1} onClick={() => scrollByPage(-1)} />}
+      <div ref={listRef} onScroll={updateEdges}
+        className="flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 overflow-x-auto snap-x snap-mandatory scroll-px-5 md:snap-none pb-2 -mx-5 px-5 md:mx-0 md:px-0 hide-scrollbar">
+        {events.map(event => <HotCard key={event.eventId} event={event} />)}
+      </div>
+      {!edges.end && <>
+        <div aria-hidden="true" className="md:hidden pointer-events-none absolute top-0 bottom-2 -right-5 w-10 bg-gradient-to-l from-[#FAFAF8] to-transparent" />
+        <ScrollButton direction={1} onClick={() => scrollByPage(1)} />
+      </>}
+    </div>
   )
 }
 
@@ -138,11 +187,11 @@ export default function Home({ showAllHot = false }) {
           {showAllHot && <p className="text-sm text-[#6B7280] mb-4">조회수가 높은 행사 최대 30개를 보여드려요.</p>}
           {hotMock && <DemoNotice onRetry={getDataMode() === 'auto' ? () => setHotRetry(value => value + 1) : undefined} />}
           <SectionStatus loading={hotLoading} error={hotError} empty={!hotEvents.length} onRetry={() => setHotRetry(value => value + 1)} />
-          {!hotLoading && !hotError && <div className={showAllHot
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 [&>a]:w-full'
-            : 'flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 overflow-x-auto pb-2 -mx-5 px-5 md:mx-0 md:px-0 hide-scrollbar'}>
-            {hotEvents.map(event => <HotCard key={event.eventId} event={event} />)}
-          </div>}
+          {!hotLoading && !hotError && (showAllHot
+            ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 [&>a]:w-full">
+              {hotEvents.map(event => <HotCard key={event.eventId} event={event} />)}
+            </div>
+            : <HotCarousel events={hotEvents} />)}
         </section>
 
         {!showAllHot && <section aria-labelledby="upcoming-title" aria-busy={upcomingLoading} className="pt-6 pb-8 max-w-5xl">

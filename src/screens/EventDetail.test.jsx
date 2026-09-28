@@ -15,7 +15,9 @@ import { getEventDetail } from '../api/events'
 import {
   addFavorite,
   getFavorites,
+  removeFavorite,
 } from '../api/favorites'
+import { getCurrentMember } from '../api/auth'
 
 jest.mock('../api/events', () => ({
   getEventDetail: jest.fn(),
@@ -24,6 +26,11 @@ jest.mock('../api/events', () => ({
 jest.mock('../api/favorites', () => ({
   addFavorite: jest.fn(),
   getFavorites: jest.fn(),
+  removeFavorite: jest.fn(),
+}))
+
+jest.mock('../api/auth', () => ({
+  getCurrentMember: jest.fn(),
 }))
 
 jest.mock('../components/DemoNotice', () => {
@@ -97,9 +104,12 @@ function renderEventDetail() {
 }
 
 beforeEach(() => {
+  localStorage.clear()
   getEventDetail.mockReset()
   getFavorites.mockReset()
   addFavorite.mockReset()
+  removeFavorite.mockReset()
+  getCurrentMember.mockReset()
 
   getEventDetail.mockResolvedValue({
     event: EVENT,
@@ -108,6 +118,27 @@ beforeEach(() => {
 
   // 기본 상태: 로그인되어 있지만 아직 저장하지 않은 행사
   getFavorites.mockResolvedValue([])
+  getCurrentMember.mockResolvedValue({ memberId: 1 })
+})
+
+test('비로그인 사용자는 관심행사와 코스 추가 버튼을 볼 수 없다', async () => {
+  getCurrentMember.mockResolvedValue(null)
+  renderEventDetail()
+
+  expect(await screen.findByText('서울 문화행사')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: '관심행사 저장' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: '코스에 추가' })).not.toBeInTheDocument()
+  expect(getFavorites).not.toHaveBeenCalled()
+})
+
+test('로그인 사용자는 상세 행사에서 코스에 추가할 수 있다', async () => {
+  renderEventDetail()
+
+  const button = await screen.findByRole('button', { name: '코스에 추가' })
+  fireEvent.click(button)
+
+  expect(button).toHaveAttribute('aria-pressed', 'true')
+  expect(JSON.parse(localStorage.getItem('culturemate.course-draft.v1'))[0].eventId).toBe(EVENT_ID)
 })
 
 test('행사 상세 정보를 표시한다', async () => {
@@ -162,6 +193,21 @@ test('이미 저장된 행사는 진입 시 저장된 상태로 표시한다', a
     )
   ).toBeInTheDocument()
 
+  expect(addFavorite).not.toHaveBeenCalled()
+})
+
+test('저장된 행사에서 버튼을 다시 누르면 관심행사를 취소한다', async () => {
+  getFavorites.mockResolvedValue([{ eventId: EVENT_ID, title: EVENT.title }])
+  removeFavorite.mockResolvedValue()
+
+  renderEventDetail()
+
+  const button = await screen.findByRole('button', { name: '관심행사 저장 취소' })
+  await waitFor(() => expect(button).not.toBeDisabled())
+  fireEvent.click(button)
+
+  await waitFor(() => expect(removeFavorite).toHaveBeenCalledWith(EVENT_ID))
+  expect(await screen.findByText('🤍 관심행사에 저장')).toBeInTheDocument()
   expect(addFavorite).not.toHaveBeenCalled()
 })
 

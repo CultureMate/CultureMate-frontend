@@ -38,6 +38,10 @@ test('로그인 화면을 정상적으로 표시한다', () => {
   ).toBeInTheDocument()
 
   expect(
+    screen.getByRole('link', { name: '홈으로' })
+  ).toHaveAttribute('href', '/')
+
+  expect(
     screen.queryByText('카카오 로그인이 취소되었습니다.')
   ).not.toBeInTheDocument()
 })
