@@ -9,7 +9,7 @@ jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn(), 
 jest.mock('../api/comments', () => ({ getComments: () => Promise.resolve([]), createComment: jest.fn(), updateComment: jest.fn(), deleteComment: jest.fn(), getCommentError: () => '댓글 오류' }))
 jest.mock('../api/auth', () => ({ getCurrentMember: () => Promise.resolve(null) }))
 const eventId = 'https://culture.seoul.go.kr/event?id=12&name=서울'
-const event = { eventId, title: '서울 사진 전시', category: '전시/미술', district: '마포구', place: '문화회관', startDate: '2026-10-10', endDate: '2026-10-12' }
+const event = { eventId, title: '서울 사진 전시', category: '전시/미술', district: '마포구', place: '문화회관', startDate: '2026-10-10', endDate: '2026-10-12', viewCount: 1234 }
 const result = events => ({ data: { events, count: events.length, totalCount: events.length } })
 
 function LocationControls() {
@@ -45,6 +45,7 @@ test('loads real results and preserves filters when returning from URL-ID detail
   expect(within(screen.getByRole('region', { name: '행사 검색 결과' })).getByRole('status')).toHaveTextContent('불러오는 중')
   const card = await screen.findByRole('link', { name: /서울 사진 전시/ })
   expect(screen.getByText('1개의 행사')).toBeInTheDocument()
+  expect(screen.getByLabelText('조회수 1,234')).toBeInTheDocument()
   fireEvent.click(card)
   expect(await screen.findByRole('heading', { name: '서울 사진 전시' })).toBeInTheDocument()
   expect(api.get).toHaveBeenCalledWith('/events/detail', expect.objectContaining({ params: { eventId } }))
@@ -150,12 +151,34 @@ test('pagination requests another page and categories return to page zero', asyn
   renderEvents()
   await screen.findByText('10개의 행사')
   fireEvent.click(screen.getByRole('button', { name: '다음' }))
-  await screen.findByText('2 / 2')
+  await waitFor(() => expect(screen.getByRole('button', { name: '2페이지' })).toHaveAttribute('aria-current', 'page'))
   expect(api.get.mock.calls[1][1].params.get('page')).toBe('1')
   expect(screen.getByRole('button', { name: '다음' })).toBeDisabled()
   fireEvent.click(screen.getByRole('button', { name: '전시' }))
-  await screen.findByText('1 / 2')
+  await waitFor(() => expect(screen.getByRole('button', { name: '1페이지' })).toHaveAttribute('aria-current', 'page'))
   expect(api.get.mock.calls[2][1].params.getAll('category')).toEqual(['전시'])
+})
+
+test('pagination shows ten page indices and supports direct page entry', async () => {
+  api.get.mockResolvedValue({ data: { events: [event], count: 1, totalCount: 65 } })
+  renderEvents()
+  await screen.findByText('65개의 행사')
+  expect(within(screen.getByLabelText('페이지 번호')).getAllByRole('button')).toHaveLength(10)
+  fireEvent.change(screen.getByRole('spinbutton', { name: '페이지' }), { target: { value: '11' } })
+  fireEvent.submit(screen.getByRole('form', { name: '페이지 직접 이동' }))
+  await waitFor(() => expect(api.get.mock.calls[1][1].params.get('page')).toBe('10'))
+  expect(await screen.findByRole('button', { name: '11페이지' })).toHaveAttribute('aria-current', 'page')
+})
+
+test('past events are hidden by default and the toggle requests them from page zero', async () => {
+  renderEvents('/events?page=2')
+  await screen.findByText('1개의 행사')
+  expect(api.get.mock.calls[0][1].params.get('includePast')).toBe('false')
+  fireEvent.click(screen.getByRole('checkbox', { name: '지난 행사 보기' }))
+  await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2))
+  expect(api.get.mock.calls[1][1].params.get('includePast')).toBe('true')
+  expect(api.get.mock.calls[1][1].params.get('page')).toBe('0')
+  expect(screen.getByTestId('url')).toHaveTextContent('includePast=true')
 })
 
 test('no results opens condition guidance and a 401 is an error with retry', async () => {

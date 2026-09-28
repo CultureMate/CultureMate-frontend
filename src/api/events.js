@@ -5,6 +5,7 @@ import { createEventParams, EVENT_PAGE_SIZE, isEventDate } from '../utils/eventF
 
 export function filterMockEvents(events, filters) {
   const normalize = value => (value || '').trim().toLowerCase()
+  const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
   return events.filter(event => {
     const districtMatches = !filters.district.length || filters.district.some(value => normalize(value) === normalize(event.district))
     const categoryMatches = !filters.category.length || filters.category.some(value => normalize(event.category).includes(normalize(value)))
@@ -14,7 +15,8 @@ export function filterMockEvents(events, filters) {
       && (!filters.to || event.startDate <= filters.to))
     const keyword = normalize(filters.keyword)
     const keywordMatches = !keyword || normalize(event.title).includes(keyword) || normalize(event.place).includes(keyword)
-    return districtMatches && categoryMatches && dateMatches && keywordMatches
+    const periodMatches = filters.includePast || (validPeriod && event.endDate >= today)
+    return districtMatches && categoryMatches && dateMatches && keywordMatches && periodMatches
   }).sort((a, b) => (a.startDate || '9999').localeCompare(b.startDate || '9999') || (a.title || '').localeCompare(b.title || ''))
 }
 
@@ -27,7 +29,9 @@ export async function getEvents(filters, signal) {
   if (getDataMode() === 'mock') return loadMock()
   let data
   try {
-    const response = await api.get('/events', { params: createEventParams(filters), signal })
+    const params = createEventParams(filters)
+    params.set('includePast', String(Boolean(filters.includePast)))
+    const response = await api.get('/events', { params, signal })
     data = response.data
   } catch (error) {
     if (!signal?.aborted && canUseMock(error)) return loadMock()

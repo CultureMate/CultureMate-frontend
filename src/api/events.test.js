@@ -21,13 +21,14 @@ test('serializes repeated filters without brackets or double encoding', async ()
   expect(config.params.get('to')).toBe(filters.to)
   expect(config.params.has('date')).toBe(false)
   expect(config.params.get('keyword')).toBe('서울 사진')
+  expect(config.params.get('includePast')).toBe('false')
   expect(config.params.toString()).not.toContain('%5B')
   expect(config.params.get('size')).toBe(String(EVENT_PAGE_SIZE))
 })
 
 test('URL parsing removes duplicate and empty values and invalid dates/pages', () => {
   const filters = readEventFilters('district=마포구&district=마포구&district=&date=2026-02-30&date=2026-10-10&page=-2&keyword=++')
-  expect(filters).toEqual({ district: ['마포구'], category: [], from: '2026-10-10', to: '2026-10-10', keyword: '', page: 0 })
+  expect(filters).toEqual({ district: ['마포구'], category: [], from: '2026-10-10', to: '2026-10-10', keyword: '', includePast: false, page: 0 })
   expect(createEventParams(filters).has('keyword')).toBe(false)
   expect(readEventFilters('from=2026-10-12&to=2026-10-10')).toMatchObject({ from: '2026-10-10', to: '2026-10-12' })
   expect(readEventFilters('from=2026-10-10')).toMatchObject({ from: '2026-10-10', to: '2026-10-10' })
@@ -45,6 +46,13 @@ test('mock matches OR within filters, AND between filters, and sorts by start da
   const result = filterMockEvents(fixtures, { ...empty(), district: ['마포구', '강남구'], category: ['전시', '공연'], from: '2026-10-10', to: '2026-10-11', keyword: '서울' })
   expect(result.map(event => event.eventId)).toEqual(['a', 'b'])
   expect(filterMockEvents(fixtures, { ...empty(), keyword: '사진' }).map(event => event.eventId)).toEqual(['c', 'a'])
+})
+
+test('mock hides ended events by default and includes them when requested', () => {
+  jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-10-12T00:00:00Z').getTime())
+  expect(filterMockEvents(fixtures, empty()).map(event => event.eventId)).toEqual(['c', 'a'])
+  expect(filterMockEvents(fixtures, { ...empty(), includePast: true }).map(event => event.eventId)).toEqual(['c', 'a', 'b', 'd'])
+  jest.restoreAllMocks()
 })
 
 test.each([['2026-10-09', 0], ['2026-10-10', 1], ['2026-10-12', 1], ['2026-10-13', 0]])('date %s respects inclusive event boundaries', (date, count) => {
