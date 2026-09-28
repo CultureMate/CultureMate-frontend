@@ -35,6 +35,15 @@ test('URL parsing removes duplicate and empty values and invalid dates/pages', (
   expect(readEventFilters('from=2026-02-30&to=invalid')).toMatchObject({ from: '', to: '' })
 })
 
+test('serializing a date before today automatically enables past events', () => {
+  jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-09-24T01:00:00Z').getTime())
+  const params = createEventParams({ ...empty(), from: '2026-09-20', to: '2026-09-20' })
+  expect(params.get('from')).toBe('2026-09-20')
+  expect(params.get('to')).toBe('2026-09-20')
+  expect(params.get('includePast')).toBe('true')
+  jest.restoreAllMocks()
+})
+
 const fixtures = [
   { eventId: 'a', title: '사진 전시', place: '서울 전시장', district: '마포구', category: '전시/미술', startDate: '2026-10-10', endDate: '2026-10-12' },
   { eventId: 'b', title: '가을 공연', place: '서울 공연장', district: '강남구', category: '공연', startDate: '2026-10-11', endDate: '2026-10-11' },

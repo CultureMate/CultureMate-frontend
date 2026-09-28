@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { CATEGORIES, DISTRICTS } from '../data/events'
-import { toggleValue } from '../utils/eventFilters'
+import { includePastForSelectedDate, toggleValue } from '../utils/eventFilters'
 
 function CheckGroup({ label, options, selected, onChange, color }) {
   const [expanded, setExpanded] = useState(false)
@@ -84,6 +84,7 @@ export default function EventFilterFields({ value, onChange }) {
   return <>
     <CheckGroup label="자치구" options={DISTRICTS} selected={value.district} onChange={values => update('district', values)} color="#FF6B47" />
     <CheckGroup label="분야" options={CATEGORIES} selected={value.category} onChange={values => update('category', values)} color="#8B5CF6" />
-    <DatePicker from={value.from} to={value.to} onChange={range => onChange({ ...value, ...range })} />
+    <DatePicker from={value.from} to={value.to}
+      onChange={range => onChange(includePastForSelectedDate({ ...value, ...range }))} />
   </>
 }
