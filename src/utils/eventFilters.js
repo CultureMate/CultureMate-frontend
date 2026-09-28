@@ -19,6 +19,7 @@ export function readEventFilters(search = '') {
     from: dates[0] || '',
     to: dates[dates.length - 1] || '',
     keyword: (params.get('keyword') || '').trim(),
+    includePast: params.get('includePast') === 'true',
     page: Number.isSafeInteger(page) && page >= 0 ? page : 0,
   }
 }
@@ -35,6 +36,7 @@ export function createEventParams(filters, includePaging = true) {
     if (filters[key]) params.set(key, filters[key])
   }
   if (filters.keyword?.trim()) params.set('keyword', filters.keyword.trim())
+  if (filters.includePast) params.set('includePast', 'true')
   if (includePaging) {
     params.set('page', String(filters.page || 0))
     params.set('size', String(EVENT_PAGE_SIZE))

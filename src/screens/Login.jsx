@@ -1,8 +1,14 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { getKakaoLoginUrl } from '../api/auth'
 
 export default function Login() {
+  const { state } = useLocation()
+
   const [loading, setLoading] = useState(false)
+
+  const loginCancelled =
+    state?.loginCancelled === true
 
   const handleKakaoLogin = () => {
     if (loading) return
@@ -26,6 +32,7 @@ export default function Login() {
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FF6B47] to-[#8B5CF6] flex items-center justify-center shadow-lg">
             <span className="text-2xl">🎪</span>
           </div>
+
           <span className="font-display text-white text-2xl font-bold">
             서울문화
           </span>
@@ -98,10 +105,27 @@ export default function Login() {
             <h2 className="font-display text-[#1A1A2E] text-3xl font-bold">
               시작하기
             </h2>
+
             <p className="text-[#6B7280] text-sm mt-2">
               카카오 계정으로 간편하게 로그인하세요
             </p>
           </div>
+
+          {/* 로그인 취소 안내 */}
+          {loginCancelled && (
+            <div
+              role="alert"
+              className="mb-4 rounded-xl bg-[#FFF0EC] border border-[#FFD8CF] px-4 py-3"
+            >
+              <p className="text-[#FF6B47] text-sm font-semibold">
+                카카오 로그인이 취소되었습니다.
+              </p>
+
+              <p className="text-[#6B7280] text-xs mt-1">
+                다시 로그인하려면 아래 버튼을 눌러주세요.
+              </p>
+            </div>
+          )}
 
           {/* 카카오 로그인 버튼 */}
           <button
@@ -112,7 +136,8 @@ export default function Login() {
             style={{
               backgroundColor: '#FFE500',
               color: '#1A1A2E',
-              boxShadow: '0 8px 24px rgba(255,229,0,0.3)',
+              boxShadow:
+                '0 8px 24px rgba(255,229,0,0.3)',
             }}
           >
             <div className="w-6 h-6 bg-[#1A1A2E] rounded-full flex items-center justify-center flex-shrink-0">
@@ -129,9 +154,13 @@ export default function Login() {
 
         <p className="text-center text-white/30 lg:text-[#9CA3AF] text-xs pb-10 px-8 leading-relaxed">
           로그인 시{' '}
-          <span className="underline">이용약관</span>
-          {' '}및{' '}
-          <span className="underline">개인정보 처리방침</span>
+          <span className="underline">
+            이용약관
+          </span>{' '}
+          및{' '}
+          <span className="underline">
+            개인정보 처리방침
+          </span>
           에 동의하게 됩니다
         </p>
       </div>
