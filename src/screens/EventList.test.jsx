@@ -27,6 +27,7 @@ function renderEvents(initial = '/events') {
 }
 
 beforeEach(() => {
+  localStorage.clear()
   process.env.REACT_APP_DATA_MODE = 'api'
   api.get.mockReset()
   api.post.mockReset().mockImplementation((path, body, config) => Promise.resolve({
@@ -53,6 +54,17 @@ test('loads real results and preserves filters when returning from URL-ID detail
   await screen.findByRole('link', { name: /서울 사진 전시/ })
   expect(screen.getByRole('searchbox')).toHaveValue('사진')
   expect(screen.getByRole('button', { name: '마포구 조건 해제' })).toBeInTheDocument()
+})
+
+test('행사를 코스에 담고 다시 누르면 제거한다', async () => {
+  renderEvents()
+  const addButton = await screen.findByRole('button', { name: '+ 코스에 담기' })
+  fireEvent.click(addButton)
+  expect(screen.getByRole('button', { name: '✓ 코스에 담음' })).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.getByRole('link', { name: '코스 만들기 →' })).toHaveAttribute('href', '/course')
+  expect(JSON.parse(localStorage.getItem('culturemate.course-draft.v1'))[0].eventId).toBe(eventId)
+  fireEvent.click(screen.getByRole('button', { name: '✓ 코스에 담음' }))
+  expect(screen.getByRole('button', { name: '+ 코스에 담기' })).toHaveAttribute('aria-pressed', 'false')
 })
 
 test('filter changes are drafts until Apply, cancel discards them, dates support multiple months', async () => {

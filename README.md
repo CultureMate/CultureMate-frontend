@@ -45,7 +45,7 @@ Figma에서 가져온 화면을 URL로 각각 미리 볼 수 있습니다. 홈�
 | `/events/filter` | 행사 목록의 필터 레이어 바로 열기 |
 | `/events/:id` | 행사 상세 (샘플: `/events/mock-1`) |
 | `/search` | 다중 조건·키워드 선택 후 행사 목록으로 이동 |
-| `/course` | 코스 목록 |
+| `/course` | 코스 만들기 |
 | `/favorites` | 관심 목록 |
 | `/favorites/calendar` | 관심 행사 캘린더 시안 |
 | `/my` | 마이페이지 |
@@ -53,7 +53,7 @@ Figma에서 가져온 화면을 URL로 각각 미리 볼 수 있습니다. 홈�
 | `/login` | 로그인 |
 | `/profile` | 프로필 설정 |
 
-홈·행사 목록·검색·필터·행사 상세는 기능이 연결되어 있습니다. 코스·관심목록·로그인 화면은 아직 시안입니다. 행사 상세는 원문 링크, AI 소개문 요청, 조회수 증가, 댓글·대댓글, 카카오맵을 제공합니다(아래 지도 설정 필요). 목록의 기존 비동작 찜·코스 버튼과 동행인 필터는 이번 검색 범위에서 제외했습니다. 찜 API 연동은 별도 작업입니다. 지도·이미지·글꼴은 외부 서비스를 사용하므로 인터넷 연결 상태에 따라 표시가 달라질 수 있습니다.
+홈·행사 목록·검색·필터·행사 상세·코스 만들기는 기능이 연결되어 있습니다. 관심목록·로그인 화면은 아직 시안입니다. 행사 상세는 원문 링크, AI 소개문 요청, 조회수 증가, 댓글·대댓글, 카카오맵을 제공합니다(아래 지도 설정 필요). 찜 API 연동은 별도 작업입니다. 지도·이미지·글꼴은 외부 서비스를 사용하므로 인터넷 연결 상태에 따라 표시가 달라질 수 있습니다.
 
 ## API 통신
 
@@ -102,6 +102,22 @@ GET /api/events?district=강남구&district=마포구&category=전시&category=�
 - 목업도 종료된 행사와 다가오는 행사를 함께 제공하고 동일한 조건 필터링 → 시작일 정렬 → 페이지 분할을 적용합니다. 실제 인증 오류와 정상 빈 결과는 목업으로 바꾸지 않습니다.
 
 목록·검색 계약은 [백엔드 API 명세](https://github.com/CultureMate/CultureMate-backend/blob/develop/docs/api-contract.md)와 `EventService`를 확인했습니다. 실제 서울시 데이터를 사용하는 통합 검증에는 백엔드 실행과 서울시 API 키 설정이 필요합니다.
+
+### 코스 만들기·주변 장소 API
+
+행사 목록의 `코스에 담기`로 고른 행사를 `/course`에서 불러옵니다. 행사·카페·음식점은 하나의 동선으로 관리하므로 드래그 또는 위·아래 버튼으로 종류와 관계없이 순서를 바꿀 수 있습니다. 작성 중인 이름과 동선은 브라우저에 임시 저장되어 행사 목록을 다시 다녀와도 유지됩니다.
+
+| 기능 | 요청 |
+| --- | --- |
+| 행사 주변 장소 | `GET /api/places/nearby?latitude=...&longitude=...&types=cafe&radius=1500&maxResults=20` |
+| 두 행사 사이 장소 | `GET /api/places/between?eventId1=...&eventId2=...&type=restaurant` |
+| 장소 사진 | `GET /api/places/photo?name=...&maxWidthPx=640` |
+| 코스 저장 | `POST /api/courses` |
+
+- 주변 장소 응답은 `placeId`, `name`, `address`, `rating`, `userRatingCount`, `latitude`, `longitude`, `mapUrl`, `photoName`, `photoAttribution`, `businessStatus`, `openNow`를 사용합니다.
+- 행사 좌표가 없으면 임의 위치로 검색하지 않고 안내를 표시합니다. 좌표가 있는 다른 행사를 기준으로 선택할 수 있습니다.
+- 코스 저장 payload는 `{ name, stops }`이며 각 stop에 0부터 시작하는 `order`를 보냅니다. 행사는 `{ type: "EVENT", eventId, order }`, 장소는 `{ type: "PLACE", placeId, placeType, name, address, latitude, longitude, order }` 형식입니다.
+- 현재 백엔드에는 코스 저장 API가 아직 없어 `auto`/`mock` 모드에서는 연결 불가 시 브라우저에 개발용 코스로 저장합니다. 백엔드가 `POST /api/courses`를 제공하면 같은 화면에서 서버 저장으로 자동 전환됩니다.
 
 ### 카카오맵 연동 (FR-13)
 
