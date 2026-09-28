@@ -12,7 +12,10 @@ import {
 
 import EventDetail from './EventDetail'
 import { getEventDetail } from '../api/events'
-import { addFavorite } from '../api/favorites'
+import {
+  addFavorite,
+  getFavorites,
+} from '../api/favorites'
 
 jest.mock('../api/events', () => ({
   getEventDetail: jest.fn(),
@@ -20,6 +23,7 @@ jest.mock('../api/events', () => ({
 
 jest.mock('../api/favorites', () => ({
   addFavorite: jest.fn(),
+  getFavorites: jest.fn(),
 }))
 
 jest.mock('../components/DemoNotice', () => {
@@ -94,12 +98,16 @@ function renderEventDetail() {
 
 beforeEach(() => {
   getEventDetail.mockReset()
+  getFavorites.mockReset()
   addFavorite.mockReset()
 
   getEventDetail.mockResolvedValue({
     event: EVENT,
     isMock: false,
   })
+
+  // 기본 상태: 로그인되어 있지만 아직 저장하지 않은 행사
+  getFavorites.mockResolvedValue([])
 })
 
 test('행사 상세 정보를 표시한다', async () => {
@@ -114,10 +122,47 @@ test('행사 상세 정보를 표시한다', async () => {
   ).toBeInTheDocument()
 
   expect(
-    screen.getByRole('button', {
+    await screen.findByRole('button', {
       name: '관심행사 저장',
     })
   ).toBeInTheDocument()
+})
+
+test('미저장 행사에서는 저장 가능한 상태로 표시한다', async () => {
+  getFavorites.mockResolvedValue([])
+
+  renderEventDetail()
+
+  expect(
+    await screen.findByText(
+      '🤍 관심행사에 저장'
+    )
+  ).toBeInTheDocument()
+
+  expect(getFavorites).toHaveBeenCalled()
+})
+
+test('이미 저장된 행사는 진입 시 저장된 상태로 표시한다', async () => {
+  getFavorites.mockResolvedValue([
+    {
+      eventId: EVENT_ID,
+      title: EVENT.title,
+      startDate: EVENT.startDate,
+      endDate: EVENT.endDate,
+      place: EVENT.place,
+      savedAt: '2026-09-28T10:00:00',
+    },
+  ])
+
+  renderEventDetail()
+
+  expect(
+    await screen.findByText(
+      '❤️ 관심행사에 저장됨'
+    )
+  ).toBeInTheDocument()
+
+  expect(addFavorite).not.toHaveBeenCalled()
 })
 
 test('관심행사 저장 버튼을 누르면 eventId로 등록 요청한다', async () => {
@@ -131,6 +176,10 @@ test('관심행사 저장 버튼을 누르면 eventId로 등록 요청한다', a
     await screen.findByRole('button', {
       name: '관심행사 저장',
     })
+
+  await waitFor(() => {
+    expect(button).not.toBeDisabled()
+  })
 
   fireEvent.click(button)
 
@@ -147,7 +196,7 @@ test('관심행사 저장 버튼을 누르면 eventId로 등록 요청한다', a
   ).toBeInTheDocument()
 })
 
-test('이미 저장된 행사에서 409가 발생하면 저장된 상태로 표시한다', async () => {
+test('저장 요청에서 409가 발생하면 저장된 상태로 표시한다', async () => {
   addFavorite.mockRejectedValue({
     response: {
       status: 409,
@@ -161,6 +210,10 @@ test('이미 저장된 행사에서 409가 발생하면 저장된 상태로 표�
       name: '관심행사 저장',
     })
 
+  await waitFor(() => {
+    expect(button).not.toBeDisabled()
+  })
+
   fireEvent.click(button)
 
   expect(
@@ -168,6 +221,30 @@ test('이미 저장된 행사에서 409가 발생하면 저장된 상태로 표�
       '❤️ 관심행사에 저장됨'
     )
   ).toBeInTheDocument()
+})
+
+test('저장 여부 조회에서 401이 발생해도 상세 화면을 유지한다', async () => {
+  getFavorites.mockRejectedValue({
+    response: {
+      status: 401,
+    },
+  })
+
+  renderEventDetail()
+
+  expect(
+    await screen.findByText('서울 문화행사')
+  ).toBeInTheDocument()
+
+  expect(
+    await screen.findByRole('button', {
+      name: '관심행사 저장',
+    })
+  ).toBeInTheDocument()
+
+  expect(
+    screen.queryByText('로그인 화면')
+  ).not.toBeInTheDocument()
 })
 
 test('관심행사 저장 중 401이 발생하면 로그인 화면으로 이동한다', async () => {
@@ -183,6 +260,10 @@ test('관심행사 저장 중 401이 발생하면 로그인 화면으로 이동�
     await screen.findByRole('button', {
       name: '관심행사 저장',
     })
+
+  await waitFor(() => {
+    expect(button).not.toBeDisabled()
+  })
 
   fireEvent.click(button)
 
@@ -203,6 +284,10 @@ test('관심행사 저장 실패 시 오류 메시지를 표시한다', async ()
       name: '관심행사 저장',
     })
 
+  await waitFor(() => {
+    expect(button).not.toBeDisabled()
+  })
+
   fireEvent.click(button)
 
   expect(
@@ -214,4 +299,32 @@ test('관심행사 저장 실패 시 오류 메시지를 표시한다', async ()
   expect(
     addFavorite
   ).toHaveBeenCalledTimes(1)
+})
+
+test('데모 행사는 관심행사 저장 API를 호출하지 않는다', async () => {
+  getEventDetail.mockResolvedValue({
+    event: EVENT,
+    isMock: true,
+  })
+
+  renderEventDetail()
+
+  expect(
+    await screen.findByText('서울 문화행사')
+  ).toBeInTheDocument()
+
+  expect(
+    await screen.findByText(
+      '데모 행사는 관심행사에 저장할 수 없습니다.'
+    )
+  ).toBeInTheDocument()
+
+  expect(
+    screen.queryByRole('button', {
+      name: '관심행사 저장',
+    })
+  ).not.toBeInTheDocument()
+
+  expect(getFavorites).not.toHaveBeenCalled()
+  expect(addFavorite).not.toHaveBeenCalled()
 })

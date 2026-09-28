@@ -7,7 +7,10 @@ import {
 } from 'react-router-dom'
 
 import { getEventDetail } from '../api/events'
-import { addFavorite } from '../api/favorites'
+import {
+  addFavorite,
+  getFavorites,
+} from '../api/favorites'
 import { CATEGORY_COLOR } from '../data/events'
 
 import DemoNotice from '../components/DemoNotice'
@@ -139,6 +142,76 @@ function EventDetailView({ event }) {
   const [favoriteError, setFavoriteError] =
     useState('')
 
+  const [favoriteStatusLoading, setFavoriteStatusLoading] =
+    useState(!event.isMock)
+
+  /*
+   * 상세 화면에 처음 들어왔을 때 현재 행사가 이미
+   * 관심행사에 저장되어 있는지 확인합니다.
+   *
+   * 비로그인 사용자의 경우 GET /api/favorites가
+   * 401을 반환할 수 있지만, 이 시점에는 로그인
+   * 화면으로 이동시키지 않습니다.
+   */
+  useEffect(() => {
+    if (event.isMock) {
+      setFavoriteStatusLoading(false)
+      return undefined
+    }
+
+    const controller = new AbortController()
+
+    const loadFavoriteStatus = async () => {
+      setFavoriteStatusLoading(true)
+
+      try {
+        const favorites = await getFavorites(
+          undefined,
+          controller.signal
+        )
+
+        if (controller.signal.aborted) {
+          return
+        }
+
+        const isSaved = favorites.some(
+          favorite =>
+            String(favorite.eventId) ===
+            String(event.eventId)
+        )
+
+        setFavoriteSaved(isSaved)
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return
+        }
+
+        /*
+         * 상세 진입 시 401은 비로그인 상태로 간주합니다.
+         * 여기서는 로그인 화면으로 강제 이동하지 않습니다.
+         */
+        if (err.response?.status === 401) {
+          setFavoriteSaved(false)
+          return
+        }
+
+        /*
+         * 관심행사 상태 조회 실패가 행사 상세 자체를
+         * 막지는 않도록 저장 상태만 기본값으로 둡니다.
+         */
+        setFavoriteSaved(false)
+      } finally {
+        if (!controller.signal.aborted) {
+          setFavoriteStatusLoading(false)
+        }
+      }
+    }
+
+    loadFavoriteStatus()
+
+    return () => controller.abort()
+  }, [event.eventId, event.isMock])
+
   const returnTo =
     /^\/events(?:\?|$)/.test(
       state?.returnTo || ''
@@ -160,7 +233,19 @@ function EventDetailView({ event }) {
       : null
 
   const handleAddFavorite = async () => {
-    if (favoriteLoading || favoriteSaved) {
+    /*
+     * 데모 행사는 백엔드에 mock eventId를
+     * 보내지 않습니다.
+     */
+    if (event.isMock) {
+      return
+    }
+
+    if (
+      favoriteLoading ||
+      favoriteSaved ||
+      favoriteStatusLoading
+    ) {
       return
     }
 
@@ -173,7 +258,11 @@ function EventDetailView({ event }) {
       // 저장 성공 시 즉시 UI 반영
       setFavoriteSaved(true)
     } catch (err) {
-      // 로그인 세션 없음
+      /*
+       * 상세 진입 시에는 401을 무시하지만,
+       * 사용자가 저장 버튼을 직접 눌렀을 때
+       * 401이 발생하면 로그인 화면으로 이동합니다.
+       */
       if (err.response?.status === 401) {
         navigate('/login', {
           replace: true,
@@ -277,34 +366,48 @@ function EventDetailView({ event }) {
 
       {/* 관심행사 저장 */}
       <div className="max-w-5xl mx-auto w-full px-5 md:px-8 lg:px-10 pt-4">
-        <button
-          type="button"
-          onClick={handleAddFavorite}
-          disabled={
-            favoriteLoading ||
-            favoriteSaved
-          }
-          aria-label="관심행사 저장"
-          className={`w-full py-3.5 rounded-xl font-bold text-sm transition-colors ${
-            favoriteSaved
-              ? 'bg-[#FFF0EC] text-[#FF6B47]'
-              : 'bg-[#FF6B47] text-white'
-          } disabled:opacity-70`}
-        >
-          {favoriteLoading
-            ? '저장 중...'
-            : favoriteSaved
-              ? '❤️ 관심행사에 저장됨'
-              : '🤍 관심행사에 저장'}
-        </button>
-
-        {favoriteError && (
-          <p
-            role="alert"
-            className="text-[#FF6B47] text-sm mt-2"
+        {event.isMock ? (
+          <div
+            role="note"
+            className="w-full py-3.5 px-4 rounded-xl bg-[#F3F4F6] text-[#6B7280] text-sm font-semibold text-center"
           >
-            {favoriteError}
-          </p>
+            데모 행사는 관심행사에 저장할 수 없습니다.
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={handleAddFavorite}
+              disabled={
+                favoriteLoading ||
+                favoriteSaved ||
+                favoriteStatusLoading
+              }
+              aria-label="관심행사 저장"
+              className={`w-full py-3.5 rounded-xl font-bold text-sm transition-colors ${
+                favoriteSaved
+                  ? 'bg-[#FFF0EC] text-[#FF6B47]'
+                  : 'bg-[#FF6B47] text-white'
+              } disabled:opacity-70`}
+            >
+              {favoriteStatusLoading
+                ? '저장 여부 확인 중...'
+                : favoriteLoading
+                  ? '저장 중...'
+                  : favoriteSaved
+                    ? '❤️ 관심행사에 저장됨'
+                    : '🤍 관심행사에 저장'}
+            </button>
+
+            {favoriteError && (
+              <p
+                role="alert"
+                className="text-[#FF6B47] text-sm mt-2"
+              >
+                {favoriteError}
+              </p>
+            )}
+          </>
         )}
       </div>
 
