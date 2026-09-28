@@ -10,6 +10,7 @@ import { getEventDetail } from '../api/events'
 import {
   addFavorite,
   getFavorites,
+  removeFavorite,
 } from '../api/favorites'
 import { CATEGORY_COLOR } from '../data/events'
 
@@ -18,6 +19,8 @@ import EventMap from '../components/EventMap'
 import EventSummary from '../components/EventSummary'
 import EventComments from '../components/EventComments'
 import EventViewCount from '../components/EventViewCount'
+import useCurrentMember from '../hooks/useCurrentMember'
+import { COURSE_DRAFT_CHANGED, readCourseDraft, toggleCourseEvent } from '../utils/courseDraft'
 
 function Field({ icon, label, value }) {
   return (
@@ -132,6 +135,8 @@ export default function EventDetail() {
 function EventDetailView({ event }) {
   const navigate = useNavigate()
   const { state } = useLocation()
+  const { member } = useCurrentMember()
+  const [courseEvents, setCourseEvents] = useState(() => readCourseDraft())
 
   const [favoriteLoading, setFavoriteLoading] =
     useState(false)
@@ -143,7 +148,17 @@ function EventDetailView({ event }) {
     useState('')
 
   const [favoriteStatusLoading, setFavoriteStatusLoading] =
-    useState(!event.isMock)
+    useState(false)
+
+  useEffect(() => {
+    const sync = event => setCourseEvents(event.detail || readCourseDraft())
+    window.addEventListener(COURSE_DRAFT_CHANGED, sync)
+    window.addEventListener('storage', sync)
+    return () => {
+      window.removeEventListener(COURSE_DRAFT_CHANGED, sync)
+      window.removeEventListener('storage', sync)
+    }
+  }, [])
 
   /*
    * 상세 화면에 처음 들어왔을 때 현재 행사가 이미
@@ -154,8 +169,9 @@ function EventDetailView({ event }) {
    * 화면으로 이동시키지 않습니다.
    */
   useEffect(() => {
-    if (event.isMock) {
+    if (event.isMock || !member) {
       setFavoriteStatusLoading(false)
+      setFavoriteSaved(false)
       return undefined
     }
 
@@ -210,7 +226,11 @@ function EventDetailView({ event }) {
     loadFavoriteStatus()
 
     return () => controller.abort()
-  }, [event.eventId, event.isMock])
+  }, [event.eventId, event.isMock, member])
+
+  const courseSaved = courseEvents.some(
+    item => String(item.eventId) === String(event.eventId)
+  )
 
   const returnTo =
     /^\/events(?:\?|$)/.test(
@@ -232,7 +252,7 @@ function EventDetailView({ event }) {
       ? event.originalUrl
       : null
 
-  const handleAddFavorite = async () => {
+  const handleToggleFavorite = async () => {
     /*
      * 데모 행사는 백엔드에 mock eventId를
      * 보내지 않습니다.
@@ -243,7 +263,6 @@ function EventDetailView({ event }) {
 
     if (
       favoriteLoading ||
-      favoriteSaved ||
       favoriteStatusLoading
     ) {
       return
@@ -253,10 +272,13 @@ function EventDetailView({ event }) {
     setFavoriteError('')
 
     try {
-      await addFavorite(event.eventId)
-
-      // 저장 성공 시 즉시 UI 반영
-      setFavoriteSaved(true)
+      if (favoriteSaved) {
+        await removeFavorite(event.eventId)
+        setFavoriteSaved(false)
+      } else {
+        await addFavorite(event.eventId)
+        setFavoriteSaved(true)
+      }
     } catch (err) {
       /*
        * 상세 진입 시에는 401을 무시하지만,
@@ -271,13 +293,21 @@ function EventDetailView({ event }) {
       }
 
       // 이미 관심행사에 등록된 경우
-      if (err.response?.status === 409) {
+      if (!favoriteSaved && err.response?.status === 409) {
         setFavoriteSaved(true)
         return
       }
 
+      // 이미 관심행사에서 빠진 경우
+      if (favoriteSaved && err.response?.status === 404) {
+        setFavoriteSaved(false)
+        return
+      }
+
       setFavoriteError(
-        '관심행사 저장에 실패했습니다.'
+        favoriteSaved
+          ? '관심행사 취소에 실패했습니다.'
+          : '관심행사 저장에 실패했습니다.'
       )
     } finally {
       setFavoriteLoading(false)
@@ -364,8 +394,8 @@ function EventDetailView({ event }) {
         </div>
       </div>
 
-      {/* 관심행사 저장 */}
-      <div className="max-w-5xl mx-auto w-full px-5 md:px-8 lg:px-10 pt-4">
+      {/* 로그인 사용자 전용 저장 기능 */}
+      {member && <div className="max-w-5xl mx-auto w-full px-5 md:px-8 lg:px-10 pt-4">
         {event.isMock ? (
           <div
             role="note"
@@ -374,16 +404,16 @@ function EventDetailView({ event }) {
             데모 행사는 관심행사에 저장할 수 없습니다.
           </div>
         ) : (
-          <>
+          <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={handleAddFavorite}
+              onClick={handleToggleFavorite}
               disabled={
                 favoriteLoading ||
-                favoriteSaved ||
                 favoriteStatusLoading
               }
-              aria-label="관심행사 저장"
+              aria-pressed={favoriteSaved}
+              aria-label={favoriteSaved ? '관심행사 저장 취소' : '관심행사 저장'}
               className={`w-full py-3.5 rounded-xl font-bold text-sm transition-colors ${
                 favoriteSaved
                   ? 'bg-[#FFF0EC] text-[#FF6B47]'
@@ -393,23 +423,37 @@ function EventDetailView({ event }) {
               {favoriteStatusLoading
                 ? '저장 여부 확인 중...'
                 : favoriteLoading
-                  ? '저장 중...'
+                  ? (favoriteSaved ? '취소 중...' : '저장 중...')
                   : favoriteSaved
                     ? '❤️ 관심행사에 저장됨'
                     : '🤍 관심행사에 저장'}
             </button>
 
+            <button
+              type="button"
+              aria-pressed={courseSaved}
+              aria-label="코스에 추가"
+              onClick={() => setCourseEvents(toggleCourseEvent(event))}
+              className={`w-full rounded-xl py-3.5 text-sm font-bold transition-colors ${
+                courseSaved
+                  ? 'bg-[#E6FAF7] text-[#008F75]'
+                  : 'bg-[#F3EEFF] text-[#8B5CF6]'
+              }`}
+            >
+              {courseSaved ? '✓ 코스에 담음' : '+ 코스에 담기'}
+            </button>
+
             {favoriteError && (
               <p
                 role="alert"
-                className="text-[#FF6B47] text-sm mt-2"
+                className="col-span-2 text-[#FF6B47] text-sm"
               >
                 {favoriteError}
               </p>
             )}
-          </>
+          </div>
         )}
-      </div>
+      </div>}
 
       {/* 스크롤 콘텐츠 */}
       <div className="flex-1 overflow-y-auto pb-28 hide-scrollbar">

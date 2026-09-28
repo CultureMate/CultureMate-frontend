@@ -1,4 +1,8 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { EVENTS } from '../data/events'
+import { COURSE_DRAFT_CHANGED, readCourseDraft, writeCourseDraft } from '../utils/courseDraft'
+import { formatShortDate } from '../utils/eventDate'
 
 const SAMPLE_COURSES = [
   {
@@ -24,6 +28,52 @@ function EmptyState({ emoji, title, desc }) {
       <p className="text-[#1A1A2E] font-semibold text-base">{title}</p>
       <p className="text-[#9CA3AF] text-sm mt-1 leading-relaxed">{desc}</p>
     </div>
+  )
+}
+
+function CourseDraft() {
+  const [events, setEvents] = useState(() => readCourseDraft())
+
+  useEffect(() => {
+    const sync = event => setEvents(event.detail || readCourseDraft())
+    window.addEventListener(COURSE_DRAFT_CHANGED, sync)
+    window.addEventListener('storage', sync)
+    return () => {
+      window.removeEventListener(COURSE_DRAFT_CHANGED, sync)
+      window.removeEventListener('storage', sync)
+    }
+  }, [])
+
+  const remove = eventId => setEvents(writeCourseDraft(events.filter(item => item.eventId !== eventId)))
+
+  return (
+    <section aria-labelledby="course-draft-title" className="mb-6">
+      <div className="flex items-center justify-between mb-3">
+        <h2 id="course-draft-title" className="font-display font-bold text-[#1A1A2E] text-lg">🧺 코스에 담은 행사 {events.length}개</h2>
+        {events.length > 0 && <button type="button" onClick={() => setEvents(writeCourseDraft([]))}
+          className="text-xs text-[#6B7280] underline">모두 비우기</button>}
+      </div>
+      {events.length === 0 ? (
+        <div className="rounded-2xl bg-white p-5 text-center shadow-sm">
+          <p className="text-sm text-[#6B7280]">아직 담은 행사가 없어요. 행사 목록이나 상세에서 "+ 코스에 담기"를 눌러 보세요.</p>
+          <Link to="/events" className="inline-block mt-3 rounded-xl bg-[#FF6B47] px-4 py-2 text-sm font-bold text-white">행사 담으러 가기</Link>
+        </div>
+      ) : (
+        <ol className="flex flex-col gap-3">
+          {events.map((event, index) => (
+            <li key={event.eventId} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
+              <span className="w-8 h-8 rounded-full bg-[#FF6B47] flex items-center justify-center text-white text-sm font-black flex-shrink-0">{index + 1}</span>
+              <Link to={`/events/${encodeURIComponent(event.eventId)}`} className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-[#1A1A2E] truncate">{event.title}</p>
+                <p className="text-xs text-[#6B7280] truncate">{[event.place, formatShortDate(event)].filter(Boolean).join(' · ')}</p>
+              </Link>
+              <button type="button" onClick={() => remove(event.eventId)} aria-label={`${event.title} 코스에서 빼기`}
+                className="flex-shrink-0 rounded-lg bg-[#F3F4F6] px-3 py-1.5 text-xs font-semibold text-[#6B7280]">빼기</button>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   )
 }
 
@@ -139,6 +189,7 @@ export default function Course() {
       {/* 콘텐츠 */}
       <div className="flex-1 overflow-y-auto pb-24 hide-scrollbar">
         <div className="max-w-5xl mx-auto px-5 md:px-8 lg:px-10 pt-4">
+          <CourseDraft />
           {displayCourses.length === 0 ? (
             <EmptyState emoji="🗺️" title="아직 만든 코스가 없어요" desc="행사 목록에서 + 버튼으로 행사를 담고 코스를 생성해보세요" />
           ) : (
