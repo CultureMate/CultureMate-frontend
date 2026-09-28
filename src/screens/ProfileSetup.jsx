@@ -1,7 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+
 import api from '../api/axios'
-import { CATEGORIES, DISTRICTS } from '../data/events'
+import { getCurrentMember } from '../api/auth'
+import {
+  CATEGORIES,
+  DISTRICTS,
+} from '../data/events'
 
 const CAT_ICONS = {
   '공연': '🎭',
@@ -14,7 +19,11 @@ const CAT_ICONS = {
   '문화/예술': '🏛️',
 }
 
-const STEPS = ['nickname', 'residence', 'interests']
+const STEPS = [
+  'nickname',
+  'residence',
+  'interests',
+]
 
 export default function ProfileSetup() {
   const navigate = useNavigate()
@@ -22,14 +31,82 @@ export default function ProfileSetup() {
   const [stepIdx, setStepIdx] = useState(0)
   const [nickname, setNickname] = useState('')
   const [residence, setResidence] = useState('')
-  const [interests, setInterests] = useState(new Set())
-  const [privacyAgreed, setPrivacyAgreed] = useState(false)
+  const [interests, setInterests] =
+    useState(new Set())
+
+  const [privacyAgreed, setPrivacyAgreed] =
+    useState(false)
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  /*
+   * /profile 직접 접근 시 먼저 로그인 상태를 확인합니다.
+   * 확인이 끝나기 전에는 프로필 입력 화면을 노출하지 않습니다.
+   */
+  const [authChecking, setAuthChecking] =
+    useState(true)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    let active = true
+
+    const checkAuth = async () => {
+      try {
+        const member = await getCurrentMember(
+          controller.signal
+        )
+
+        if (!active) return
+
+        if (!member) {
+          navigate('/login', {
+            replace: true,
+          })
+          return
+        }
+
+        /*
+         * 로그인된 회원만 프로필 설정 화면을
+         * 볼 수 있도록 허용합니다.
+         */
+        setAuthChecking(false)
+      } catch (err) {
+        if (!active) return
+
+        if (
+          err.name === 'CanceledError' ||
+          err.name === 'AbortError'
+        ) {
+          return
+        }
+
+        console.error(
+          '로그인 상태 확인 실패:',
+          err
+        )
+
+        /*
+         * 인증 상태를 확인할 수 없는 경우에도
+         * 프로필 입력 화면을 그대로 노출하지 않습니다.
+         */
+        navigate('/login', {
+          replace: true,
+        })
+      }
+    }
+
+    checkAuth()
+
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [navigate])
+
   const step = STEPS[stepIdx]
 
-  const toggleInterest = (category) => {
+  const toggleInterest = category => {
     setInterests(prev => {
       const next = new Set(prev)
 
@@ -55,7 +132,10 @@ export default function ProfileSetup() {
     }
 
     if (step === 'interests') {
-      return interests.size >= 1 && privacyAgreed
+      return (
+        interests.size >= 1 &&
+        privacyAgreed
+      )
     }
 
     return false
@@ -78,21 +158,32 @@ export default function ProfileSetup() {
       await api.put('/auth/me', {
         nickname: nickname.trim(),
         residence,
-        interestCategories: [...interests],
+        interestCategories: [
+          ...interests,
+        ],
       })
 
       // 프로필 설정 완료 후 메인으로 이동
-      navigate('/', { replace: true })
+      navigate('/', {
+        replace: true,
+      })
     } catch (err) {
-      console.error('프로필 저장 실패:', err)
+      console.error(
+        '프로필 저장 실패:',
+        err
+      )
 
-      // 로그인 세션이 없거나 만료된 경우 로그인 화면으로 이동
+      // 로그인 세션이 없거나 만료된 경우
       if (err.response?.status === 401) {
-        navigate('/login', { replace: true })
+        navigate('/login', {
+          replace: true,
+        })
         return
       }
 
-      setError('프로필 저장에 실패했습니다. 잠시 후 다시 시도해주세요.')
+      setError(
+        '프로필 저장에 실패했습니다. 잠시 후 다시 시도해주세요.'
+      )
     } finally {
       setLoading(false)
     }
@@ -105,6 +196,23 @@ export default function ProfileSetup() {
     setStepIdx(prev => prev - 1)
   }
 
+  /*
+   * 인증 확인이 끝나기 전에 프로필 입력 폼이
+   * 잠깐 보이는 현상을 방지합니다.
+   */
+  if (authChecking) {
+    return (
+      <div className="min-h-dvh bg-[#FAFAF8] flex items-center justify-center">
+        <p
+          role="status"
+          className="text-[#6B7280] text-sm font-medium"
+        >
+          로그인 상태를 확인하고 있습니다.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-dvh bg-[#FAFAF8] flex flex-col">
       {/* Header */}
@@ -112,7 +220,10 @@ export default function ProfileSetup() {
         {/* Progress */}
         <div className="flex items-center gap-2 mb-6">
           {STEPS.map((s, i) => (
-            <div key={s} className="flex items-center gap-2">
+            <div
+              key={s}
+              className="flex items-center gap-2"
+            >
               <div
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
                   i < stepIdx
@@ -122,13 +233,17 @@ export default function ProfileSetup() {
                       : 'bg-white/20 text-white/40'
                 }`}
               >
-                {i < stepIdx ? '✓' : i + 1}
+                {i < stepIdx
+                  ? '✓'
+                  : i + 1}
               </div>
 
               {i < STEPS.length - 1 && (
                 <div
                   className={`h-0.5 w-8 rounded-full ${
-                    i < stepIdx ? 'bg-[#FF6B47]' : 'bg-white/20'
+                    i < stepIdx
+                      ? 'bg-[#FF6B47]'
+                      : 'bg-white/20'
                   }`}
                 />
               )}
@@ -141,14 +256,23 @@ export default function ProfileSetup() {
         </p>
 
         <h1 className="font-display text-white text-2xl md:text-3xl font-bold">
-          {step === 'nickname' && '어떻게 불러드릴까요?'}
-          {step === 'residence' && '어디에 살고 계세요?'}
-          {step === 'interests' && '무엇에 관심 있으세요?'}
+          {step === 'nickname' &&
+            '어떻게 불러드릴까요?'}
+
+          {step === 'residence' &&
+            '어디에 살고 계세요?'}
+
+          {step === 'interests' &&
+            '무엇에 관심 있으세요?'}
         </h1>
 
         <p className="text-white/50 text-sm mt-1">
-          {step === 'nickname' && '2자 이상의 닉네임을 입력해주세요'}
-          {step === 'residence' && '근처 행사를 먼저 추천해드릴게요'}
+          {step === 'nickname' &&
+            '2자 이상의 닉네임을 입력해주세요'}
+
+          {step === 'residence' &&
+            '근처 행사를 먼저 추천해드릴게요'}
+
           {step === 'interests' &&
             '1개 이상 선택해주세요 (복수 선택 가능)'}
         </p>
@@ -163,8 +287,10 @@ export default function ProfileSetup() {
               <input
                 type="text"
                 value={nickname}
-                onChange={(e) => {
-                  setNickname(e.target.value)
+                onChange={e => {
+                  setNickname(
+                    e.target.value
+                  )
                   setError('')
                 }}
                 placeholder="닉네임 입력"
@@ -178,11 +304,12 @@ export default function ProfileSetup() {
               </span>
             </div>
 
-            {nickname.length > 0 && nickname.trim().length < 2 && (
-              <p className="text-[#FF6B47] text-sm mt-2">
-                닉네임은 2자 이상 입력해주세요.
-              </p>
-            )}
+            {nickname.length > 0 &&
+              nickname.trim().length < 2 && (
+                <p className="text-[#FF6B47] text-sm mt-2">
+                  닉네임은 2자 이상 입력해주세요.
+                </p>
+              )}
           </div>
         )}
 
@@ -214,13 +341,16 @@ export default function ProfileSetup() {
           <div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {CATEGORIES.map(cat => {
-                const selected = interests.has(cat)
+                const selected =
+                  interests.has(cat)
 
                 return (
                   <button
                     key={cat}
                     type="button"
-                    onClick={() => toggleInterest(cat)}
+                    onClick={() =>
+                      toggleInterest(cat)
+                    }
                     className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-colors ${
                       selected
                         ? 'bg-[#FF6B47] border-[#FF6B47]'
@@ -228,12 +358,15 @@ export default function ProfileSetup() {
                     }`}
                   >
                     <span className="text-2xl">
-                      {CAT_ICONS[cat] ?? '🎪'}
+                      {CAT_ICONS[cat] ??
+                        '🎪'}
                     </span>
 
                     <span
                       className={`text-xs font-semibold text-center leading-tight ${
-                        selected ? 'text-white' : 'text-[#374151]'
+                        selected
+                          ? 'text-white'
+                          : 'text-[#374151]'
                       }`}
                     >
                       {cat}
@@ -248,8 +381,10 @@ export default function ProfileSetup() {
               <input
                 type="checkbox"
                 checked={privacyAgreed}
-                onChange={(e) => {
-                  setPrivacyAgreed(e.target.checked)
+                onChange={e => {
+                  setPrivacyAgreed(
+                    e.target.checked
+                  )
                   setError('')
                 }}
                 className="mt-0.5 w-4 h-4 accent-[#FF6B47]"
@@ -259,6 +394,7 @@ export default function ProfileSetup() {
                 <p className="text-sm font-semibold text-[#1A1A2E]">
                   개인정보 수집 및 이용에 동의합니다.
                 </p>
+
                 <p className="text-xs text-[#9CA3AF] mt-1">
                   맞춤 문화행사 추천을 위한 프로필 정보를 저장합니다.
                 </p>
@@ -269,7 +405,10 @@ export default function ProfileSetup() {
 
         {/* API 오류 메시지 */}
         {error && (
-          <p className="text-[#FF6B47] text-sm font-medium mt-5">
+          <p
+            role="alert"
+            className="text-[#FF6B47] text-sm font-medium mt-5"
+          >
             {error}
           </p>
         )}
@@ -292,7 +431,10 @@ export default function ProfileSetup() {
           <button
             type="button"
             onClick={handleNext}
-            disabled={!canProceed() || loading}
+            disabled={
+              !canProceed() ||
+              loading
+            }
             className={`flex-1 py-3.5 rounded-xl font-bold text-base transition-colors ${
               canProceed() && !loading
                 ? 'bg-[#FF6B47] text-white'
@@ -301,7 +443,8 @@ export default function ProfileSetup() {
           >
             {loading
               ? '저장 중...'
-              : stepIdx === STEPS.length - 1
+              : stepIdx ===
+                  STEPS.length - 1
                 ? '완료'
                 : '다음'}
           </button>

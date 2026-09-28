@@ -1,4 +1,9 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import {
   MemoryRouter,
   Route,
@@ -7,6 +12,7 @@ import {
 } from 'react-router-dom'
 
 import api from '../api/axios'
+import { getCurrentMember } from '../api/auth'
 import ProfileSetup from './ProfileSetup'
 
 jest.mock('../api/axios', () => ({
@@ -14,6 +20,10 @@ jest.mock('../api/axios', () => ({
   default: {
     put: jest.fn(),
   },
+}))
+
+jest.mock('../api/auth', () => ({
+  getCurrentMember: jest.fn(),
 }))
 
 function LocationDisplay() {
@@ -32,190 +42,335 @@ function renderProfile() {
       <LocationDisplay />
 
       <Routes>
-        <Route path="/profile" element={<ProfileSetup />} />
-        <Route path="/" element={<div>메인 화면</div>} />
-        <Route path="/login" element={<div>로그인 화면</div>} />
+        <Route
+          path="/profile"
+          element={<ProfileSetup />}
+        />
+
+        <Route
+          path="/"
+          element={<div>메인 화면</div>}
+        />
+
+        <Route
+          path="/login"
+          element={<div>로그인 화면</div>}
+        />
       </Routes>
     </MemoryRouter>
   )
 }
 
-function goToInterestStep() {
+async function waitForProfile() {
+  expect(
+    await screen.findByPlaceholderText(
+      '닉네임 입력'
+    )
+  ).toBeInTheDocument()
+}
+
+async function goToInterestStep() {
+  await waitForProfile()
+
   fireEvent.change(
-    screen.getByPlaceholderText('닉네임 입력'),
+    screen.getByPlaceholderText(
+      '닉네임 입력'
+    ),
     {
-      target: { value: '문화인' },
+      target: {
+        value: '문화인',
+      },
     }
   )
 
   fireEvent.click(
-    screen.getByRole('button', { name: '다음' })
+    screen.getByRole('button', {
+      name: '다음',
+    })
   )
 
   fireEvent.click(
-    screen.getByRole('button', { name: '마포구' })
+    screen.getByRole('button', {
+      name: '마포구',
+    })
   )
 
   fireEvent.click(
-    screen.getByRole('button', { name: '다음' })
+    screen.getByRole('button', {
+      name: '다음',
+    })
   )
 }
 
 beforeEach(() => {
   api.put.mockReset()
-})
+  getCurrentMember.mockReset()
 
-test('닉네임이 2자 미만이면 다음 단계로 이동할 수 없다', () => {
-  renderProfile()
-
-  const nextButton = screen.getByRole('button', {
-    name: '다음',
+  /*
+   * 대부분의 테스트는 로그인된 사용자가
+   * /profile에 접근한 상황으로 실행합니다.
+   */
+  getCurrentMember.mockResolvedValue({
+    memberId: 1,
+    nickname: null,
+    residence: null,
+    interestCategories: [],
+    favoriteCount: 0,
   })
-
-  expect(nextButton).toBeDisabled()
-
-  fireEvent.change(
-    screen.getByPlaceholderText('닉네임 입력'),
-    {
-      target: { value: '문' },
-    }
-  )
-
-  expect(
-    screen.getByText('닉네임은 2자 이상 입력해주세요.')
-  ).toBeInTheDocument()
-
-  expect(nextButton).toBeDisabled()
 })
 
-test('거주지와 관심 카테고리를 선택할 수 있다', () => {
-  renderProfile()
+test(
+  '닉네임이 2자 미만이면 다음 단계로 이동할 수 없다',
+  async () => {
+    renderProfile()
 
-  goToInterestStep()
+    await waitForProfile()
 
-  expect(
-    screen.getByText('무엇에 관심 있으세요?')
-  ).toBeInTheDocument()
+    const nextButton =
+      screen.getByRole('button', {
+        name: '다음',
+      })
 
-  fireEvent.click(
-    screen.getByRole('button', { name: /전시/ })
-  )
+    expect(nextButton).toBeDisabled()
 
-  expect(
-    screen.getByRole('button', { name: /전시/ })
-  ).toHaveClass('bg-[#FF6B47]')
-})
+    fireEvent.change(
+      screen.getByPlaceholderText(
+        '닉네임 입력'
+      ),
+      {
+        target: {
+          value: '문',
+        },
+      }
+    )
 
-test('개인정보 동의 전에는 완료 버튼이 비활성화된다', () => {
-  renderProfile()
+    expect(
+      screen.getByText(
+        '닉네임은 2자 이상 입력해주세요.'
+      )
+    ).toBeInTheDocument()
 
-  goToInterestStep()
+    expect(nextButton).toBeDisabled()
+  }
+)
 
-  fireEvent.click(
-    screen.getByRole('button', { name: /전시/ })
-  )
+test(
+  '거주지와 관심 카테고리를 선택할 수 있다',
+  async () => {
+    renderProfile()
 
-  expect(
-    screen.getByRole('button', { name: '완료' })
-  ).toBeDisabled()
-})
+    await goToInterestStep()
 
-test('프로필 저장 요청에 닉네임 거주지 관심 카테고리를 포함한다', async () => {
-  api.put.mockResolvedValue({
-    data: {
-      memberId: 1,
-      nickname: '문화인',
-      residence: '마포구',
-      interestCategories: ['전시'],
-      favoriteCount: 0,
-    },
-  })
+    expect(
+      screen.getByText(
+        '무엇에 관심 있으세요?'
+      )
+    ).toBeInTheDocument()
 
-  renderProfile()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /전시/,
+      })
+    )
 
-  goToInterestStep()
+    expect(
+      screen.getByRole('button', {
+        name: /전시/,
+      })
+    ).toHaveClass('bg-[#FF6B47]')
+  }
+)
 
-  fireEvent.click(
-    screen.getByRole('button', { name: /전시/ })
-  )
+test(
+  '개인정보 동의 전에는 완료 버튼이 비활성화된다',
+  async () => {
+    renderProfile()
 
-  fireEvent.click(
-    screen.getByRole('checkbox')
-  )
+    await goToInterestStep()
 
-  fireEvent.click(
-    screen.getByRole('button', { name: '완료' })
-  )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /전시/,
+      })
+    )
 
-  await waitFor(() => {
-    expect(api.put).toHaveBeenCalledWith('/auth/me', {
-      nickname: '문화인',
-      residence: '마포구',
-      interestCategories: ['전시'],
+    expect(
+      screen.getByRole('button', {
+        name: '완료',
+      })
+    ).toBeDisabled()
+  }
+)
+
+test(
+  '프로필 저장 요청에 닉네임 거주지 관심 카테고리를 포함한다',
+  async () => {
+    api.put.mockResolvedValue({
+      data: {
+        memberId: 1,
+        nickname: '문화인',
+        residence: '마포구',
+        interestCategories: ['전시'],
+        favoriteCount: 0,
+      },
     })
-  })
-})
 
-test('프로필 저장 성공 후 메인 화면으로 이동한다', async () => {
-  api.put.mockResolvedValue({
-    data: {
-      memberId: 1,
-      nickname: '문화인',
-      residence: '마포구',
-      interestCategories: ['전시'],
-      favoriteCount: 0,
-    },
-  })
+    renderProfile()
 
-  renderProfile()
+    await goToInterestStep()
 
-  goToInterestStep()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /전시/,
+      })
+    )
 
-  fireEvent.click(
-    screen.getByRole('button', { name: /전시/ })
-  )
+    fireEvent.click(
+      screen.getByRole('checkbox')
+    )
 
-  fireEvent.click(
-    screen.getByRole('checkbox')
-  )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '완료',
+      })
+    )
 
-  fireEvent.click(
-    screen.getByRole('button', { name: '완료' })
-  )
+    await waitFor(() => {
+      expect(
+        api.put
+      ).toHaveBeenCalledWith(
+        '/auth/me',
+        {
+          nickname: '문화인',
+          residence: '마포구',
+          interestCategories: [
+            '전시',
+          ],
+        }
+      )
+    })
+  }
+)
 
-  expect(
-    await screen.findByText('메인 화면')
-  ).toBeInTheDocument()
+test(
+  '프로필 저장 성공 후 메인 화면으로 이동한다',
+  async () => {
+    api.put.mockResolvedValue({
+      data: {
+        memberId: 1,
+        nickname: '문화인',
+        residence: '마포구',
+        interestCategories: ['전시'],
+        favoriteCount: 0,
+      },
+    })
 
-  expect(screen.getByTestId('location')).toHaveTextContent('/')
-})
+    renderProfile()
 
-test('프로필 저장 중 401이 발생하면 로그인 화면으로 이동한다', async () => {
-  api.put.mockRejectedValue({
-    response: {
-      status: 401,
-    },
-  })
+    await goToInterestStep()
 
-  renderProfile()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /전시/,
+      })
+    )
 
-  goToInterestStep()
+    fireEvent.click(
+      screen.getByRole('checkbox')
+    )
 
-  fireEvent.click(
-    screen.getByRole('button', { name: /전시/ })
-  )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '완료',
+      })
+    )
 
-  fireEvent.click(
-    screen.getByRole('checkbox')
-  )
+    expect(
+      await screen.findByText(
+        '메인 화면'
+      )
+    ).toBeInTheDocument()
 
-  fireEvent.click(
-    screen.getByRole('button', { name: '완료' })
-  )
+    expect(
+      screen.getByTestId('location')
+    ).toHaveTextContent('/')
+  }
+)
 
-  expect(
-    await screen.findByText('로그인 화면')
-  ).toBeInTheDocument()
+test(
+  '프로필 저장 중 401이 발생하면 로그인 화면으로 이동한다',
+  async () => {
+    api.put.mockRejectedValue({
+      response: {
+        status: 401,
+      },
+    })
 
-  expect(screen.getByTestId('location')).toHaveTextContent('/login')
-})
+    renderProfile()
+
+    await goToInterestStep()
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /전시/,
+      })
+    )
+
+    fireEvent.click(
+      screen.getByRole('checkbox')
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '완료',
+      })
+    )
+
+    expect(
+      await screen.findByText(
+        '로그인 화면'
+      )
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByTestId('location')
+    ).toHaveTextContent('/login')
+  }
+)
+
+test(
+  '비로그인 사용자가 프로필 화면에 직접 접근하면 로그인 화면으로 이동한다',
+  async () => {
+    getCurrentMember.mockResolvedValue(
+      null
+    )
+
+    renderProfile()
+
+    /*
+     * 인증 확인 중에는 프로필 입력 폼을
+     * 먼저 노출하지 않아야 합니다.
+     */
+    expect(
+      screen.getByText(
+        '로그인 상태를 확인하고 있습니다.'
+      )
+    ).toBeInTheDocument()
+
+    expect(
+      await screen.findByText(
+        '로그인 화면'
+      )
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByTestId('location')
+    ).toHaveTextContent('/login')
+
+    expect(
+      screen.queryByPlaceholderText(
+        '닉네임 입력'
+      )
+    ).not.toBeInTheDocument()
+  }
+)
