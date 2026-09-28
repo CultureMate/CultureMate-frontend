@@ -398,7 +398,7 @@ export default function App() {
 
           <Route
             path="/shared/courses/:shareId"
-            element={<SharedCourse />}
+            element={<RequireAuth><SharedCourse /></RequireAuth>}
           />
 
           <Route

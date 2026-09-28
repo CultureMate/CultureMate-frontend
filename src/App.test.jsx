@@ -161,7 +161,7 @@ describe('로그인 필요 탭 보호', () => {
     jest.clearAllMocks()
   })
 
-  test.each(['/course', '/favorites', '/my'])(
+  test.each(['/course', '/favorites', '/my', '/shared/courses/share-1'])(
     '비로그인 상태에서 %s 진입 시 로그인 안내 화면으로 이동한다',
     async path => {
       getCurrentMember.mockResolvedValue(null)
@@ -183,14 +183,13 @@ describe('로그인 필요 탭 보호', () => {
     expect(await screen.findByText('COURSE_PAGE')).toBeInTheDocument()
   })
 
-  test('공유 코스 경로는 비로그인 상태에서도 화면에 진입한다', async () => {
-    getCurrentMember.mockResolvedValue(null)
+  test('로그인 상태에서는 공유 코스 화면에 진입한다', async () => {
+    getCurrentMember.mockResolvedValue({ memberId: 1 })
     window.history.replaceState({}, '', '/shared/courses/share-1')
 
     render(<App />)
 
     expect(await screen.findByText('SHARED_COURSE_PAGE')).toBeInTheDocument()
-    expect(window.location.pathname).toBe('/shared/courses/share-1')
   })
 })
 
