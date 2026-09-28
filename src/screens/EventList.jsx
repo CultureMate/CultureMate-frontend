@@ -8,7 +8,7 @@ import { formatShortDate } from '../utils/eventDate'
 import DemoNotice from '../components/DemoNotice'
 import EventDialog from '../components/EventDialog'
 import EventFilterFields from '../components/EventFilterFields'
-import { addFavorite, getFavorites } from '../api/favorites'
+import { addFavorite, getFavorites, removeFavorite } from '../api/favorites'
 import useCurrentMember from '../hooks/useCurrentMember'
 import { COURSE_DRAFT_CHANGED, readCourseDraft, toggleCourseEvent } from '../utils/courseDraft'
 
@@ -30,7 +30,7 @@ function FilterSheet({ filters, onClose, onApply }) {
   )
 }
 
-function EventCard({ event, returnTo, selected, favoriteSaved, favoriteLoading, onToggleCourse, onAddFavorite }) {
+function EventCard({ event, returnTo, selected, favoriteSaved, favoriteLoading, onToggleCourse, onToggleFavorite }) {
   const [imageFailed, setImageFailed] = useState(false)
   const color = CATEGORY_COLOR[event.category] || { bg: '#F3EEFF', text: '#8B5CF6' }
   return (
@@ -60,11 +60,11 @@ function EventCard({ event, returnTo, selected, favoriteSaved, favoriteLoading, 
         </div>
       </div>
       </Link>
-      {onAddFavorite && <div className="grid grid-cols-2 gap-2 px-4 pb-4">
-        <button type="button" onClick={() => onAddFavorite(event)} disabled={favoriteSaved || favoriteLoading}
-          aria-label={`${event.title} 관심행사 추가`}
-          className="rounded-xl bg-[#FFF0EC] px-2 py-2.5 text-xs font-bold text-[#FF6B47] disabled:opacity-60">
-          {favoriteLoading ? '저장 중...' : favoriteSaved ? '♥ 저장됨' : '♡ 관심행사'}
+      {onToggleFavorite && <div className="grid grid-cols-2 gap-2 px-4 pb-4">
+        <button type="button" onClick={() => onToggleFavorite(event)} disabled={favoriteLoading} aria-pressed={favoriteSaved}
+          aria-label={`${event.title} ${favoriteSaved ? '관심행사 취소' : '관심행사 추가'}`}
+          className={`rounded-xl px-2 py-2.5 text-xs font-bold disabled:opacity-60 ${favoriteSaved ? 'bg-[#FF6B47] text-white' : 'bg-[#FFF0EC] text-[#FF6B47]'}`}>
+          {favoriteLoading ? (favoriteSaved ? '취소 중...' : '저장 중...') : favoriteSaved ? '❤️ 저장됨' : '🤍 관심행사'}
         </button>
         <button type="button" aria-pressed={selected} onClick={() => onToggleCourse(event)}
           aria-label={`${event.title} 코스에 추가`}
@@ -130,6 +130,7 @@ export default function EventList({ initialFilterOpen = false }) {
   const [courseEvents, setCourseEvents] = useState(() => readCourseDraft())
   const [favoriteIds, setFavoriteIds] = useState(new Set())
   const [favoriteLoadingId, setFavoriteLoadingId] = useState(null)
+  const [favoriteError, setFavoriteError] = useState('')
   const loading = request.query !== query || request.loading
   const data = request.query === query ? request.data : null
   const error = request.query === query ? request.error : null
@@ -203,17 +204,28 @@ export default function EventList({ initialFilterOpen = false }) {
   }
   const changeConditions = () => { setEmptyNotice(false); setFilterOpen(true) }
 
-  const handleAddFavorite = async event => {
+  const handleToggleFavorite = async event => {
     if (!member || favoriteLoadingId) return
     const id = String(event.eventId)
+    const saved = favoriteIds.has(id)
+    const setSaved = value => setFavoriteIds(current => {
+      const next = new Set(current)
+      if (value) next.add(id)
+      else next.delete(id)
+      return next
+    })
     setFavoriteLoadingId(id)
+    setFavoriteError('')
     try {
-      await addFavorite(event.eventId)
-      setFavoriteIds(current => new Set([...current, id]))
+      if (saved) await removeFavorite(event.eventId)
+      else await addFavorite(event.eventId)
+      setSaved(!saved)
     } catch (error) {
-      if (error.response?.status === 409) {
-        setFavoriteIds(current => new Set([...current, id]))
-      }
+      const status = error.response?.status
+      if (status === 401) navigate('/login')
+      else if (!saved && status === 409) setSaved(true)
+      else if (saved && status === 404) setSaved(false)
+      else setFavoriteError(saved ? '관심행사 취소에 실패했습니다.' : '관심행사 저장에 실패했습니다.')
     } finally {
       setFavoriteLoadingId(null)
     }
@@ -272,13 +284,14 @@ export default function EventList({ initialFilterOpen = false }) {
           {!loading && data && <>
             {data.isMock && <DemoNotice onRetry={getDataMode() === 'auto' ? () => setRetry(value => value + 1) : undefined} />}
             <p className="text-xs text-[#6B7280] mb-3">시작일이 빠른 순으로 표시됩니다.</p>
+            {favoriteError && <p role="alert" className="mb-3 rounded-xl bg-[#FFF0EC] px-3 py-2 text-sm text-[#B93820]">{favoriteError}</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {data.events.map(event => member ? <EventCard key={event.eventId} event={event} returnTo={`/events?${query}`}
                 selected={courseEvents.some(item => String(item.eventId) === String(event.eventId))}
                 favoriteSaved={favoriteIds.has(String(event.eventId))}
                 favoriteLoading={favoriteLoadingId === String(event.eventId)}
                 onToggleCourse={item => setCourseEvents(toggleCourseEvent(item))}
-                onAddFavorite={handleAddFavorite} /> : (
+                onToggleFavorite={handleToggleFavorite} /> : (
                   <EventCard key={event.eventId} event={event} returnTo={`/events?${query}`} />
                 ))}
             </div>

@@ -1,9 +1,13 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { getKakaoLoginUrl } from '../api/auth'
 
 export default function LoginPromptScreen() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const returnTo = location.state?.from || '/'
+  // 이전 화면은 로그인이 필요한 경로라 그대로 돌아가면 다시 이 화면으로 온다.
+  const goBack = () => {
+    if (window.history.state?.idx > 0) navigate(-1)
+    else navigate('/', { replace: true })
+  }
 
   return (
     <div className="flex flex-col min-h-full bg-[#1A1A2E]">
@@ -11,7 +15,7 @@ export default function LoginPromptScreen() {
       <div className="absolute bottom-40 left-[-30px] w-48 h-48 rounded-full bg-[#8B5CF6]/10 pointer-events-none" />
 
       <div className="relative z-10 px-6 pt-14">
-        <button type="button" onClick={() => navigate(returnTo, { replace: true })}
+        <button type="button" onClick={goBack}
           className="flex items-center gap-1.5 text-white/50 text-sm font-medium mb-10">
           ← 돌아가기
         </button>
@@ -46,9 +50,9 @@ export default function LoginPromptScreen() {
           ))}
         </div>
 
-        <Link
-          to="/login"
-          state={{ returnTo }}
+        <button
+          type="button"
+          onClick={() => { window.location.href = getKakaoLoginUrl() }}
           className="w-full rounded-2xl py-4 flex items-center justify-center gap-3 font-bold text-base"
           style={{ backgroundColor: '#FFE500', color: '#1A1A2E', boxShadow: '0 8px 24px rgba(255,229,0,0.3)' }}
         >
@@ -56,7 +60,7 @@ export default function LoginPromptScreen() {
             <span className="text-white text-xs font-black">K</span>
           </div>
           카카오로 시작하기
-        </Link>
+        </button>
       </div>
     </div>
   )

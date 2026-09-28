@@ -15,6 +15,7 @@ import { getEventDetail } from '../api/events'
 import {
   addFavorite,
   getFavorites,
+  removeFavorite,
 } from '../api/favorites'
 import { getCurrentMember } from '../api/auth'
 
@@ -25,6 +26,7 @@ jest.mock('../api/events', () => ({
 jest.mock('../api/favorites', () => ({
   addFavorite: jest.fn(),
   getFavorites: jest.fn(),
+  removeFavorite: jest.fn(),
 }))
 
 jest.mock('../api/auth', () => ({
@@ -106,6 +108,7 @@ beforeEach(() => {
   getEventDetail.mockReset()
   getFavorites.mockReset()
   addFavorite.mockReset()
+  removeFavorite.mockReset()
   getCurrentMember.mockReset()
 
   getEventDetail.mockResolvedValue({
@@ -190,6 +193,21 @@ test('이미 저장된 행사는 진입 시 저장된 상태로 표시한다', a
     )
   ).toBeInTheDocument()
 
+  expect(addFavorite).not.toHaveBeenCalled()
+})
+
+test('저장된 행사에서 버튼을 다시 누르면 관심행사를 취소한다', async () => {
+  getFavorites.mockResolvedValue([{ eventId: EVENT_ID, title: EVENT.title }])
+  removeFavorite.mockResolvedValue()
+
+  renderEventDetail()
+
+  const button = await screen.findByRole('button', { name: '관심행사 저장 취소' })
+  await waitFor(() => expect(button).not.toBeDisabled())
+  fireEvent.click(button)
+
+  await waitFor(() => expect(removeFavorite).toHaveBeenCalledWith(EVENT_ID))
+  expect(await screen.findByText('🤍 관심행사에 저장')).toBeInTheDocument()
   expect(addFavorite).not.toHaveBeenCalled()
 })
 

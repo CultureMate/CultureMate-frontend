@@ -6,7 +6,7 @@ import Search from './Search'
 import EventDetail from './EventDetail'
 import { getCurrentMember } from '../api/auth'
 
-jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn() } }))
+jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn(), delete: jest.fn() } }))
 jest.mock('../api/comments', () => ({ getComments: () => Promise.resolve([]), createComment: jest.fn(), updateComment: jest.fn(), deleteComment: jest.fn(), getCommentError: () => '댓글 오류' }))
 jest.mock('../api/auth', () => ({ getCurrentMember: jest.fn() }))
 const eventId = 'https://culture.seoul.go.kr/event?id=12&name=서울'
@@ -70,6 +70,29 @@ test('추가 버튼은 로그인 사용자에게만 표시한다', async () => {
   renderEvents()
   expect(await screen.findByRole('button', { name: /관심행사 추가/ })).toBeInTheDocument()
   expect(screen.getByRole('button', { name: /코스에 추가/ })).toBeInTheDocument()
+})
+
+test('a saved favorite can be cancelled from the card, and failures are shown', async () => {
+  getCurrentMember.mockResolvedValue({ memberId: 1 })
+  api.post.mockResolvedValue({ data: { eventId } })
+  api.delete.mockResolvedValueOnce({})
+  renderEvents()
+
+  const add = await screen.findByRole('button', { name: /관심행사 추가/ })
+  expect(add).toHaveTextContent('🤍 관심행사')
+  fireEvent.click(add)
+  const cancel = await screen.findByRole('button', { name: /관심행사 취소/ })
+  expect(cancel).toHaveTextContent('❤️ 저장됨')
+  expect(cancel).toBeEnabled()
+  expect(api.post).toHaveBeenCalledWith('/favorites', { eventId })
+
+  fireEvent.click(cancel)
+  await screen.findByRole('button', { name: /관심행사 추가/ })
+  expect(api.delete).toHaveBeenCalledWith('/favorites', { params: { eventId } })
+
+  api.post.mockRejectedValueOnce({ response: { status: 500 } })
+  fireEvent.click(screen.getByRole('button', { name: /관심행사 추가/ }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('관심행사 저장에 실패했습니다.')
 })
 
 test('filter changes are drafts until Apply, cancel discards them, dates support multiple months', async () => {

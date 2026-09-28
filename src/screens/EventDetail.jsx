@@ -10,6 +10,7 @@ import { getEventDetail } from '../api/events'
 import {
   addFavorite,
   getFavorites,
+  removeFavorite,
 } from '../api/favorites'
 import { CATEGORY_COLOR } from '../data/events'
 
@@ -251,7 +252,7 @@ function EventDetailView({ event }) {
       ? event.originalUrl
       : null
 
-  const handleAddFavorite = async () => {
+  const handleToggleFavorite = async () => {
     /*
      * 데모 행사는 백엔드에 mock eventId를
      * 보내지 않습니다.
@@ -262,7 +263,6 @@ function EventDetailView({ event }) {
 
     if (
       favoriteLoading ||
-      favoriteSaved ||
       favoriteStatusLoading
     ) {
       return
@@ -272,10 +272,13 @@ function EventDetailView({ event }) {
     setFavoriteError('')
 
     try {
-      await addFavorite(event.eventId)
-
-      // 저장 성공 시 즉시 UI 반영
-      setFavoriteSaved(true)
+      if (favoriteSaved) {
+        await removeFavorite(event.eventId)
+        setFavoriteSaved(false)
+      } else {
+        await addFavorite(event.eventId)
+        setFavoriteSaved(true)
+      }
     } catch (err) {
       /*
        * 상세 진입 시에는 401을 무시하지만,
@@ -290,13 +293,21 @@ function EventDetailView({ event }) {
       }
 
       // 이미 관심행사에 등록된 경우
-      if (err.response?.status === 409) {
+      if (!favoriteSaved && err.response?.status === 409) {
         setFavoriteSaved(true)
         return
       }
 
+      // 이미 관심행사에서 빠진 경우
+      if (favoriteSaved && err.response?.status === 404) {
+        setFavoriteSaved(false)
+        return
+      }
+
       setFavoriteError(
-        '관심행사 저장에 실패했습니다.'
+        favoriteSaved
+          ? '관심행사 취소에 실패했습니다.'
+          : '관심행사 저장에 실패했습니다.'
       )
     } finally {
       setFavoriteLoading(false)
@@ -396,13 +407,13 @@ function EventDetailView({ event }) {
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={handleAddFavorite}
+              onClick={handleToggleFavorite}
               disabled={
                 favoriteLoading ||
-                favoriteSaved ||
                 favoriteStatusLoading
               }
-              aria-label="관심행사 저장"
+              aria-pressed={favoriteSaved}
+              aria-label={favoriteSaved ? '관심행사 저장 취소' : '관심행사 저장'}
               className={`w-full py-3.5 rounded-xl font-bold text-sm transition-colors ${
                 favoriteSaved
                   ? 'bg-[#FFF0EC] text-[#FF6B47]'
@@ -412,7 +423,7 @@ function EventDetailView({ event }) {
               {favoriteStatusLoading
                 ? '저장 여부 확인 중...'
                 : favoriteLoading
-                  ? '저장 중...'
+                  ? (favoriteSaved ? '취소 중...' : '저장 중...')
                   : favoriteSaved
                     ? '❤️ 관심행사에 저장됨'
                     : '🤍 관심행사에 저장'}
