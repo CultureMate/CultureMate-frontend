@@ -8,6 +8,9 @@ import { formatShortDate } from '../utils/eventDate'
 import DemoNotice from '../components/DemoNotice'
 import EventDialog from '../components/EventDialog'
 import EventFilterFields from '../components/EventFilterFields'
+import { addFavorite, getFavorites } from '../api/favorites'
+import useCurrentMember from '../hooks/useCurrentMember'
+import { COURSE_DRAFT_CHANGED, readCourseDraft, toggleCourseEvent } from '../utils/courseDraft'
 
 function FilterSheet({ filters, onClose, onApply }) {
   const [draft, setDraft] = useState(filters)
@@ -27,12 +30,13 @@ function FilterSheet({ filters, onClose, onApply }) {
   )
 }
 
-function EventCard({ event, returnTo }) {
+function EventCard({ event, returnTo, selected, favoriteSaved, favoriteLoading, onToggleCourse, onAddFavorite }) {
   const [imageFailed, setImageFailed] = useState(false)
   const color = CATEGORY_COLOR[event.category] || { bg: '#F3EEFF', text: '#8B5CF6' }
   return (
-    <Link to={`/events/${encodeURIComponent(event.eventId)}`} state={{ returnTo }}
-      className="bg-white rounded-2xl overflow-hidden shadow-sm active:scale-[0.98] transition-transform text-left w-full focus-visible:outline focus-visible:outline-[#FF6B47]">
+    <article className="bg-white rounded-2xl overflow-hidden shadow-sm text-left w-full">
+      <Link to={`/events/${encodeURIComponent(event.eventId)}`} state={{ returnTo }}
+        className="block active:scale-[0.98] transition-transform focus-visible:outline focus-visible:outline-[#FF6B47]">
       <div className="relative h-[180px] bg-gray-100">
         {event.imageUrl && !imageFailed
           ? <img src={event.imageUrl} alt="" loading="lazy" onError={() => setImageFailed(true)} className="w-full h-full object-cover" />
@@ -55,7 +59,20 @@ function EventCard({ event, returnTo }) {
           </p>
         </div>
       </div>
-    </Link>
+      </Link>
+      {onAddFavorite && <div className="grid grid-cols-2 gap-2 px-4 pb-4">
+        <button type="button" onClick={() => onAddFavorite(event)} disabled={favoriteSaved || favoriteLoading}
+          aria-label={`${event.title} 관심행사 추가`}
+          className="rounded-xl bg-[#FFF0EC] px-2 py-2.5 text-xs font-bold text-[#FF6B47] disabled:opacity-60">
+          {favoriteLoading ? '저장 중...' : favoriteSaved ? '♥ 저장됨' : '♡ 관심행사'}
+        </button>
+        <button type="button" aria-pressed={selected} onClick={() => onToggleCourse(event)}
+          aria-label={`${event.title} 코스에 추가`}
+          className={`rounded-xl px-2 py-2.5 text-xs font-bold ${selected ? 'bg-[#E6FAF7] text-[#008F75]' : 'bg-[#F3EEFF] text-[#8B5CF6]'}`}>
+          {selected ? '✓ 코스에 담음' : '+ 코스에 담기'}
+        </button>
+      </div>}
+    </article>
   )
 }
 
@@ -100,6 +117,7 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
 }
 
 export default function EventList({ initialFilterOpen = false }) {
+  const { member } = useCurrentMember()
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const query = searchParams.toString()
@@ -109,6 +127,9 @@ export default function EventList({ initialFilterOpen = false }) {
   const [retry, setRetry] = useState(0)
   const [request, setRequest] = useState({ query, loading: true, data: null, error: null })
   const [emptyNotice, setEmptyNotice] = useState(false)
+  const [courseEvents, setCourseEvents] = useState(() => readCourseDraft())
+  const [favoriteIds, setFavoriteIds] = useState(new Set())
+  const [favoriteLoadingId, setFavoriteLoadingId] = useState(null)
   const loading = request.query !== query || request.loading
   const data = request.query === query ? request.data : null
   const error = request.query === query ? request.error : null
@@ -117,6 +138,35 @@ export default function EventList({ initialFilterOpen = false }) {
   const totalPages = data ? Math.max(1, Math.ceil(data.totalCount / EVENT_PAGE_SIZE)) : 1
 
   useEffect(() => { setKeyword(readEventFilters(query).keyword) }, [query])
+
+  useEffect(() => {
+    const sync = event => setCourseEvents(event.detail || readCourseDraft())
+    window.addEventListener(COURSE_DRAFT_CHANGED, sync)
+    window.addEventListener('storage', sync)
+    return () => {
+      window.removeEventListener(COURSE_DRAFT_CHANGED, sync)
+      window.removeEventListener('storage', sync)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!member) {
+      setFavoriteIds(new Set())
+      return undefined
+    }
+
+    const controller = new AbortController()
+    getFavorites(undefined, controller.signal)
+      .then(items => {
+        if (!controller.signal.aborted) {
+          setFavoriteIds(new Set(items.map(item => String(item.eventId))))
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setFavoriteIds(new Set())
+      })
+    return () => controller.abort()
+  }, [member])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -152,6 +202,22 @@ export default function EventList({ initialFilterOpen = false }) {
     else applyFilters(draft)
   }
   const changeConditions = () => { setEmptyNotice(false); setFilterOpen(true) }
+
+  const handleAddFavorite = async event => {
+    if (!member || favoriteLoadingId) return
+    const id = String(event.eventId)
+    setFavoriteLoadingId(id)
+    try {
+      await addFavorite(event.eventId)
+      setFavoriteIds(current => new Set([...current, id]))
+    } catch (error) {
+      if (error.response?.status === 409) {
+        setFavoriteIds(current => new Set([...current, id]))
+      }
+    } finally {
+      setFavoriteLoadingId(null)
+    }
+  }
 
   return (
     <div className="flex flex-col min-h-full bg-[#FAFAF8]">
@@ -193,6 +259,10 @@ export default function EventList({ initialFilterOpen = false }) {
 
       <section aria-label="행사 검색 결과" aria-busy={loading} className="px-5 md:px-8 lg:px-10 pt-4 pb-8">
         <div className="max-w-5xl">
+          {member && courseEvents.length > 0 && <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-[#1A1A2E] px-4 py-3 text-white">
+            <p className="text-sm"><strong>{courseEvents.length}개 행사</strong>를 코스에 담았어요.</p>
+            <Link to="/course" className="flex-shrink-0 rounded-xl bg-[#FF6B47] px-4 py-2 text-sm font-bold">코스 만들기 →</Link>
+          </div>}
           {loading && <p role="status" className="p-6 rounded-2xl bg-white text-sm text-[#6B7280]">행사를 불러오는 중입니다.</p>}
           {error && <div role="alert" className="p-6 rounded-2xl bg-white text-sm text-[#6B7280]">
             <p>{getEventsError(error)}</p>
@@ -203,7 +273,14 @@ export default function EventList({ initialFilterOpen = false }) {
             {data.isMock && <DemoNotice onRetry={getDataMode() === 'auto' ? () => setRetry(value => value + 1) : undefined} />}
             <p className="text-xs text-[#6B7280] mb-3">시작일이 빠른 순으로 표시됩니다.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {data.events.map(event => <EventCard key={event.eventId} event={event} returnTo={`/events?${query}`} />)}
+              {data.events.map(event => member ? <EventCard key={event.eventId} event={event} returnTo={`/events?${query}`}
+                selected={courseEvents.some(item => String(item.eventId) === String(event.eventId))}
+                favoriteSaved={favoriteIds.has(String(event.eventId))}
+                favoriteLoading={favoriteLoadingId === String(event.eventId)}
+                onToggleCourse={item => setCourseEvents(toggleCourseEvent(item))}
+                onAddFavorite={handleAddFavorite} /> : (
+                  <EventCard key={event.eventId} event={event} returnTo={`/events?${query}`} />
+                ))}
             </div>
             {!data.events.length && <div className="rounded-2xl bg-white p-6 text-sm text-[#6B7280]">
               <p>{data.totalCount ? '이 페이지에는 행사가 없습니다.' : '조건에 맞는 행사가 없습니다. 다른 조건으로 찾아보세요.'}</p>

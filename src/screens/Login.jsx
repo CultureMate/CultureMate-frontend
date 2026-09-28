@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { getKakaoLoginUrl } from '../api/auth'
 
 export default function Login() {
@@ -77,6 +77,13 @@ export default function Login() {
 
       {/* 오른쪽 패널 / 모바일 전체 */}
       <div className="flex-1 lg:max-w-md bg-[#1A1A2E] lg:bg-white flex flex-col relative overflow-hidden">
+        <Link
+          to="/"
+          aria-label="홈으로"
+          className="absolute left-6 top-6 z-20 rounded-xl bg-white/10 px-3 py-2 text-sm font-semibold text-white lg:bg-[#F3F4F6] lg:text-[#1A1A2E]"
+        >
+          ← 홈으로
+        </Link>
         <div className="lg:hidden absolute top-[-80px] right-[-60px] w-64 h-64 rounded-full bg-[#FF6B47]/10 pointer-events-none" />
         <div className="lg:hidden absolute bottom-40 right-[-30px] w-48 h-48 rounded-full bg-[#00C4A0]/10 pointer-events-none" />
 

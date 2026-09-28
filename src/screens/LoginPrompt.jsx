@@ -1,11 +1,18 @@
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+
 export default function LoginPromptScreen() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const returnTo = location.state?.from || '/'
+
   return (
     <div className="flex flex-col min-h-full bg-[#1A1A2E]">
       <div className="absolute top-[-80px] right-[-60px] w-64 h-64 rounded-full bg-[#FF6B47]/10 pointer-events-none" />
       <div className="absolute bottom-40 left-[-30px] w-48 h-48 rounded-full bg-[#8B5CF6]/10 pointer-events-none" />
 
       <div className="relative z-10 px-6 pt-14">
-        <button className="flex items-center gap-1.5 text-white/50 text-sm font-medium mb-10">
+        <button type="button" onClick={() => navigate(returnTo, { replace: true })}
+          className="flex items-center gap-1.5 text-white/50 text-sm font-medium mb-10">
           ← 돌아가기
         </button>
 
@@ -18,8 +25,8 @@ export default function LoginPromptScreen() {
             <em className="text-[#FF6B47] not-italic">필요한 서비스예요</em>
           </h1>
           <p className="text-white/50 text-sm text-center mt-3 leading-relaxed">
-            카카오 계정으로 간편하게 로그인하고<br />
-            모든 서비스를 이용해보세요
+            로그인 후 이용 가능한 서비스입니다.<br />
+            카카오 계정으로 간편하게 시작해보세요
           </p>
         </div>
 
@@ -39,7 +46,9 @@ export default function LoginPromptScreen() {
           ))}
         </div>
 
-        <button
+        <Link
+          to="/login"
+          state={{ returnTo }}
           className="w-full rounded-2xl py-4 flex items-center justify-center gap-3 font-bold text-base"
           style={{ backgroundColor: '#FFE500', color: '#1A1A2E', boxShadow: '0 8px 24px rgba(255,229,0,0.3)' }}
         >
@@ -47,7 +56,7 @@ export default function LoginPromptScreen() {
             <span className="text-white text-xs font-black">K</span>
           </div>
           카카오로 시작하기
-        </button>
+        </Link>
       </div>
     </div>
   )

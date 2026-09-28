@@ -18,6 +18,8 @@ import EventMap from '../components/EventMap'
 import EventSummary from '../components/EventSummary'
 import EventComments from '../components/EventComments'
 import EventViewCount from '../components/EventViewCount'
+import useCurrentMember from '../hooks/useCurrentMember'
+import { COURSE_DRAFT_CHANGED, readCourseDraft, toggleCourseEvent } from '../utils/courseDraft'
 
 function Field({ icon, label, value }) {
   return (
@@ -132,6 +134,8 @@ export default function EventDetail() {
 function EventDetailView({ event }) {
   const navigate = useNavigate()
   const { state } = useLocation()
+  const { member } = useCurrentMember()
+  const [courseEvents, setCourseEvents] = useState(() => readCourseDraft())
 
   const [favoriteLoading, setFavoriteLoading] =
     useState(false)
@@ -143,7 +147,17 @@ function EventDetailView({ event }) {
     useState('')
 
   const [favoriteStatusLoading, setFavoriteStatusLoading] =
-    useState(!event.isMock)
+    useState(false)
+
+  useEffect(() => {
+    const sync = event => setCourseEvents(event.detail || readCourseDraft())
+    window.addEventListener(COURSE_DRAFT_CHANGED, sync)
+    window.addEventListener('storage', sync)
+    return () => {
+      window.removeEventListener(COURSE_DRAFT_CHANGED, sync)
+      window.removeEventListener('storage', sync)
+    }
+  }, [])
 
   /*
    * 상세 화면에 처음 들어왔을 때 현재 행사가 이미
@@ -154,8 +168,9 @@ function EventDetailView({ event }) {
    * 화면으로 이동시키지 않습니다.
    */
   useEffect(() => {
-    if (event.isMock) {
+    if (event.isMock || !member) {
       setFavoriteStatusLoading(false)
+      setFavoriteSaved(false)
       return undefined
     }
 
@@ -210,7 +225,11 @@ function EventDetailView({ event }) {
     loadFavoriteStatus()
 
     return () => controller.abort()
-  }, [event.eventId, event.isMock])
+  }, [event.eventId, event.isMock, member])
+
+  const courseSaved = courseEvents.some(
+    item => String(item.eventId) === String(event.eventId)
+  )
 
   const returnTo =
     /^\/events(?:\?|$)/.test(
@@ -364,8 +383,8 @@ function EventDetailView({ event }) {
         </div>
       </div>
 
-      {/* 관심행사 저장 */}
-      <div className="max-w-5xl mx-auto w-full px-5 md:px-8 lg:px-10 pt-4">
+      {/* 로그인 사용자 전용 저장 기능 */}
+      {member && <div className="max-w-5xl mx-auto w-full px-5 md:px-8 lg:px-10 pt-4">
         {event.isMock ? (
           <div
             role="note"
@@ -374,7 +393,7 @@ function EventDetailView({ event }) {
             데모 행사는 관심행사에 저장할 수 없습니다.
           </div>
         ) : (
-          <>
+          <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={handleAddFavorite}
@@ -399,17 +418,31 @@ function EventDetailView({ event }) {
                     : '🤍 관심행사에 저장'}
             </button>
 
+            <button
+              type="button"
+              aria-pressed={courseSaved}
+              aria-label="코스에 추가"
+              onClick={() => setCourseEvents(toggleCourseEvent(event))}
+              className={`w-full rounded-xl py-3.5 text-sm font-bold transition-colors ${
+                courseSaved
+                  ? 'bg-[#E6FAF7] text-[#008F75]'
+                  : 'bg-[#F3EEFF] text-[#8B5CF6]'
+              }`}
+            >
+              {courseSaved ? '✓ 코스에 담음' : '+ 코스에 담기'}
+            </button>
+
             {favoriteError && (
               <p
                 role="alert"
-                className="text-[#FF6B47] text-sm mt-2"
+                className="col-span-2 text-[#FF6B47] text-sm"
               >
                 {favoriteError}
               </p>
             )}
-          </>
+          </div>
         )}
-      </div>
+      </div>}
 
       {/* 스크롤 콘텐츠 */}
       <div className="flex-1 overflow-y-auto pb-28 hide-scrollbar">

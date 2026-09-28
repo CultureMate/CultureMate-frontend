@@ -4,10 +4,11 @@ import api from '../api/axios'
 import EventList from './EventList'
 import Search from './Search'
 import EventDetail from './EventDetail'
+import { getCurrentMember } from '../api/auth'
 
 jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn() } }))
 jest.mock('../api/comments', () => ({ getComments: () => Promise.resolve([]), createComment: jest.fn(), updateComment: jest.fn(), deleteComment: jest.fn(), getCommentError: () => '댓글 오류' }))
-jest.mock('../api/auth', () => ({ getCurrentMember: () => Promise.resolve(null) }))
+jest.mock('../api/auth', () => ({ getCurrentMember: jest.fn() }))
 const eventId = 'https://culture.seoul.go.kr/event?id=12&name=서울'
 const event = { eventId, title: '서울 사진 전시', category: '전시/미술', district: '마포구', place: '문화회관', startDate: '2026-10-10', endDate: '2026-10-12', viewCount: 1234 }
 const result = events => ({ data: { events, count: events.length, totalCount: events.length } })
@@ -27,7 +28,10 @@ function renderEvents(initial = '/events') {
 }
 
 beforeEach(() => {
+  localStorage.clear()
   process.env.REACT_APP_DATA_MODE = 'api'
+  getCurrentMember.mockReset()
+  getCurrentMember.mockResolvedValue(null)
   api.get.mockReset()
   api.post.mockReset().mockImplementation((path, body, config) => Promise.resolve({
     data: path === '/events/summary'
@@ -53,6 +57,19 @@ test('loads real results and preserves filters when returning from URL-ID detail
   await screen.findByRole('link', { name: /서울 사진 전시/ })
   expect(screen.getByRole('searchbox')).toHaveValue('사진')
   expect(screen.getByRole('button', { name: '마포구 조건 해제' })).toBeInTheDocument()
+})
+
+test('추가 버튼은 로그인 사용자에게만 표시한다', async () => {
+  const { unmount } = renderEvents()
+  await screen.findByText('1개의 행사')
+  expect(screen.queryByRole('button', { name: /관심행사 추가/ })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /코스에 추가/ })).not.toBeInTheDocument()
+  unmount()
+
+  getCurrentMember.mockResolvedValue({ memberId: 1 })
+  renderEvents()
+  expect(await screen.findByRole('button', { name: /관심행사 추가/ })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /코스에 추가/ })).toBeInTheDocument()
 })
 
 test('filter changes are drafts until Apply, cancel discards them, dates support multiple months', async () => {

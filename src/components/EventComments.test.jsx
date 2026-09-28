@@ -21,14 +21,15 @@ beforeEach(() => {
   getCurrentMember.mockResolvedValue(null)
 })
 
-test('guests can read threaded comments and receive a login link', async () => {
+test('guests see blurred threaded comments and a login link', async () => {
   getComments.mockResolvedValue([root, reply])
   renderComments()
   expect(await screen.findByText('첫 댓글')).toBeInTheDocument()
   expect(screen.getByText('첫 답글')).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: '로그인' })).toHaveAttribute('href', '/login')
+  expect(screen.getByRole('link', { name: '로그인하기' })).toHaveAttribute('href', '/login')
+  expect(screen.getByText('로그인하시면 댓글 작성 및 확인이 가능합니다.')).toBeInTheDocument()
   expect(screen.queryByRole('form', { name: '댓글 작성' })).not.toBeInTheDocument()
-  expect(within(screen.getByLabelText('댓글 1의 답글')).getByText('첫 답글')).toBeInTheDocument()
+  expect(screen.getByText('첫 댓글').closest('[aria-hidden="true"]')).toHaveClass('blur-sm')
 })
 
 test('members create a comment and reply with immediate list updates', async () => {
@@ -98,7 +99,7 @@ test('a 401 mutation switches the composer to login guidance', async () => {
   fireEvent.change(within(form).getByRole('textbox'), { target: { value: '댓글' } })
   fireEvent.submit(form)
   expect(await screen.findByRole('alert')).toHaveTextContent('로그인 필요')
-  expect(screen.getByRole('link', { name: '로그인' })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: '로그인하기' })).toBeInTheDocument()
 })
 
 test('load failure can be retried and old event results are ignored', async () => {
