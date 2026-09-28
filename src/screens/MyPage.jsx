@@ -28,6 +28,7 @@ export default function MyPage() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
 
@@ -42,15 +43,23 @@ export default function MyPage() {
         const data = await getCurrentMember(controller.signal)
 
         if (!data) {
-          navigate('/login')
+          navigate('/login', { replace: true })
           return
         }
 
         setMember(data)
         setNickname(data.nickname ?? '')
         setResidence(data.residence ?? '')
+        setInterests(
+          new Set(data.interestCategories ?? [])
+        )
       } catch (err) {
-        if (err.name === 'CanceledError') return
+        if (
+          err.name === 'CanceledError' ||
+          err.name === 'AbortError'
+        ) {
+          return
+        }
 
         console.error('회원정보 조회 실패:', err)
         setError('회원정보를 불러오지 못했습니다.')
@@ -67,6 +76,9 @@ export default function MyPage() {
   const handleEditStart = () => {
     setNickname(member?.nickname ?? '')
     setResidence(member?.residence ?? '')
+    setInterests(
+      new Set(member?.interestCategories ?? [])
+    )
     setError('')
     setEditMode(true)
   }
@@ -74,12 +86,19 @@ export default function MyPage() {
   const handleEditCancel = () => {
     setNickname(member?.nickname ?? '')
     setResidence(member?.residence ?? '')
+    setInterests(
+      new Set(member?.interestCategories ?? [])
+    )
     setError('')
     setEditMode(false)
   }
 
   const handleSave = async () => {
-    if (nickname.trim().length < 2 || !residence || saving) {
+    if (
+      nickname.trim().length < 2 ||
+      !residence ||
+      saving
+    ) {
       return
     }
 
@@ -87,23 +106,39 @@ export default function MyPage() {
       setSaving(true)
       setError('')
 
-      await api.put('/auth/me', {
+      const { data } = await api.put('/auth/me', {
         nickname: nickname.trim(),
         residence,
+        interestCategories: [...interests],
       })
 
-      setMember(prev => ({
-        ...prev,
-        nickname: nickname.trim(),
-        residence,
-      }))
+      const updatedMember = {
+        ...member,
+        ...data,
+        nickname:
+          data?.nickname ?? nickname.trim(),
+        residence:
+          data?.residence ?? residence,
+        interestCategories:
+          data?.interestCategories ??
+          [...interests],
+      }
+
+      setMember(updatedMember)
+      setNickname(updatedMember.nickname ?? '')
+      setResidence(updatedMember.residence ?? '')
+      setInterests(
+        new Set(
+          updatedMember.interestCategories ?? []
+        )
+      )
 
       setEditMode(false)
     } catch (err) {
       console.error('회원정보 수정 실패:', err)
 
       if (err.response?.status === 401) {
-        navigate('/login')
+        navigate('/login', { replace: true })
         return
       }
 
@@ -114,13 +149,18 @@ export default function MyPage() {
   }
 
   const toggleInterest = category => {
-    // TODO: 관심 카테고리 저장 API 확정 후 서버 연동
+    if (!editMode || saving) return
+
     setInterests(prev => {
       const next = new Set(prev)
 
       if (next.has(category)) {
         next.delete(category)
       } else {
+        if (next.size >= 10) {
+          return prev
+        }
+
         next.add(category)
       }
 
@@ -128,9 +168,30 @@ export default function MyPage() {
     })
   }
 
-  const handleLogout = () => {
-    // TODO: 백엔드 로그아웃 API 확정 후 서버 연동
-    setError('로그아웃 API 확인 후 연동 예정입니다.')
+  const handleLogout = async () => {
+    if (loggingOut) return
+
+    try {
+      setLoggingOut(true)
+      setError('')
+
+      await api.post('/auth/logout')
+
+      navigate('/login', { replace: true })
+    } catch (err) {
+      console.error('로그아웃 실패:', err)
+
+      if (err.response?.status === 401) {
+        navigate('/login', { replace: true })
+        return
+      }
+
+      setError(
+        '로그아웃에 실패했습니다. 잠시 후 다시 시도해주세요.'
+      )
+    } finally {
+      setLoggingOut(false)
+    }
   }
 
   const handleDeleteMember = async () => {
@@ -143,12 +204,12 @@ export default function MyPage() {
       await api.delete('/auth/me')
 
       setShowDeleteConfirm(false)
-      navigate('/login')
+      navigate('/login', { replace: true })
     } catch (err) {
       console.error('회원탈퇴 실패:', err)
 
       if (err.response?.status === 401) {
-        navigate('/login')
+        navigate('/login', { replace: true })
         return
       }
 
@@ -207,7 +268,7 @@ export default function MyPage() {
             </div>
           </div>
 
-          {/* 확인된 데이터만 표시 */}
+          {/* 거주지 / 저장 행사 수 */}
           <div className="grid grid-cols-2 gap-3 mt-6">
             <div className="bg-white/10 rounded-xl p-3 text-center">
               <span className="text-xl">📍</span>
@@ -220,12 +281,12 @@ export default function MyPage() {
             </div>
 
             <div className="bg-white/10 rounded-xl p-3 text-center">
-              <span className="text-xl">👤</span>
+              <span className="text-xl">❤️</span>
               <p className="text-white font-bold text-sm mt-1">
-                {member.nickname || '-'}
+                {member.favoriteCount ?? 0}개
               </p>
               <p className="text-white/50 text-[10px] mt-0.5">
-                닉네임
+                저장한 행사
               </p>
             </div>
           </div>
@@ -266,7 +327,9 @@ export default function MyPage() {
                   <input
                     type="text"
                     value={nickname}
-                    onChange={e => setNickname(e.target.value)}
+                    onChange={e =>
+                      setNickname(e.target.value)
+                    }
                     maxLength={10}
                     className="w-full border border-[#E5E7EB] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#FF6B47] mb-4"
                   />
@@ -280,7 +343,9 @@ export default function MyPage() {
                       <button
                         key={d}
                         type="button"
-                        onClick={() => setResidence(d)}
+                        onClick={() =>
+                          setResidence(d)
+                        }
                         className={`px-3 py-1.5 rounded-xl text-xs font-semibold border ${
                           d === residence
                             ? 'bg-[#FF6B47] text-white border-[#FF6B47]'
@@ -290,6 +355,47 @@ export default function MyPage() {
                         {d}
                       </button>
                     ))}
+                  </div>
+
+                  <p className="text-xs text-[#6B7280] font-medium mb-2">
+                    관심 카테고리
+                  </p>
+
+                  <p className="text-[11px] text-[#9CA3AF] mb-2">
+                    최대 10개까지 선택할 수 있어요.
+                  </p>
+
+                  <div className="flex flex-wrap gap-2 mb-5">
+                    {CATEGORIES.map(cat => {
+                      const selected =
+                        interests.has(cat)
+
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() =>
+                            toggleInterest(cat)
+                          }
+                          disabled={
+                            saving ||
+                            (!selected &&
+                              interests.size >= 10)
+                          }
+                          className={`px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 border disabled:opacity-40 ${
+                            selected
+                              ? 'bg-[#FF6B47] text-white border-[#FF6B47]'
+                              : 'bg-white text-[#6B7280] border-[#E5E7EB]'
+                          }`}
+                        >
+                          <span>
+                            {CAT_ICONS[cat] ??
+                              '🎪'}
+                          </span>
+                          {cat}
+                        </button>
+                      )
+                    })}
                   </div>
 
                   <div className="flex gap-2">
@@ -312,7 +418,9 @@ export default function MyPage() {
                       }
                       className="flex-1 py-2.5 rounded-xl bg-[#FF6B47] text-white text-sm font-semibold disabled:opacity-40"
                     >
-                      {saving ? '저장 중...' : '저장'}
+                      {saving
+                        ? '저장 중...'
+                        : '저장'}
                     </button>
                   </div>
                 </div>
@@ -339,42 +447,45 @@ export default function MyPage() {
               )}
             </div>
 
-            {/* 관심 카테고리 */}
-            <div className="max-w-2xl bg-white rounded-2xl overflow-hidden shadow-sm">
-              <div className="px-4 py-3 border-b border-[#F3F4F6]">
-                <p className="font-semibold text-[#1A1A2E] text-sm">
-                  ⭐ 관심 카테고리
-                </p>
-              </div>
+            {/* 관심 카테고리 - 조회 모드 */}
+            {!editMode && (
+              <div className="max-w-2xl bg-white rounded-2xl overflow-hidden shadow-sm">
+                <div className="px-4 py-3 border-b border-[#F3F4F6]">
+                  <p className="font-semibold text-[#1A1A2E] text-sm">
+                    ⭐ 관심 카테고리
+                  </p>
+                </div>
 
-              <div className="px-4 py-4 flex flex-wrap gap-2">
-                {CATEGORIES.map(cat => {
-                  const selected = interests.has(cat)
-
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => toggleInterest(cat)}
-                      className={`px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 border ${
-                        selected
-                          ? 'bg-[#FF6B47] text-white border-[#FF6B47]'
-                          : 'bg-white text-[#6B7280] border-[#E5E7EB]'
-                      }`}
-                    >
-                      <span>{CAT_ICONS[cat] ?? '🎪'}</span>
-                      {cat}
-                    </button>
-                  )
-                })}
+                <div className="px-4 py-4 flex flex-wrap gap-2">
+                  {interests.size === 0 ? (
+                    <p className="text-[#9CA3AF] text-sm">
+                      선택한 관심 카테고리가 없습니다.
+                    </p>
+                  ) : (
+                    [...interests].map(cat => (
+                      <span
+                        key={cat}
+                        className="px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 border bg-[#FFF0EC] text-[#FF6B47] border-[#FFD5C9]"
+                      >
+                        <span>
+                          {CAT_ICONS[cat] ?? '🎪'}
+                        </span>
+                        {cat}
+                      </span>
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* 오른쪽 */}
           <div className="flex flex-col gap-4 mt-4 lg:mt-0">
             {error && (
-              <div className="bg-[#FFF0EC] rounded-xl px-4 py-3">
+              <div
+                role="alert"
+                className="bg-[#FFF0EC] rounded-xl px-4 py-3"
+              >
                 <p className="text-[#EF4444] text-xs font-medium">
                   {error}
                 </p>
@@ -390,7 +501,9 @@ export default function MyPage() {
                 <span className="text-sm font-medium flex-1 text-left text-[#1A1A2E]">
                   알림 설정
                 </span>
-                <span className="text-[#9CA3AF]">›</span>
+                <span className="text-[#9CA3AF]">
+                  ›
+                </span>
               </button>
 
               <button
@@ -401,7 +514,9 @@ export default function MyPage() {
                 <span className="text-sm font-medium flex-1 text-left text-[#1A1A2E]">
                   개인정보 처리방침
                 </span>
-                <span className="text-[#9CA3AF]">›</span>
+                <span className="text-[#9CA3AF]">
+                  ›
+                </span>
               </button>
             </div>
 
@@ -409,25 +524,35 @@ export default function MyPage() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-4 py-4 border-b border-[#F3F4F6] active:bg-[#F9FAFB]"
+                disabled={loggingOut}
+                className="w-full flex items-center gap-3 px-4 py-4 border-b border-[#F3F4F6] active:bg-[#F9FAFB] disabled:opacity-50"
               >
                 <span>🚪</span>
                 <span className="text-sm font-medium flex-1 text-left text-[#1A1A2E]">
-                  로그아웃
+                  {loggingOut
+                    ? '로그아웃 중...'
+                    : '로그아웃'}
                 </span>
-                <span className="text-[#9CA3AF]">›</span>
+                <span className="text-[#9CA3AF]">
+                  ›
+                </span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="w-full flex items-center gap-3 px-4 py-4 active:bg-[#FFF0EC]"
+                onClick={() =>
+                  setShowDeleteConfirm(true)
+                }
+                disabled={deleting}
+                className="w-full flex items-center gap-3 px-4 py-4 active:bg-[#FFF0EC] disabled:opacity-50"
               >
                 <span>🗑️</span>
                 <span className="text-sm font-medium flex-1 text-left text-[#EF4444]">
                   회원탈퇴
                 </span>
-                <span className="text-[#9CA3AF]">›</span>
+                <span className="text-[#9CA3AF]">
+                  ›
+                </span>
               </button>
             </div>
           </div>
@@ -439,29 +564,42 @@ export default function MyPage() {
         <>
           <div
             className="fixed inset-0 bg-black/50 z-40"
-            onClick={() => setShowDeleteConfirm(false)}
+            onClick={() => {
+              if (!deleting) {
+                setShowDeleteConfirm(false)
+              }
+            }}
           />
 
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-member-title"
             className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-50 bg-white rounded-2xl p-6 shadow-2xl"
             style={{
               maxWidth: 380,
               margin: '0 auto',
             }}
           >
-            <h3 className="font-display text-xl font-bold text-[#1A1A2E] mb-2">
+            <h3
+              id="delete-member-title"
+              className="font-display text-xl font-bold text-[#1A1A2E] mb-2"
+            >
               정말 탈퇴하시겠어요?
             </h3>
 
             <p className="text-[#6B7280] text-sm leading-relaxed mb-5">
-              저장된 관심 행사와 모든 개인정보가 삭제됩니다.
-              이 작업은 되돌릴 수 없습니다.
+              저장된 관심 행사와 모든 개인정보가
+              삭제됩니다. 이 작업은 되돌릴 수
+              없습니다.
             </p>
 
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setShowDeleteConfirm(false)}
+                onClick={() =>
+                  setShowDeleteConfirm(false)
+                }
                 disabled={deleting}
                 className="flex-1 py-3 rounded-xl border border-[#E5E7EB] text-sm font-semibold text-[#6B7280]"
               >
@@ -474,7 +612,9 @@ export default function MyPage() {
                 disabled={deleting}
                 className="flex-1 py-3 rounded-xl bg-[#EF4444] text-white text-sm font-semibold disabled:opacity-50"
               >
-                {deleting ? '처리 중...' : '탈퇴하기'}
+                {deleting
+                  ? '처리 중...'
+                  : '탈퇴하기'}
               </button>
             </div>
           </div>
