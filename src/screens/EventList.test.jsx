@@ -91,7 +91,7 @@ test('filter changes are drafts until Apply, cancel discards them, dates support
   expect(api.get.mock.calls[3][1].params.has('to')).toBe(false)
 })
 
-test('a single date submits the same start and end, then an earlier date completes the range', async () => {
+test('a past date range automatically enables the past-events filter', async () => {
   renderEvents('/search')
   fireEvent.click(screen.getByRole('button', { name: '2026-09-24' }))
   expect(screen.getByLabelText('시작일')).toHaveTextContent('2026-09-24')
@@ -108,8 +108,10 @@ test('a single date submits the same start and end, then an earlier date complet
   expect(dialog.getByRole('button', { name: '2026-09-22' })).toHaveAttribute('aria-pressed', 'true')
   fireEvent.click(dialog.getByRole('button', { name: '필터 적용하기' }))
   await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2))
-  expect(api.get.mock.calls[1][1].params.get('from')).toBe('2026-09-24')
+  expect(api.get.mock.calls[1][1].params.get('from')).toBe('2026-09-20')
   expect(api.get.mock.calls[1][1].params.get('to')).toBe('2026-09-24')
+  expect(screen.getByRole('checkbox', { name: '지난 행사 보기' })).toBeChecked()
+  expect(screen.getByTestId('url')).toHaveTextContent('includePast=true')
 })
 
 test('completed ranges restart on the third click; clearing and reset restart selection', () => {
@@ -130,6 +132,21 @@ test('completed ranges restart on the third click; clearing and reset restart se
   pick('2026-09-24')
   expect(screen.getByLabelText('시작일')).toHaveTextContent('2026-09-24')
   expect(screen.getByLabelText('종료일')).toHaveTextContent('2026-09-24')
+})
+
+test('calendar keeps its layout while allowing direct year and month navigation', () => {
+  renderEvents('/search')
+
+  fireEvent.change(screen.getByRole('combobox', { name: '연도 선택' }), { target: { value: '2025' } })
+  fireEvent.change(screen.getByRole('combobox', { name: '월 선택' }), { target: { value: '11' } })
+
+  expect(screen.getByRole('combobox', { name: '연도 선택' })).toHaveValue('2025')
+  expect(screen.getByRole('combobox', { name: '월 선택' })).toHaveValue('11')
+  expect(screen.getByRole('button', { name: '2025-11-10' })).toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: '2025-11-10' }))
+  expect(screen.getByLabelText('시작일')).toHaveTextContent('2025-11-10')
+  expect(screen.getByLabelText('종료일')).toHaveTextContent('2025-11-10')
 })
 
 test('keyword submit resets page, and browser Back restores the previous query', async () => {
