@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { loadKakaoMaps } from '../api/kakaoMaps'
-import { getEventCoordinates, getKakaoMapLink, searchEventLocation } from '../utils/eventLocation'
+import { getEventCoordinates, getKakaoMapLink } from '../utils/eventLocation'
 
 const messages = {
   MAP_KEY_MISSING: '지도 서비스를 준비 중입니다. 카카오맵에서 장소를 확인해 주세요.',
-  MAP_LOCATION_MISSING: '행사 위치 정보가 없습니다.',
-  MAP_LOCATION_NOT_FOUND: '정확한 위치를 찾지 못했습니다. 카카오맵에서 장소를 확인해 주세요.',
-  MAP_SEARCH_FAILED: '장소를 검색하지 못했습니다. 잠시 후 다시 시도해 주세요.',
 }
 
 export default function EventMap({ event }) {
@@ -14,6 +11,7 @@ export default function EventMap({ event }) {
   const [retry, setRetry] = useState(0)
   const [state, setState] = useState({ loading: true, location: null, error: null })
   const { eventId, place, district, title, latitude, longitude, lat, lng } = event
+  const hasCoordinates = Boolean(getEventCoordinates(event))
 
   useEffect(() => {
     const controller = new AbortController()
@@ -26,12 +24,13 @@ export default function EventMap({ event }) {
       try {
         const currentEvent = { place, district, latitude, longitude, lat, lng }
         const coordinates = getEventCoordinates(currentEvent)
-        if (!coordinates && !place?.trim()) throw new Error('MAP_LOCATION_MISSING')
+        if (!coordinates) {
+          setState({ loading: false, location: null, error: 'MAP_LOCATION_MISSING' })
+          return
+        }
         const maps = await loadKakaoMaps()
         if (controller.signal.aborted) return
-        const location = coordinates ? { ...coordinates, name: place || title, source: 'coordinates' }
-          : await searchEventLocation(maps, currentEvent, controller.signal)
-        if (controller.signal.aborted) return
+        const location = { ...coordinates, name: place || title, source: 'coordinates' }
         const center = new maps.LatLng(location.latitude, location.longitude)
         const map = new maps.Map(container, { center, level: 3, scrollwheel: false })
         marker = new maps.Marker({ map, position: center, title: location.name || place || title })
@@ -59,12 +58,22 @@ export default function EventMap({ event }) {
       observer?.disconnect()
       if (onResize) window.removeEventListener('resize', onResize)
       marker?.setMap(null)
-      container.replaceChildren()
+      container?.replaceChildren()
     }
   }, [eventId, place, district, title, latitude, longitude, lat, lng, retry])
 
+  if (!hasCoordinates) {
+    const searchLink = getKakaoMapLink(event)
+    return (
+      <section aria-label="행사 위치" className="rounded-2xl border border-[#E5E7EB] mb-4 bg-white p-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-[#6B7280]">위치 정보 없음</p>
+        {searchLink && <a href={searchLink} target="_blank" rel="noreferrer" className="shrink-0 rounded-full bg-[#FFE500] px-4 py-2 text-xs font-bold text-[#1A1A2E]">카카오맵에서 보기 →</a>}
+      </section>
+    )
+  }
+
   const mapLink = getKakaoMapLink(event, state.location)
-  const canRetry = state.error && !['MAP_KEY_MISSING', 'MAP_LOCATION_MISSING'].includes(state.error)
+  const canRetry = state.error && state.error !== 'MAP_KEY_MISSING'
   return (
     <section aria-label="행사 위치" className="rounded-2xl overflow-hidden border border-[#E5E7EB] mb-4 bg-white">
       <div className="bg-[#F9FAFB] px-4 py-3 flex items-center gap-2 border-b border-[#E5E7EB]">
