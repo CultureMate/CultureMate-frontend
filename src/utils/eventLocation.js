@@ -5,6 +5,10 @@ function coordinate(value) {
   return Number.isFinite(number) ? number : null
 }
 
+function kakaoMapLabel(value) {
+  return String(value || '').replace(/[,/]/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
 export function getEventCoordinates(event) {
   const latitude = coordinate(event.latitude ?? event.lat)
   const longitude = coordinate(event.longitude ?? event.lng)
@@ -15,9 +19,13 @@ export function getEventCoordinates(event) {
 
 export function getKakaoMapLink(event, location) {
   const point = location || getEventCoordinates(event)
-  if (point) return `https://map.kakao.com/link/map/${encodeURIComponent(point.name || event.place || event.title || '행사 위치')},${point.latitude},${point.longitude}`
+  if (point) {
+    const label = kakaoMapLabel(point.name || event.place || event.title || '행사 위치')
+    return `https://map.kakao.com/link/map/${encodeURIComponent(label)},${point.latitude},${point.longitude}`
+  }
   if (!event.place?.trim()) return null
-  return `https://map.kakao.com/link/search/${encodeURIComponent(['서울', event.district, event.place].filter(Boolean).join(' '))}`
+  const query = kakaoMapLabel(['서울', event.district, event.place].filter(Boolean).join(' '))
+  return `https://map.kakao.com/link/search/${encodeURIComponent(query)}`
 }
 
 // 상세 API에 좌표가 없을 때만 장소 검색을 이용합니다. x=경도, y=위도입니다.
