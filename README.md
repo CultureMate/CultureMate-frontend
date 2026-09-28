@@ -87,7 +87,7 @@ HOT 전체보기는 같은 API에 `limit=30`을 보냅니다. 목록 순서는 �
 `feature/events`는 홈 PR이 병합된 `develop`에서 시작했습니다. [수업의 CommentPage](https://github.com/Unpart/LG_CNS_INSPIRE_6TH/blob/main/fe/react-app/src/pages/sample/CommentPage.jsx)처럼 `useEffect`에서 Axios로 조회하고 `useState`로 상태를 갱신해 카드 목록을 렌더링합니다. 별도 상태관리·UI 라이브러리는 추가하지 않았습니다.
 
 ```http
-GET /api/events?district=강남구&district=마포구&category=전시&category=공연&from=2026-10-10&to=2026-10-11&keyword=서울&includePast=false&page=0&size=6
+GET /api/events?district=강남구&district=마포구&category=전시&category=공연&from=2026-10-10&to=2026-10-11&keyword=서울&page=0&size=6
 ```
 
 - 자치구·분야는 각각 다중 선택하며 같은 이름의 쿼리 파라미터를 반복합니다. 같은 조건 내 OR, 서로 다른 조건 간 AND입니다. 날짜는 `from`~`to` 범위와 행사 기간이 하루라도 겹치는지 검사하며 양 끝 날짜를 포함합니다.
@@ -95,11 +95,11 @@ GET /api/events?district=강남구&district=마포구&category=전시&category=�
 - 키워드는 제출 시 제목·장소를 검색합니다. 분야 빠른 선택, 적용된 태그 해제, 전체 초기화도 가능합니다.
 - 필터 레이어의 변경은 적용 버튼을 눌러야 반영됩니다. 취소·닫기·Escape는 편집 중인 값을 버립니다. 날짜 달력은 실제 월별 일수와 요일을 사용하며, 다른 달에서도 선택을 이어갈 수 있습니다.
 - URL에 검색 조건과 페이지를 저장합니다. 새로고침·브라우저 뒤로가기·상세의 목록 복귀 시 유지하며, 조건 변경 시 첫 페이지로 돌아갑니다.
-- 기본 요청은 `includePast=false`로 오늘 종료된 행사를 포함해 종료일이 오늘 이후인 행사만 조회합니다. `지난 행사 보기`를 켜면 `includePast=true`로 바뀌며 첫 페이지부터 다시 조회합니다.
+- 기본 요청은 서버 날짜 필터의 `from` 하한을 한국의 오늘 날짜로 설정해 오늘 종료되는 행사를 포함한 현재·예정 행사만 조회합니다. `지난 행사 보기`를 켜면 URL에 `includePast=true`를 저장하고 API 요청의 자동 날짜 하한을 제거한 뒤 첫 페이지부터 다시 조회합니다.
 - 한 페이지에 6건을 표시하고 전체 건수는 서버의 `totalCount`를 사용합니다. 페이지 번호는 최대 10개씩 표시하며 이전/다음은 앞뒤 10페이지 구간으로 이동합니다. 번호 클릭과 페이지 직접 입력도 지원합니다. 서버가 시작일 오름차순 정렬 후 페이지를 나눕니다.
 - 목록 응답의 `viewCount`를 카드에 표시합니다. 값이 없거나 숫자가 아니면 `-`로 표시하고, 목록에서 조회수 증가 API를 추가 호출하지 않습니다.
 - 로딩·오류·재시도·결과 없음 안내 모달과 조건 변경을 제공합니다. 페이지를 벗어나거나 조건을 변경하면 이전 요청을 취소합니다.
-- 목업도 동일한 조건 필터링 → 시작일 정렬 → 페이지 분할을 적용합니다. 실제 인증 오류와 정상 빈 결과는 목업으로 바꾸지 않습니다.
+- 목업도 종료된 행사와 다가오는 행사를 함께 제공하고 동일한 조건 필터링 → 시작일 정렬 → 페이지 분할을 적용합니다. 실제 인증 오류와 정상 빈 결과는 목업으로 바꾸지 않습니다.
 
 목록·검색 계약은 [백엔드 API 명세](https://github.com/CultureMate/CultureMate-backend/blob/develop/docs/api-contract.md)와 `EventService`를 확인했습니다. 실제 서울시 데이터를 사용하는 통합 검증에는 백엔드 실행과 서울시 API 키 설정이 필요합니다.
 

@@ -27,10 +27,15 @@ export async function getEvents(filters, signal) {
     return { events, count: events.length, totalCount: allEvents.length, page: filters.page, size: EVENT_PAGE_SIZE, isMock: true }
   }
   if (getDataMode() === 'mock') return loadMock()
+  const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  if (!filters.includePast && filters.to && filters.to < today) {
+    return { events: [], count: 0, totalCount: 0, page: filters.page, size: EVENT_PAGE_SIZE, isMock: false }
+  }
   let data
   try {
     const params = createEventParams(filters)
-    params.set('includePast', String(Boolean(filters.includePast)))
+    params.delete('includePast')
+    if (!filters.includePast && (!filters.from || filters.from < today)) params.set('from', today)
     const response = await api.get('/events', { params, signal })
     data = response.data
   } catch (error) {

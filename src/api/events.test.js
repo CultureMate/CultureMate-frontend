@@ -21,7 +21,7 @@ test('serializes repeated filters without brackets or double encoding', async ()
   expect(config.params.get('to')).toBe(filters.to)
   expect(config.params.has('date')).toBe(false)
   expect(config.params.get('keyword')).toBe('서울 사진')
-  expect(config.params.get('includePast')).toBe('false')
+  expect(config.params.has('includePast')).toBe(false)
   expect(config.params.toString()).not.toContain('%5B')
   expect(config.params.get('size')).toBe(String(EVENT_PAGE_SIZE))
 })
@@ -71,13 +71,46 @@ test('mock pagination uses totalCount before slicing and filters before paging',
   process.env.REACT_APP_DATA_MODE = 'mock'
   const first = await getEvents(empty())
   const second = await getEvents({ ...empty(), page: 1 })
-  expect(first.totalCount).toBe(getMockEvents().length)
+  const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  expect(first.totalCount).toBe(getMockEvents().filter(event => event.endDate >= today).length)
   expect(first.count).toBe(EVENT_PAGE_SIZE)
   expect(first.events.some(event => second.events.some(other => other.eventId === event.eventId))).toBe(false)
   const filtered = await getEvents({ ...empty(), district: ['강남구'] })
   expect(filtered.totalCount).toBe(1)
   expect(filtered.events[0].district).toBe('강남구')
   expect(api.get).not.toHaveBeenCalled()
+})
+
+test('mock data contains past events so includePast changes the result', async () => {
+  process.env.REACT_APP_DATA_MODE = 'mock'
+  jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-09-24T01:00:00Z').getTime())
+  const current = await getEvents(empty())
+  const all = await getEvents({ ...empty(), includePast: true })
+  expect(current.totalCount).toBe(8)
+  expect(all.totalCount).toBe(10)
+  expect(current.events.every(event => event.endDate >= '2026-09-24')).toBe(true)
+  expect(all.events.some(event => event.endDate < '2026-09-24')).toBe(true)
+  jest.restoreAllMocks()
+})
+
+test('API mode uses today as the default lower date bound and removes it for past events', async () => {
+  jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-09-24T01:00:00Z').getTime())
+  api.get.mockResolvedValue({ data: { events: [], count: 0, totalCount: 0 } })
+  await getEvents(empty())
+  expect(api.get.mock.calls[0][1].params.get('from')).toBe('2026-09-24')
+  expect(api.get.mock.calls[0][1].params.has('includePast')).toBe(false)
+  await getEvents({ ...empty(), includePast: true })
+  expect(api.get.mock.calls[1][1].params.has('from')).toBe(false)
+  expect(api.get.mock.calls[1][1].params.has('includePast')).toBe(false)
+  jest.restoreAllMocks()
+})
+
+test('an entirely past date range returns empty without an invalid API request', async () => {
+  jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-09-24T01:00:00Z').getTime())
+  const result = await getEvents({ ...empty(), from: '2026-09-01', to: '2026-09-10' })
+  expect(result).toMatchObject({ events: [], count: 0, totalCount: 0, isMock: false })
+  expect(api.get).not.toHaveBeenCalled()
+  jest.restoreAllMocks()
 })
 
 test('auto fallback preserves selected filters and API mode reports failure', async () => {

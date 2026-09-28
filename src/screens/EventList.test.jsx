@@ -87,7 +87,7 @@ test('filter changes are drafts until Apply, cancel discards them, dates support
   expect(api.get.mock.calls[2][1].params.getAll('district')).toEqual(['강남구'])
   fireEvent.click(screen.getByRole('button', { name: '2026-09-30 ~ 2026-10-01 조건 해제' }))
   await waitFor(() => expect(api.get).toHaveBeenCalledTimes(4))
-  expect(api.get.mock.calls[3][1].params.has('from')).toBe(false)
+  expect(api.get.mock.calls[3][1].params.get('from')).toBe('2026-09-24')
   expect(api.get.mock.calls[3][1].params.has('to')).toBe(false)
 })
 
@@ -108,7 +108,7 @@ test('a single date submits the same start and end, then an earlier date complet
   expect(dialog.getByRole('button', { name: '2026-09-22' })).toHaveAttribute('aria-pressed', 'true')
   fireEvent.click(dialog.getByRole('button', { name: '필터 적용하기' }))
   await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2))
-  expect(api.get.mock.calls[1][1].params.get('from')).toBe('2026-09-20')
+  expect(api.get.mock.calls[1][1].params.get('from')).toBe('2026-09-24')
   expect(api.get.mock.calls[1][1].params.get('to')).toBe('2026-09-24')
 })
 
@@ -194,12 +194,24 @@ test('previous and next move between groups of ten pages', async () => {
 test('past events are hidden by default and the toggle requests them from page zero', async () => {
   renderEvents('/events?page=2')
   await screen.findByText('1개의 행사')
-  expect(api.get.mock.calls[0][1].params.get('includePast')).toBe('false')
+  expect(api.get.mock.calls[0][1].params.get('from')).toBe('2026-09-24')
+  expect(api.get.mock.calls[0][1].params.has('includePast')).toBe(false)
   fireEvent.click(screen.getByRole('checkbox', { name: '지난 행사 보기' }))
   await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2))
-  expect(api.get.mock.calls[1][1].params.get('includePast')).toBe('true')
+  expect(api.get.mock.calls[1][1].params.has('from')).toBe(false)
+  expect(api.get.mock.calls[1][1].params.has('includePast')).toBe(false)
   expect(api.get.mock.calls[1][1].params.get('page')).toBe('0')
   expect(screen.getByTestId('url')).toHaveTextContent('includePast=true')
+})
+
+test('past events toggle visibly includes ended events in mock mode', async () => {
+  process.env.REACT_APP_DATA_MODE = 'mock'
+  renderEvents()
+  await screen.findByText('8개의 행사')
+  expect(screen.queryByText('서울 재즈 페스티벌 2026')).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('checkbox', { name: '지난 행사 보기' }))
+  await screen.findByText('10개의 행사')
+  expect(screen.getByText('서울 재즈 페스티벌 2026')).toBeInTheDocument()
 })
 
 test('no results opens condition guidance and a 401 is an error with retry', async () => {
