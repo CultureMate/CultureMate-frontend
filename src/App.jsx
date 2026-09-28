@@ -36,8 +36,8 @@ const NAV_ITEMS = [
  * 성공:
  * - /?login=success
  * - 세션 없음 -> /login
- * - residence 없음 -> /profile
- * - residence 있음 -> /
+ * - 프로필 정보가 하나라도 미완성 -> /profile
+ * - nickname, residence, interestCategories 모두 있음 -> /
  *
  * 취소:
  * - /?login=cancelled
@@ -80,7 +80,12 @@ function LoginResultHandler() {
           return
         }
 
-        if (!member.residence?.trim()) {
+        const profileIncomplete =
+          !member.nickname?.trim() ||
+          !member.residence?.trim() ||
+          !member.interestCategories?.length
+
+        if (profileIncomplete) {
           navigate('/profile', {
             replace: true,
           })
