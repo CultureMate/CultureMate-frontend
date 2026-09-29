@@ -19,28 +19,29 @@ import EventMap from '../components/EventMap'
 import EventSummary from '../components/EventSummary'
 import EventComments from '../components/EventComments'
 import EventViewCount from '../components/EventViewCount'
+import Icon from '../components/Icon'
 import useCurrentMember from '../hooks/useCurrentMember'
 import { COURSE_DRAFT_CHANGED, readCourseDraft, toggleCourseEvent } from '../utils/courseDraft'
 
-function Field({ icon, label, value }) {
+function Field({ icon, label, children }) {
   return (
-    <div className="flex items-start gap-2">
-      <span className="text-base mt-0.5">
-        {icon}
+    <div className="flex items-start gap-3 py-3">
+      <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-[#F2F4F6] text-ink-soft">
+        <Icon name={icon} size={18} />
       </span>
 
-      <div>
-        <p className="text-[#9CA3AF] text-[11px] font-medium">
+      <div className="min-w-0">
+        <p className="text-xs font-medium text-ink-muted">
           {label}
         </p>
 
-        <p className="text-[#1A1A2E] text-sm font-semibold mt-0.5 leading-tight">
-          {value || (
-            <span className="text-[#D1D5DB] font-normal">
+        <div className="mt-0.5 text-[15px] font-semibold leading-snug text-ink">
+          {children || (
+            <span className="font-normal text-[#B0B8C1]">
               정보 없음
             </span>
           )}
-        </p>
+        </div>
       </div>
     </div>
   )
@@ -97,34 +98,45 @@ export default function EventDetail() {
 
   if (loading) {
     return (
-      <p role="status" className="p-8">
-        행사 정보를 불러오는 중입니다.
-      </p>
+      <div role="status" className="mx-auto w-full max-w-5xl lg:px-10 lg:pt-6">
+        <span className="sr-only">행사 정보를 불러오는 중입니다.</span>
+        <div aria-hidden="true" className="aspect-video w-full animate-pulse bg-[#E9ECEF] lg:rounded-3xl" />
+        <div aria-hidden="true" className="space-y-3 px-5 py-6 lg:px-0">
+          <div className="h-5 w-20 animate-pulse rounded-full bg-[#E9ECEF]" />
+          <div className="h-7 w-4/5 animate-pulse rounded-lg bg-[#E9ECEF]" />
+          <div className="h-4 w-1/2 animate-pulse rounded bg-[#E9ECEF]" />
+        </div>
+      </div>
     )
   }
 
   if (error) {
     return (
-      <div role="alert" className="p-8">
-        <p>
+      <div role="alert" className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+        <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F2F4F6] text-ink-muted">
+          <Icon name="ticket" size={26} />
+        </span>
+        <p className="text-[15px] font-semibold text-ink">
           {error.response?.status === 404
             ? '행사를 찾을 수 없습니다.'
             : '행사 정보를 불러오지 못했습니다.'}
         </p>
 
-        <button
-          type="button"
-          onClick={() =>
-            setRetry(value => value + 1)
-          }
-          className="text-[#FF6B47] mr-4 mt-4"
-        >
-          다시 시도
-        </button>
+        <div className="mt-5 flex gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              setRetry(value => value + 1)
+            }
+            className="rounded-xl bg-[#F2F4F6] px-4 py-2.5 text-sm font-bold text-ink"
+          >
+            다시 시도
+          </button>
 
-        <Link to="/">
-          홈으로
-        </Link>
+          <Link to="/" className="rounded-xl bg-ink px-4 py-2.5 text-sm font-bold text-white">
+            홈으로
+          </Link>
+        </div>
       </div>
     )
   }
@@ -315,35 +327,15 @@ function EventDetailView({ event }) {
   }
 
   return (
-    <div className="flex flex-col min-h-full bg-[#FAFAF8]">
+    <div className="flex flex-col min-h-full bg-canvas">
       {event.isMock && (
         <div className="px-5 pt-5">
           <DemoNotice />
         </div>
       )}
 
-      {/* 데스크탑 뒤로가기 */}
-      <div className="hidden lg:flex items-center px-5 md:px-8 lg:px-10 pt-4 pb-2 max-w-5xl mx-auto w-full">
-        <button
-          type="button"
-          aria-label={
-            returnTo === '/'
-              ? '홈으로'
-              : '목록으로'
-          }
-          onClick={() =>
-            navigate(returnTo)
-          }
-          className="w-10 h-10 bg-white border border-[#E5E7EB] rounded-full flex items-center justify-center shadow-sm"
-        >
-          <span className="text-[#1A1A2E] text-lg">
-            ←
-          </span>
-        </button>
-      </div>
-
       {/* 히어로 이미지 */}
-      <div className="relative mx-auto aspect-video w-full max-w-5xl bg-gray-100">
+      <div className="relative mx-auto aspect-video w-full max-w-5xl overflow-hidden bg-[#E9ECEF] lg:mt-6 lg:rounded-3xl">
         {event.img && (
           <img
             src={event.img}
@@ -352,7 +344,7 @@ function EventDetailView({ event }) {
           />
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/30" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/40 to-transparent" />
 
         <button
           type="button"
@@ -364,11 +356,9 @@ function EventDetailView({ event }) {
           onClick={() =>
             navigate(returnTo)
           }
-          className="lg:hidden absolute top-12 left-5 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center"
+          className="absolute left-4 top-[calc(env(safe-area-inset-top)+0.75rem)] flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-ink shadow-card backdrop-blur-sm transition-colors hover:bg-white"
         >
-          <span className="text-white text-lg">
-            ←
-          </span>
+          <Icon name="arrowLeft" size={20} strokeWidth={2.2} />
         </button>
 
         <EventViewCount
@@ -376,171 +366,147 @@ function EventDetailView({ event }) {
           initialCount={event.viewCount}
           isMock={event.isMock}
         />
-
-        <div className="absolute bottom-5 left-5 right-5">
-          <span
-            className="text-white text-xs font-bold px-2.5 py-1 rounded-full inline-block mb-2"
-            style={{
-              backgroundColor:
-                colors.text,
-            }}
-          >
-            {event.category}
-          </span>
-
-          <h1 className="font-display text-white text-2xl font-bold leading-tight">
-            {event.title}
-          </h1>
-        </div>
       </div>
 
-      {/* 로그인 사용자 전용 저장 기능 */}
-      {member && <div className="max-w-5xl mx-auto w-full px-5 md:px-8 lg:px-10 pt-4">
-        {event.isMock ? (
+      <div className="mx-auto w-full max-w-5xl px-5 pb-32 pt-5 md:px-8 lg:px-10 lg:pb-12">
+        {/* 제목 */}
+        <div className="mb-5">
+          {event.category && (
+            <span
+              className="mb-2.5 inline-block rounded-full px-2.5 py-1 text-xs font-bold"
+              style={{ backgroundColor: colors.bg, color: colors.text }}
+            >
+              {event.category}
+            </span>
+          )}
+
+          <h1 className="font-display text-[24px] font-bold leading-snug text-ink md:text-[30px]">
+            {event.title}
+          </h1>
+
+          {(event.place || event.startDate) && (
+            <p className="mt-2 text-sm text-ink-muted">
+              {[event.place, [event.startDate, event.endDate].filter(Boolean).join(' ~ ')].filter(Boolean).join(' · ')}
+            </p>
+          )}
+        </div>
+
+        {/* 로그인 사용자 전용 저장 기능 */}
+        {member && (event.isMock ? (
           <div
             role="note"
-            className="w-full py-3.5 px-4 rounded-xl bg-[#F3F4F6] text-[#6B7280] text-sm font-semibold text-center"
+            className="mb-5 w-full rounded-2xl bg-[#F2F4F6] px-4 py-3.5 text-center text-sm font-semibold text-ink-muted"
           >
             데모 행사는 관심행사에 저장할 수 없습니다.
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={handleToggleFavorite}
-              disabled={
-                favoriteLoading ||
-                favoriteStatusLoading
-              }
-              aria-pressed={favoriteSaved}
-              aria-label={favoriteSaved ? '관심행사 저장 취소' : '관심행사 저장'}
-              className={`w-full py-3.5 rounded-xl font-bold text-sm transition-colors ${
-                favoriteSaved
-                  ? 'bg-[#FF6B47] text-white shadow-sm'
-                  : 'border border-[#FFD5CC] bg-[#FFF0EC] text-[#B93820]'
-              } disabled:opacity-70`}
-            >
-              {favoriteStatusLoading
-                ? '저장 여부 확인 중...'
-                : favoriteLoading
-                  ? (favoriteSaved ? '취소 중...' : '저장 중...')
-                  : favoriteSaved
-                    ? '❤️ 관심행사에 저장됨'
-                    : '♡ 관심행사에 저장'}
-            </button>
-
-            <button
-              type="button"
-              aria-pressed={courseSaved}
-              aria-label="코스에 추가"
-              onClick={() => setCourseEvents(toggleCourseEvent(event))}
-              className={`w-full rounded-xl py-3.5 text-sm font-bold transition-colors ${
-                courseSaved
-                  ? 'bg-[#008F75] text-white shadow-sm'
-                  : 'bg-[#F3EEFF] text-[#8B5CF6]'
-              }`}
-            >
-              {courseSaved ? '✓ 코스에 담음' : '+ 코스에 담기'}
-            </button>
-
-            {favoriteError && (
-              <p
-                role="alert"
-                className="col-span-2 text-[#FF6B47] text-sm"
+          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-black/[0.06] bg-white/95 px-5 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 backdrop-blur-md md:left-[72px] lg:static lg:mb-6 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+            <div className="mx-auto grid max-w-5xl grid-cols-[auto_1fr] gap-2 sm:grid-cols-2 lg:max-w-md">
+              <button
+                type="button"
+                onClick={handleToggleFavorite}
+                disabled={
+                  favoriteLoading ||
+                  favoriteStatusLoading
+                }
+                aria-pressed={favoriteSaved}
+                aria-label={favoriteSaved ? '관심행사 저장 취소' : '관심행사 저장'}
+                className={`flex items-center justify-center gap-1.5 rounded-2xl px-4 py-3.5 text-[15px] font-bold transition-colors ${
+                  favoriteSaved
+                    ? 'bg-coral-light text-coral'
+                    : 'bg-[#F2F4F6] text-ink-soft hover:bg-[#E9ECEF]'
+                } disabled:opacity-70`}
               >
-                {favoriteError}
-              </p>
-            )}
-          </div>
-        )}
-      </div>}
+                <Icon name="heart" size={20} filled={favoriteSaved} strokeWidth={2} />
+                <span className="hidden sm:inline">
+                  {favoriteStatusLoading
+                    ? '저장 여부 확인 중...'
+                    : favoriteLoading
+                      ? (favoriteSaved ? '취소 중...' : '저장 중...')
+                      : favoriteSaved
+                        ? '관심행사에 저장됨'
+                        : '관심행사에 저장'}
+                </span>
+              </button>
 
-      {/* 스크롤 콘텐츠 */}
-      <div className="flex-1 overflow-y-auto pb-28 hide-scrollbar">
-        <div className="lg:flex lg:gap-6 lg:items-start max-w-5xl mx-auto px-5 md:px-8 lg:px-10 py-4">
-          {/* 왼쪽: 행사 정보 */}
-          <div className="lg:flex-1 lg:min-w-0">
-            {/* 기본 정보 */}
-            <div className="bg-white rounded-2xl py-4 px-4 border border-[#F3F4F6] mb-4">
-              <div className="grid grid-cols-2 gap-4">
-                <Field
-                  icon="📅"
-                  label="기간"
-                  value={[
-                    event.startDate,
-                    event.endDate,
-                  ]
-                    .filter(Boolean)
-                    .join(' ~ ')}
-                />
+              <button
+                type="button"
+                aria-pressed={courseSaved}
+                aria-label="코스에 추가"
+                onClick={() => setCourseEvents(toggleCourseEvent(event))}
+                className={`flex items-center justify-center gap-1.5 rounded-2xl py-3.5 text-[15px] font-bold transition-colors ${
+                  courseSaved
+                    ? 'bg-[#E6FAF7] text-[#008F75]'
+                    : 'bg-coral text-white hover:bg-coral-dark'
+                }`}
+              >
+                <Icon name={courseSaved ? 'route' : 'plus'} size={18} strokeWidth={2.2} />
+                {courseSaved ? '코스에 담음' : '코스에 담기'}
+              </button>
 
-                <Field
-                  icon="📍"
-                  label="장소"
-                  value={event.place}
-                />
-
-                <Field
-                  icon="🏢"
-                  label="기관"
-                  value={event.org}
-                />
-
-                <Field
-                  icon="💰"
-                  label="요금"
-                  value={event.fee}
-                />
-
-                <Field
-                  icon="🗺️"
-                  label="자치구"
-                  value={event.district}
-                />
-
-                <div className="flex items-start gap-2">
-                  <span className="text-base mt-0.5">
-                    🔗
-                  </span>
-
-                  <div>
-                    <p className="text-[#9CA3AF] text-[11px] font-medium">
-                      원문 링크
-                    </p>
-
-                    {originalUrl ? (
-                      <a
-                        href={originalUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[#FF6B47] text-sm font-semibold mt-0.5 leading-tight underline"
-                      >
-                        바로가기 →
-                      </a>
-                    ) : (
-                      <span className="text-sm text-[#6B7280]">
-                        정보 없음
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
+              {favoriteError && (
+                <p
+                  role="alert"
+                  className="col-span-2 text-sm text-[#B93820]"
+                >
+                  {favoriteError}
+                </p>
+              )}
             </div>
-
-            <EventSummary
-              event={event}
-            />
-
-            <EventMap
-              key={event.eventId}
-              event={event}
-            />
-
-            <EventComments
-              event={event}
-            />
           </div>
-        </div>
+        ))}
+
+        {/* 기본 정보 */}
+        <section aria-label="행사 기본 정보" className="mb-4 rounded-2xl bg-white px-4 py-1 shadow-card">
+          <div className="grid divide-y divide-black/[0.05] md:grid-cols-2 md:divide-y-0 md:gap-x-6">
+            <Field icon="calendar" label="기간">
+              {[event.startDate, event.endDate].filter(Boolean).join(' ~ ')}
+            </Field>
+
+            <Field icon="pin" label="장소">
+              {event.place}
+            </Field>
+
+            <Field icon="building" label="기관">
+              {event.org}
+            </Field>
+
+            <Field icon="ticket" label="요금">
+              {event.fee}
+            </Field>
+
+            <Field icon="map" label="자치구">
+              {event.district}
+            </Field>
+
+            <Field icon="external" label="원문 링크">
+              {originalUrl && (
+                <a
+                  href={originalUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-coral hover:underline"
+                >
+                  바로가기
+                  <Icon name="chevronRight" size={16} strokeWidth={2.2} />
+                </a>
+              )}
+            </Field>
+          </div>
+        </section>
+
+        <EventSummary
+          event={event}
+        />
+
+        <EventMap
+          key={event.eventId}
+          event={event}
+        />
+
+        <EventComments
+          event={event}
+        />
       </div>
     </div>
   )

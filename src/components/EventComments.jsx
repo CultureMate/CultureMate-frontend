@@ -23,10 +23,10 @@ function CommentForm({ label, placeholder, initialValue = '', submitting, onSubm
   }
   return <form aria-label={label} onSubmit={submit} className="mt-3">
     <textarea value={content} onChange={event => setContent(event.target.value)} required rows="3" placeholder={placeholder}
-      className="w-full resize-y rounded-xl border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#1A1A2E] focus:border-[#FF6B47] focus:outline-none" />
-    <div className="mt-2 flex justify-end gap-3">
-      {onCancel && <button type="button" onClick={onCancel} disabled={submitting} className="text-sm text-[#6B7280] disabled:opacity-50">취소</button>}
-      <button type="submit" disabled={submitting || !content.trim()} className="rounded-xl bg-[#1A1A2E] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
+      className="w-full resize-y rounded-xl border border-transparent bg-[#F2F4F6] px-3.5 py-3 text-[15px] text-ink placeholder:text-ink-muted focus:border-coral/50 focus:bg-white focus:outline-none" />
+    <div className="mt-2 flex justify-end gap-2">
+      {onCancel && <button type="button" onClick={onCancel} disabled={submitting} className="rounded-xl px-3 py-2 text-sm font-semibold text-ink-muted hover:bg-[#F2F4F6] disabled:opacity-50">취소</button>}
+      <button type="submit" disabled={submitting || !content.trim()} className="rounded-xl bg-ink px-4 py-2 text-sm font-bold text-white disabled:opacity-30">
         {submitting ? '처리 중' : '등록'}
       </button>
     </div>
@@ -154,9 +154,9 @@ export default function EventComments({ event }) {
     setComments(items => items.filter(item => item.commentId !== comment.commentId && item.parentId !== comment.commentId))
   })
 
-  return <section aria-label="댓글" className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4 mb-4">
+  return <section aria-label="댓글" className="mb-4 rounded-2xl bg-white px-4 py-4 shadow-card md:px-5">
     <div className="flex items-center justify-between gap-3">
-      <h2 className="font-bold text-[#1A1A2E]">댓글 <span className="text-[#FF6B47]">{comments.length}</span></h2>
+      <h2 className="text-base font-bold text-ink">댓글 <span className="text-coral">{comments.length}</span></h2>
       {event.isMock && <span className="text-xs text-[#9CA3AF]">샘플 · 조회만 가능</span>}
     </div>
     {!event.isMock && member === undefined && <p role="status" className="mt-3 text-sm text-[#6B7280]">로그인 상태를 확인하고 있습니다.</p>}

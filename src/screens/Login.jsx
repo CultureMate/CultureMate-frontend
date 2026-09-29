@@ -1,6 +1,14 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { getKakaoLoginUrl } from '../api/auth'
+import BrandMark from '../components/BrandMark'
+import Icon from '../components/Icon'
+
+const FEATURES = [
+  { icon: 'search', title: '자치구·분야·날짜로 검색', body: '서울 곳곳의 전시, 공연, 축제를 조건대로 찾아요.' },
+  { icon: 'heart', title: '관심행사 저장과 캘린더', body: '가고 싶은 행사를 모아 날짜별로 확인해요.' },
+  { icon: 'route', title: '행사 코스 만들기', body: '행사 사이 카페와 음식점까지 한 번에 동선을 짜요.' },
+]
 
 export default function Login() {
   const { state } = useLocation()
@@ -20,138 +28,111 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-dvh flex">
+    <div className="flex min-h-dvh bg-white">
+      <div className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-gradient-to-br from-[#FF7A52] via-[#FF6B47] to-[#F2553A] p-14 lg:flex">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10" />
+        <div className="pointer-events-none absolute -bottom-32 left-10 h-80 w-80 rounded-full bg-black/5" />
 
-      {/* 왼쪽 패널 (데스크탑) */}
-      <div className="hidden lg:flex flex-1 bg-[#1A1A2E] flex-col justify-between p-14 relative overflow-hidden">
-        <div className="absolute top-[-100px] right-[-80px] w-80 h-80 rounded-full bg-[#FF6B47]/10" />
-        <div className="absolute bottom-[-60px] left-[-40px] w-60 h-60 rounded-full bg-[#8B5CF6]/10" />
-        <div className="absolute top-1/2 left-1/3 w-40 h-40 rounded-full bg-[#00C4A0]/10" />
-
-        <div className="flex items-center gap-3 relative z-10">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FF6B47] to-[#8B5CF6] flex items-center justify-center shadow-lg">
-            <span className="text-2xl">🎪</span>
-          </div>
-
-          <span className="font-display text-white text-2xl font-bold">
-            서울문화
-          </span>
+        <div className="relative z-10 flex items-center gap-3">
+          <span className="rounded-2xl bg-white p-1 shadow-lg"><BrandMark size={40} /></span>
+          <span className="text-2xl font-bold text-white">CultureMate</span>
         </div>
 
         <div className="relative z-10">
-          <h2 className="font-display text-white text-5xl font-bold leading-tight mb-6">
-            서울의 모든<br />
-            문화생활을<br />
-            <em className="text-[#FF6B47] not-italic">
-              한 눈에
-            </em>
+          <h2 className="font-display text-5xl font-bold leading-[1.2] text-white">
+            서울의 문화생활,<br />
+            코스로 즐겨요
           </h2>
 
-          <p className="text-white/50 text-lg leading-relaxed">
-            수도권 20-30대를 위한 맞춤 문화행사 추천.<br />
-            자치구·분야·날짜로 원하는 행사를 바로 찾아보세요.
-          </p>
-
-          <div className="flex flex-wrap gap-2 mt-8">
-            {[
-              '🔍 자치구·분야 검색',
-              '❤️ 관심행사 저장',
-              '📅 캘린더 관리',
-              '✨ AI 소개문',
-              '💬 댓글',
-            ].map(f => (
-              <span
-                key={f}
-                className="text-sm font-medium text-white/60 bg-white/10 px-4 py-2 rounded-full"
-              >
-                {f}
-              </span>
+          <ul className="mt-10 space-y-4">
+            {FEATURES.map(feature => (
+              <li key={feature.title} className="flex items-start gap-3">
+                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/15 text-white">
+                  <Icon name={feature.icon} size={20} />
+                </span>
+                <span>
+                  <span className="block text-base font-bold text-white">{feature.title}</span>
+                  <span className="mt-0.5 block text-sm text-white/75">{feature.body}</span>
+                </span>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
 
-        <p className="text-white/20 text-sm relative z-10">
-          © 2026 서울문화 · Seoul Cultural Events
+        <p className="relative z-10 text-sm text-white/60">
+          © 2026 CultureMate · Seoul Cultural Events
         </p>
       </div>
 
-      {/* 오른쪽 패널 / 모바일 전체 */}
-      <div className="flex-1 lg:max-w-md bg-[#1A1A2E] lg:bg-white flex flex-col relative overflow-hidden">
-        <Link
-          to="/"
-          aria-label="홈으로"
-          className="absolute left-6 top-6 z-20 rounded-xl bg-white/10 px-3 py-2 text-sm font-semibold text-white lg:bg-[#F3F4F6] lg:text-[#1A1A2E]"
-        >
-          ← 홈으로
-        </Link>
-        <div className="lg:hidden absolute top-[-80px] right-[-60px] w-64 h-64 rounded-full bg-[#FF6B47]/10 pointer-events-none" />
-        <div className="lg:hidden absolute bottom-40 right-[-30px] w-48 h-48 rounded-full bg-[#00C4A0]/10 pointer-events-none" />
+      <div className="relative flex flex-1 flex-col lg:max-w-md">
+        <div className="flex items-center px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] lg:px-6 lg:pt-6">
+          <Link
+            to="/"
+            aria-label="홈으로"
+            className="flex h-10 items-center gap-1 rounded-full px-3 text-sm font-semibold text-ink-soft hover:bg-[#F2F4F6]"
+          >
+            <Icon name="arrowLeft" size={18} />
+            홈으로
+          </Link>
+        </div>
 
-        <div className="flex-1 flex flex-col justify-center px-8 lg:px-10 pt-16 lg:pt-0">
-
-          {/* 모바일 로고 */}
-          <div className="lg:hidden flex flex-col items-center mb-10">
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#FF6B47] to-[#8B5CF6] flex items-center justify-center mb-5 shadow-2xl shadow-[#FF6B47]/30">
-              <span className="text-4xl">🎪</span>
-            </div>
-
-            <h1 className="font-display text-white text-4xl font-bold text-center leading-tight">
-              서울 문화생활<br />
-              <em className="text-[#FF6B47] not-italic">
-                한 눈에
-              </em>
+        <div className="flex flex-1 flex-col justify-center px-6 pb-6 lg:px-10">
+          <div className="mb-10 lg:hidden">
+            <BrandMark size={56} />
+            <h1 className="mt-6 font-display text-[32px] font-bold leading-[1.25] text-ink">
+              서울 문화생활,<br />
+              <span className="text-coral">코스로 즐겨요</span>
             </h1>
-
-            <p className="text-white/50 text-sm text-center mt-3 leading-relaxed">
-              수도권 20-30대를 위한 맞춤 문화행사 추천
+            <p className="mt-3 text-[15px] leading-relaxed text-ink-muted">
+              행사 검색부터 저장, 동선 짜기까지 한 번에.
             </p>
+
+            <ul className="mt-8 space-y-3">
+              {FEATURES.map(feature => (
+                <li key={feature.title} className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-coral-light text-coral">
+                    <Icon name={feature.icon} size={18} />
+                  </span>
+                  <span className="text-[15px] font-semibold text-ink-soft">{feature.title}</span>
+                </li>
+              ))}
+            </ul>
           </div>
 
-          {/* 데스크탑 제목 */}
-          <div className="hidden lg:block mb-10">
-            <h2 className="font-display text-[#1A1A2E] text-3xl font-bold">
+          <div className="mb-8 hidden lg:block">
+            <h2 className="font-display text-3xl font-bold text-ink">
               시작하기
             </h2>
 
-            <p className="text-[#6B7280] text-sm mt-2">
-              카카오 계정으로 간편하게 로그인하세요
+            <p className="mt-2 text-[15px] text-ink-muted">
+              카카오 계정으로 3초 만에 시작할 수 있어요
             </p>
           </div>
 
-          {/* 로그인 취소 안내 */}
           {loginCancelled && (
             <div
               role="alert"
-              className="mb-4 rounded-xl bg-[#FFF0EC] border border-[#FFD8CF] px-4 py-3"
+              className="mb-4 rounded-2xl bg-coral-light px-4 py-3"
             >
-              <p className="text-[#FF6B47] text-sm font-semibold">
+              <p className="text-sm font-bold text-coral-dark">
                 카카오 로그인이 취소되었습니다.
               </p>
 
-              <p className="text-[#6B7280] text-xs mt-1">
+              <p className="mt-1 text-xs text-ink-soft">
                 다시 로그인하려면 아래 버튼을 눌러주세요.
               </p>
             </div>
           )}
 
-          {/* 카카오 로그인 버튼 */}
           <button
             type="button"
             onClick={handleKakaoLogin}
             disabled={loading}
-            className="w-full rounded-2xl py-4 flex items-center justify-center gap-3 active:opacity-90 transition-opacity font-bold text-base disabled:opacity-60 disabled:cursor-not-allowed"
-            style={{
-              backgroundColor: '#FFE500',
-              color: '#1A1A2E',
-              boxShadow:
-                '0 8px 24px rgba(255,229,0,0.3)',
-            }}
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#FEE500] text-base font-bold text-[#191919] transition-[filter] hover:brightness-[0.97] active:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <div className="w-6 h-6 bg-[#1A1A2E] rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-xs font-black">
-                K
-              </span>
-            </div>
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 3.5c-5 0-9 3.2-9 7.1 0 2.5 1.6 4.7 4.1 5.9l-.9 3.4c-.1.3.3.6.6.4l4-2.7c.4 0 .8.1 1.2.1 5 0 9-3.2 9-7.1S17 3.5 12 3.5z" />
+            </svg>
 
             {loading
               ? '카카오 로그인으로 이동 중...'
@@ -159,7 +140,7 @@ export default function Login() {
           </button>
         </div>
 
-        <p className="text-center text-white/30 lg:text-[#9CA3AF] text-xs pb-10 px-8 leading-relaxed">
+        <p className="px-8 pb-[calc(env(safe-area-inset-bottom)+2rem)] text-center text-xs leading-relaxed text-ink-muted">
           로그인 시{' '}
           <span className="underline">
             이용약관

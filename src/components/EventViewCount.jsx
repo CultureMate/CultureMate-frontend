@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { increaseEventView } from '../api/eventViews'
+import Icon from './Icon'
 
 function safeCount(value) {
   return Number.isInteger(value) && value >= 0 ? value : 0
@@ -33,8 +34,8 @@ export default function EventViewCount({ eventId, initialCount, isMock }) {
     }
   }, [eventId, initialCount, isMock])
 
-  return <div className="absolute top-12 right-5 bg-black/40 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1.5">
-    <span aria-hidden="true" className="text-white/70 text-xs">👁</span>
+  return <div className="absolute right-4 top-[calc(env(safe-area-inset-top)+0.75rem)] flex h-10 items-center gap-1.5 rounded-full bg-black/45 px-3.5 backdrop-blur-sm">
+    <Icon name="eye" size={15} className="text-white/80" />
     <span aria-label={`조회수 ${state.count.toLocaleString('ko-KR')}`} className="text-white text-xs font-semibold">{state.count.toLocaleString('ko-KR')}</span>
     {state.loading && <span className="sr-only" role="status">조회수를 반영하고 있습니다.</span>}
     {state.error && <span role="status" title="조회수를 반영하지 못했습니다."

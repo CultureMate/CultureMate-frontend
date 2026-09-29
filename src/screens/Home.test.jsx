@@ -152,7 +152,7 @@ test('loads the two API sections, keeps server order and links URL-shaped IDs', 
 
   expect(
     screen.getByLabelText('조회수 1,234')
-  ).toHaveTextContent('👁1,234')
+  ).toHaveTextContent('1,234')
 
   expect(
     screen.getByText('D-3')
@@ -367,7 +367,7 @@ test('full HOT page requests 30 events and does not request upcoming', async () 
 
   expect(
     screen.queryByText(
-      '📍 다가오는 근처 행사'
+      '다가오는 근처 행사'
     )
   ).not.toBeInTheDocument()
 })
@@ -485,7 +485,7 @@ test('clicking a home card fetches that exact event ID and displays real detail'
 
   expect(
     screen.getByRole('link', {
-      name: '바로가기 →',
+      name: '바로가기',
     })
   ).toHaveAttribute(
     'href',
@@ -781,7 +781,7 @@ test('관심 카테고리를 원본 분류 검색어로 펼쳐 한 번만 요청
 
   const section = within(
     await screen.findByRole('region', {
-      name: '⭐ 관심있는 행사',
+      name: '관심있는 행사',
     })
   )
 
@@ -823,7 +823,7 @@ test('관심 카테고리에 맞는 행사가 없으면 빈 상태 안내를 보
 
   const section = within(
     await screen.findByRole('region', {
-      name: '⭐ 관심있는 행사',
+      name: '관심있는 행사',
     })
   )
 

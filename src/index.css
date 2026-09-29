@@ -1,11 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,700&family=Outfit:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --color-bg: #FAFAF8;
-  --color-fg: #1A1A2E;
+  --color-bg: #F7F7F5;
+  --color-fg: #191F28;
   --color-coral: #FF6B47;
   --color-coral-light: #FFF0EC;
   --color-mint: #00C4A0;
@@ -17,8 +16,7 @@
   --color-card: #FFFFFF;
   --color-muted: #6B7280;
   --color-border: #E5E7EB;
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Outfit', system-ui, sans-serif;
+  --font-body: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
 }
 
 * {
@@ -28,21 +26,52 @@
 
 html, body, #root {
   height: 100%;
-  background-color: #FAFAF8;
+  background-color: var(--color-bg);
 }
 
 body {
   font-family: var(--font-body);
-  color: #1A1A2E;
+  color: var(--color-fg);
+  letter-spacing: -0.01em;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-::-webkit-scrollbar {
-  display: none;
+::selection {
+  background: #FFD8CC;
+  color: #191F28;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-coral);
+  outline-offset: 2px;
+}
+
+@media (pointer: fine) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #D1D5DB;
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #9CA3AF;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 .font-display {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
+  letter-spacing: -0.03em;
 }
 
 .hide-scrollbar {
@@ -51,4 +80,12 @@ body {
 }
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

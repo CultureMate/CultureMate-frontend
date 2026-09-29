@@ -4,6 +4,8 @@ import {
   getFavorites,
   removeFavorite,
 } from '../api/favorites'
+import Icon from '../components/Icon'
+import PageHeader from '../components/PageHeader'
 
 const DAYS_OF_WEEK = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -62,25 +64,25 @@ function EventCard({
   returnTo,
 }) {
   return (
-    <article className="flex w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-[#F3F4F6] bg-white shadow-sm">
-      <div className="w-2 flex-shrink-0 bg-[#FF6B47]" />
-
+    <article className="flex w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-white shadow-card transition-shadow md:hover:shadow-lift">
       <Link
         to={`/events/${encodeURIComponent(event.eventId)}`}
         state={{ returnTo }}
-        className="min-w-0 flex-1 p-4 transition-colors hover:bg-[#FAFAF8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#FF6B47]"
+        className="min-w-0 flex-1 p-4"
       >
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold leading-tight text-[#1A1A2E]">
+          <p className="truncate text-[15px] font-bold leading-tight text-ink">
             {event.title}
           </p>
 
-          <p className="mt-2 truncate text-xs text-[#6B7280]">
-            📍 {event.place || '장소 정보 없음'}
+          <p className="mt-2 flex items-center gap-1.5 truncate text-[13px] text-ink-muted">
+            <Icon name="pin" size={14} />
+            <span className="truncate">{event.place || '장소 정보 없음'}</span>
           </p>
 
-          <p className="mt-1 text-xs text-[#9CA3AF]">
-            📅 {formatDate(event)}
+          <p className="mt-1 flex items-center gap-1.5 text-[13px] text-ink-muted">
+            <Icon name="calendar" size={14} />
+            {formatDate(event)}
           </p>
         </div>
       </Link>
@@ -90,11 +92,9 @@ function EventCard({
         onClick={() => onRemove(event.eventId)}
         disabled={removing}
         aria-label={`${event.title} 관심행사 삭제`}
-        className="flex flex-shrink-0 items-center px-4 transition-transform active:scale-90 disabled:opacity-40"
+        className="flex flex-shrink-0 items-center px-4 text-coral transition-transform active:scale-90 disabled:opacity-40"
       >
-        <span className="text-lg">
-          {removing ? '⏳' : '❤️'}
-        </span>
+        <Icon name="heart" size={22} filled={!removing} strokeWidth={2} className={removing ? 'animate-pulse' : ''} />
       </button>
     </article>
   )
@@ -131,18 +131,18 @@ function EventsCalendar({
   const todayString = formatDay(new Date())
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl shadow-card overflow-hidden">
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <button
           type="button"
           aria-label="이전 달"
           onClick={onPreviousMonth}
-          className="w-8 h-8 flex items-center justify-center text-[#6B7280] rounded-lg"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft hover:bg-[#F2F4F6]"
         >
-          ‹
+          <Icon name="chevronLeft" size={18} strokeWidth={2.2} />
         </button>
 
-        <h3 className="font-display text-lg font-bold text-[#1A1A2E]">
+        <h3 className="font-display text-lg font-bold text-ink">
           {year}년 {month}월
         </h3>
 
@@ -150,9 +150,9 @@ function EventsCalendar({
           type="button"
           aria-label="다음 달"
           onClick={onNextMonth}
-          className="w-8 h-8 flex items-center justify-center text-[#6B7280] rounded-lg"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft hover:bg-[#F2F4F6]"
         >
-          ›
+          <Icon name="chevronRight" size={18} strokeWidth={2.2} />
         </button>
       </div>
 
@@ -350,50 +350,27 @@ export default function Favorites({ view = 'list' }) {
   }
 
   return (
-    <div className="flex flex-col min-h-full bg-[#FAFAF8]">
-      <div className="sticky top-0 z-30 bg-[#1A1A2E] px-5 pb-4 pt-12 md:px-8 lg:px-10">
-        <div className="max-w-5xl mx-auto">
-          <h1 className="font-display text-white text-3xl font-bold leading-tight">
-            관심 목록
-          </h1>
-
-          <p className="text-white/50 text-sm mt-1">
-            행사 {favoriteEvents.length}개 저장됨
-          </p>
-        </div>
-      </div>
-
-      <div className="bg-white border-b border-[#F3F4F6] px-5 md:px-8 lg:px-10 py-3">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex bg-[#F3F4F6] rounded-xl p-1 gap-1">
+    <div className="flex flex-col min-h-full bg-canvas">
+      <PageHeader title="관심 목록" description={`행사 ${favoriteEvents.length}개 저장됨`} innerClassName="max-w-5xl mx-auto">
+        <div className="mt-4 flex gap-1 rounded-xl bg-[#F2F4F6] p-1 md:max-w-xs">
+          {[['list', '/favorites', 'grid', '리스트'], ['calendar', '/favorites/calendar', 'calendar', '캘린더']].map(([key, path, icon, label]) => (
             <button
+              key={key}
               type="button"
-              onClick={() => navigate('/favorites')}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold ${
-                view === 'list'
-                  ? 'bg-white text-[#1A1A2E] shadow-sm'
-                  : 'text-[#9CA3AF]'
+              aria-pressed={view === key}
+              onClick={() => navigate(path)}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-bold transition-colors ${
+                view === key
+                  ? 'bg-white text-ink shadow-sm'
+                  : 'text-ink-muted hover:text-ink-soft'
               }`}
             >
-              📋 리스트
+              <Icon name={icon} size={16} />
+              {label}
             </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate('/favorites/calendar')
-              }
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold ${
-                view === 'calendar'
-                  ? 'bg-white text-[#1A1A2E] shadow-sm'
-                  : 'text-[#9CA3AF]'
-              }`}
-            >
-              📅 캘린더
-            </button>
-          </div>
+          ))}
         </div>
-      </div>
+      </PageHeader>
 
       <div className="flex-1 overflow-y-auto pb-24 hide-scrollbar">
         {error && (
@@ -431,16 +408,22 @@ export default function Favorites({ view = 'list' }) {
             {view === 'list' && (
               <div className="max-w-5xl mx-auto px-5 md:px-8 lg:px-10 pt-4">
                 {favoriteEvents.length === 0 ? (
-                  <div className="text-center py-16">
-                    <span className="text-4xl">💝</span>
+                  <div className="flex flex-col items-center rounded-3xl bg-white px-6 py-16 text-center shadow-card">
+                    <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-coral-light text-coral">
+                      <Icon name="heart" size={26} filled />
+                    </span>
 
-                    <p className="text-[#6B7280] text-sm mt-3 font-medium">
+                    <p className="mt-4 text-base font-bold text-ink">
                       아직 저장한 행사가 없어요
                     </p>
 
-                    <p className="text-[#9CA3AF] text-xs mt-1">
-                      행사 상세에서 ❤️을 눌러 저장해보세요
+                    <p className="mt-1 text-sm text-ink-muted">
+                      마음에 드는 행사의 하트를 눌러 모아보세요
                     </p>
+
+                    <Link to="/events" className="mt-5 rounded-xl bg-ink px-5 py-3 text-sm font-bold text-white">
+                      행사 둘러보기
+                    </Link>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-3">

@@ -179,7 +179,7 @@ test(
       screen.getByRole('button', {
         name: /전시/,
       })
-    ).toHaveClass('bg-[#FF6B47]')
+    ).toHaveAttribute('aria-pressed', 'true')
   }
 )
 

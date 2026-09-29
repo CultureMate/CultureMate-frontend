@@ -7,6 +7,8 @@ import DemoNotice from '../components/DemoNotice'
 import EventDialog from '../components/EventDialog'
 import GooglePlacePhoto, { GoogleMapsAttribution } from '../components/GooglePlacePhoto'
 import OpeningHours from '../components/OpeningHours'
+import Icon from '../components/Icon'
+import PageHeader from '../components/PageHeader'
 import { getEventCoordinates } from '../utils/eventLocation'
 import { clearCourseEditSession, readActiveCourseEditSession, readCourseBuilder, readCourseDraft, writeCourseBuilder, writeCourseDraft, writeCourseEditSession } from '../utils/courseDraft'
 
@@ -159,8 +161,8 @@ function CourseCard({ course, onOpen, onToggleFavorite }) {
         </div>
         <button type="button" aria-label={`${name} ${favorite ? '관심 코스 해제' : '관심 코스 등록'}`}
           aria-pressed={favorite} onClick={() => onToggleFavorite(courseId, !favorite)}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-[#FFF8E7] text-lg">
-          {favorite ? '⭐' : '☆'}
+          className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition-colors ${favorite ? 'bg-[#FFF6DD] text-[#F5A500]' : 'bg-[#F2F4F6] text-[#B0B8C1] hover:text-ink-muted'}`}>
+          <Icon name="star" size={18} filled={favorite} />
         </button>
       </div>
 
@@ -206,8 +208,8 @@ function CourseDetail({ course, loading, error, action, onBack, onToggleFavorite
 
   return (
     <main className="mx-auto max-w-3xl px-5 py-6 md:px-8 lg:px-10">
-      <button type="button" onClick={onBack} className="mb-5 flex items-center gap-2 text-sm font-bold text-[#6B7280]">
-        <span aria-hidden="true">←</span> 내 코스
+      <button type="button" onClick={onBack} className="-ml-2 mb-4 flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-bold text-ink-soft hover:bg-white">
+        <Icon name="arrowLeft" size={18} /> 내 코스 목록
       </button>
 
       {loading ? (
@@ -225,8 +227,8 @@ function CourseDetail({ course, loading, error, action, onBack, onToggleFavorite
               </div>
               <button type="button" aria-label={`${name} ${favorite ? '관심 코스 해제' : '관심 코스 등록'}`}
                 aria-pressed={favorite} onClick={() => onToggleFavorite(courseId, !favorite)}
-                className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/10 text-xl">
-                {favorite ? '⭐' : '☆'}
+                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/10 ${favorite ? 'text-[#FFC342]' : 'text-white/60'}`}>
+                <Icon name="star" size={20} filled={favorite} />
               </button>
             </div>
             <div className="mt-5 flex flex-wrap gap-2 border-t border-white/10 pt-4">
@@ -454,7 +456,7 @@ function CourseLibrary({ onEdit, onDeleted }) {
         <button type="button" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}
           className={`rounded-lg px-5 py-2 text-sm font-bold ${filter === 'all' ? 'bg-white text-[#1A1A2E] shadow-sm' : 'text-[#9CA3AF]'}`}>전체</button>
         <button type="button" aria-pressed={filter === 'favorite'} onClick={() => setFilter('favorite')}
-          className={`rounded-lg px-5 py-2 text-sm font-bold ${filter === 'favorite' ? 'bg-white text-[#1A1A2E] shadow-sm' : 'text-[#9CA3AF]'}`}>⭐ 관심만 보기</button>
+          className={`flex items-center gap-1 rounded-lg px-5 py-2 text-sm font-bold ${filter === 'favorite' ? 'bg-white text-[#1A1A2E] shadow-sm' : 'text-[#9CA3AF]'}`}><Icon name="star" size={15} filled className={filter === 'favorite' ? 'text-[#F5A500]' : ''} />관심만 보기</button>
       </div>
 
       {request.error && <p role="alert" className="mb-4 rounded-xl bg-[#FFF0EC] p-4 text-sm text-[#B42318]">{request.error}</p>}
@@ -467,7 +469,7 @@ function CourseLibrary({ onEdit, onDeleted }) {
         </div>
       ) : (
         <section className="rounded-3xl bg-white px-6 py-16 text-center shadow-sm">
-          <span className="text-5xl" aria-hidden="true">{filter === 'favorite' ? '⭐' : '🗺️'}</span>
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F2F4F6] text-ink-muted"><Icon name={filter === 'favorite' ? 'star' : 'route'} size={26} /></span>
           <h3 className="mt-5 text-lg font-bold text-[#1A1A2E]">{filter === 'favorite' ? '관심 코스가 없어요' : '아직 만든 코스가 없어요'}</h3>
           <p className="mt-2 text-sm text-[#6B7280]">{filter === 'favorite' ? '마음에 드는 코스의 별을 눌러 모아보세요.' : '코스 만들기에서 첫 번째 동선을 만들어 보세요.'}</p>
         </section>
@@ -710,32 +712,22 @@ export default function Course() {
   }
 
   return (
-    <div className="min-h-full bg-[#FAFAF8] pb-12">
-      <header className="sticky top-0 z-30 bg-[#1A1A2E] px-5 pb-7 pt-12 md:px-8 lg:px-10">
-        <div className="mx-auto max-w-6xl">
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#FF8A70]">My course</p>
-          <h1 className="font-display text-3xl font-bold text-white">코스</h1>
-          <p className="mt-2 text-sm text-white/60">나만의 동선을 만들고 저장한 코스를 한곳에서 관리하세요.</p>
-        </div>
-      </header>
-
-      <nav className="border-b border-[#E5E7EB] bg-white px-5 py-3 md:px-8 lg:px-10" aria-label="코스 메뉴">
-        <div className="mx-auto flex max-w-6xl gap-1 rounded-xl bg-[#F3F4F6] p-1">
-          <button type="button" aria-pressed={pageTab === 'builder'} onClick={() => setPageTab('builder')}
-            className={`flex-1 rounded-lg py-2.5 text-sm font-bold ${pageTab === 'builder' ? 'bg-white text-[#1A1A2E] shadow-sm' : 'text-[#9CA3AF]'}`}>
-            🗺️ 코스 만들기
-          </button>
-          <button type="button" aria-pressed={pageTab === 'library'} onClick={() => setPageTab('library')}
-            className={`flex-1 rounded-lg py-2.5 text-sm font-bold ${pageTab === 'library' ? 'bg-white text-[#1A1A2E] shadow-sm' : 'text-[#9CA3AF]'}`}>
-            📚 내 코스
-          </button>
-        </div>
-      </nav>
+    <div className="min-h-full bg-canvas pb-12">
+      <PageHeader title="코스" description="나만의 동선을 만들고 저장한 코스를 한곳에서 관리하세요." innerClassName="mx-auto max-w-6xl">
+        <nav className="mt-4 flex gap-6 border-b border-transparent" aria-label="코스 메뉴">
+          {[['builder', '코스 만들기'], ['library', '내 코스']].map(([tab, label]) => (
+            <button key={tab} type="button" aria-pressed={pageTab === tab} onClick={() => setPageTab(tab)}
+              className={`-mb-4 border-b-2 pb-3 text-[15px] font-bold transition-colors ${pageTab === tab ? 'border-ink text-ink' : 'border-transparent text-ink-muted hover:text-ink-soft'}`}>
+              {label}
+            </button>
+          ))}
+        </nav>
+      </PageHeader>
 
       {pageTab === 'builder' ? (
       <main className="mx-auto w-full min-w-0 max-w-6xl px-5 py-6 md:px-8 lg:px-10">
         {!events.length ? <section className="min-w-0 rounded-3xl bg-white px-6 py-16 text-center shadow-sm">
-          <span className="text-5xl" aria-hidden="true">🗺️</span>
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-coral-light text-coral"><Icon name="route" size={26} /></span>
           <h2 className="mt-5 text-lg font-bold text-[#1A1A2E]">코스에 담긴 행사가 없어요</h2>
           <p className="mt-2 text-sm text-[#6B7280]">행사 목록에서 가고 싶은 행사를 먼저 담아 주세요.</p>
           {saveState.message && <p role="status" className="mt-3 text-sm font-semibold text-[#008F75]">{saveState.message}</p>}
@@ -767,7 +759,7 @@ export default function Course() {
               <Link to="/events" className="mt-4 block rounded-xl border border-dashed border-[#FF6B47] py-3 text-center text-sm font-bold text-[#FF6B47]">+ 행사 더 담기</Link>
             </section>
 
-            <section ref={placesSectionRef} aria-labelledby="places-title" className="min-w-0 max-w-full scroll-mt-40 self-start rounded-2xl bg-white p-4 shadow-sm md:p-5 lg:sticky lg:top-[10rem]">
+            <section ref={placesSectionRef} aria-labelledby="places-title" className="min-w-0 max-w-full scroll-mt-40 self-start rounded-2xl bg-white p-4 shadow-sm md:p-5 lg:sticky lg:top-40">
               <div className="mb-4"><h2 id="places-title" className="font-bold text-[#1A1A2E]">코스 주변 장소</h2><p className="mt-1 text-xs text-[#6B7280]">행사 근처나 두 행사 사이에서 카페·음식점을 찾아 코스에 넣어보세요.</p></div>
               <div role="group" aria-label="검색 위치" className="-mx-1 mb-3 flex items-center gap-1.5 overflow-x-auto px-1 pb-1 hide-scrollbar">
                 {anchors.map(item => {

@@ -111,8 +111,8 @@ test('기존 관심 카테고리를 표시한다', async () => {
     screen.getByText('공연')
   ).toBeInTheDocument()
 
-  const memberCard = screen.getByText('👤 회원 정보').parentElement.parentElement
-  const interestCard = screen.getByText('⭐ 관심 카테고리').parentElement.parentElement
+  const memberCard = screen.getByText('회원 정보').parentElement.parentElement
+  const interestCard = screen.getByText('관심 카테고리').parentElement.parentElement
   expect(memberCard).toHaveClass('w-full')
   expect(memberCard).not.toHaveClass('max-w-2xl')
   expect(interestCard).toHaveClass('w-full')
