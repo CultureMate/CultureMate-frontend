@@ -27,6 +27,18 @@ test('returns the current member using the session cookie request', async () => 
   expect(api.get).toHaveBeenCalledWith('/auth/me')
 })
 
+test('204 without a body means guest and is reused without another request', async () => {
+  api.get.mockResolvedValue({ status: 204, data: '' })
+  await expect(getCurrentMember()).resolves.toBeNull()
+  await expect(getCurrentMember()).resolves.toBeNull()
+  expect(api.get).toHaveBeenCalledTimes(1)
+})
+
+test('an empty 200 response is a malformed response, not a guest', async () => {
+  api.get.mockResolvedValue({ status: 200, data: '' })
+  await expect(getCurrentMember()).rejects.toThrow('응답 형식')
+})
+
 test('401 means guest while other and malformed responses remain errors', async () => {
   api.get.mockRejectedValueOnce({ response: { status: 401 } })
   await expect(getCurrentMember()).resolves.toBeNull()
