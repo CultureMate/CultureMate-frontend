@@ -135,9 +135,11 @@ test('로그인 사용자는 상세 행사에서 코스에 추가할 수 있다'
   renderEventDetail()
 
   const button = await screen.findByRole('button', { name: '코스에 추가' })
+  expect(button).toHaveClass('bg-[#F3EEFF]', 'text-[#8B5CF6]')
   fireEvent.click(button)
 
   expect(button).toHaveAttribute('aria-pressed', 'true')
+  expect(button).toHaveClass('bg-[#008F75]', 'text-white')
   expect(JSON.parse(localStorage.getItem('culturemate.course-draft.v1'))[0].eventId).toBe(EVENT_ID)
 })
 
@@ -168,9 +170,11 @@ test('미저장 행사에서는 저장 가능한 상태로 표시한다', async 
 
   expect(
     await screen.findByText(
-      '🤍 관심행사에 저장'
+      '♡ 관심행사에 저장'
     )
   ).toBeInTheDocument()
+
+  expect(screen.getByRole('button', { name: '관심행사 저장' })).toHaveClass('bg-[#FFF0EC]', 'text-[#B93820]')
 
   expect(getFavorites).toHaveBeenCalled()
 })
@@ -195,6 +199,8 @@ test('이미 저장된 행사는 진입 시 저장된 상태로 표시한다', a
     )
   ).toBeInTheDocument()
 
+  expect(screen.getByRole('button', { name: '관심행사 저장 취소' })).toHaveClass('bg-[#FF6B47]', 'text-white')
+
   expect(addFavorite).not.toHaveBeenCalled()
 })
 
@@ -209,7 +215,7 @@ test('저장된 행사에서 버튼을 다시 누르면 관심행사를 취소�
   fireEvent.click(button)
 
   await waitFor(() => expect(removeFavorite).toHaveBeenCalledWith(EVENT_ID))
-  expect(await screen.findByText('🤍 관심행사에 저장')).toBeInTheDocument()
+  expect(await screen.findByText('♡ 관심행사에 저장')).toBeInTheDocument()
   expect(addFavorite).not.toHaveBeenCalled()
 })
 

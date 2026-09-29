@@ -63,12 +63,12 @@ function EventCard({ event, returnTo, selected, favoriteSaved, favoriteLoading, 
       {onToggleFavorite && <div className="grid grid-cols-2 gap-2 px-4 pb-4">
         <button type="button" onClick={() => onToggleFavorite(event)} disabled={favoriteLoading} aria-pressed={favoriteSaved}
           aria-label={`${event.title} ${favoriteSaved ? '관심행사 취소' : '관심행사 추가'}`}
-          className={`rounded-xl px-2 py-2.5 text-xs font-bold disabled:opacity-60 ${favoriteSaved ? 'bg-[#FF6B47] text-white' : 'bg-[#FFF0EC] text-[#FF6B47]'}`}>
-          {favoriteLoading ? (favoriteSaved ? '취소 중...' : '저장 중...') : favoriteSaved ? '❤️ 저장됨' : '🤍 관심행사'}
+          className={`rounded-xl px-2 py-2.5 text-xs font-bold transition-colors disabled:opacity-60 ${favoriteSaved ? 'bg-[#FF6B47] text-white shadow-sm' : 'border border-[#FFD5CC] bg-[#FFF0EC] text-[#B93820]'}`}>
+          {favoriteLoading ? (favoriteSaved ? '취소 중...' : '저장 중...') : favoriteSaved ? '❤️ 저장됨' : '♡ 관심행사'}
         </button>
         <button type="button" aria-pressed={selected} onClick={() => onToggleCourse(event)}
           aria-label={`${event.title} 코스에 추가`}
-          className={`rounded-xl px-2 py-2.5 text-xs font-bold ${selected ? 'bg-[#E6FAF7] text-[#008F75]' : 'bg-[#F3EEFF] text-[#8B5CF6]'}`}>
+          className={`rounded-xl px-2 py-2.5 text-xs font-bold transition-colors ${selected ? 'bg-[#008F75] text-white shadow-sm' : 'bg-[#F3EEFF] text-[#8B5CF6]'}`}>
           {selected ? '✓ 코스에 담음' : '+ 코스에 담기'}
         </button>
       </div>}
@@ -108,7 +108,7 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
       <form aria-label="페이지 직접 이동" onSubmit={submitPage} className="basis-full sm:basis-auto flex items-center justify-center gap-2 mt-2 sm:mt-0 sm:ml-2">
         <label htmlFor="event-page-input" className="text-sm text-[#6B7280]">페이지</label>
         <input id="event-page-input" type="number" min="1" max={totalPages} value={pageInput} onChange={event => setPageInput(event.target.value)}
-          className="w-20 rounded-xl border border-[#E5E7EB] bg-white px-3 py-2 text-sm" />
+          className="w-20 rounded-xl border border-[#E5E7EB] bg-white px-3 py-2 text-center text-sm tabular-nums" />
         <span className="text-sm text-[#6B7280]">/ {totalPages}</span>
         <button type="submit" className="rounded-xl bg-white px-3 py-2 text-sm font-semibold">이동</button>
       </form>
