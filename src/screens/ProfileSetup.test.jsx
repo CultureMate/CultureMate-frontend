@@ -24,6 +24,7 @@ jest.mock('../api/axios', () => ({
 
 jest.mock('../api/auth', () => ({
   getCurrentMember: jest.fn(),
+  resetCurrentMemberCache: jest.fn(),
 }))
 
 function LocationDisplay() {

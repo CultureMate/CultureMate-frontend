@@ -18,6 +18,7 @@ import api from '../api/axios'
 
 jest.mock('../api/auth', () => ({
   getCurrentMember: jest.fn(),
+  setCurrentMemberCache: jest.fn(),
 }))
 
 jest.mock('../api/axios', () => ({

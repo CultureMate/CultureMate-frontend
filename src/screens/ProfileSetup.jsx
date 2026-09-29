@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import api from '../api/axios'
-import { getCurrentMember } from '../api/auth'
+import { getCurrentMember, resetCurrentMemberCache } from '../api/auth'
 import {
   CATEGORIES,
   DISTRICTS,
@@ -167,6 +167,8 @@ export default function ProfileSetup() {
           ...interests,
         ],
       })
+
+      resetCurrentMemberCache()
 
       navigate('/', {
         replace: true,
