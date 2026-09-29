@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getCurrentMember } from '../api/auth'
+import useCurrentMember from '../hooks/useCurrentMember'
 import { createComment, deleteComment, getCommentError, getComments, updateComment } from '../api/comments'
 
 // 백엔드는 탈퇴한 회원의 댓글에만 nickname을 null로 준다.
@@ -82,7 +82,8 @@ function ReplyItem({ reply, member, submitting, onUpdate, onDelete }) {
 export default function EventComments({ event }) {
   const [retry, setRetry] = useState(0)
   const [comments, setComments] = useState([])
-  const [member, setMember] = useState(undefined)
+  const { member: currentMember, clearMember } = useCurrentMember()
+  const member = event.isMock ? null : currentMember
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [actionError, setActionError] = useState(null)
@@ -107,16 +108,6 @@ export default function EventComments({ event }) {
     return () => controller.abort()
   }, [event.eventId, retry])
 
-  useEffect(() => {
-    if (event.isMock) { setMember(null); return undefined }
-    const controller = new AbortController()
-    setMember(undefined)
-    getCurrentMember(controller.signal)
-      .then(data => { if (!controller.signal.aborted) setMember(data) })
-      .catch(() => { if (!controller.signal.aborted) setMember(null) })
-    return () => controller.abort()
-  }, [event.eventId, event.isMock])
-
   const roots = useMemo(() => {
     const topLevelIds = new Set(comments.filter(comment => comment.parentId == null).map(comment => comment.commentId))
     return comments.filter(comment => comment.parentId == null || !topLevelIds.has(comment.parentId))
@@ -131,7 +122,7 @@ export default function EventComments({ event }) {
       return true
     } catch (requestError) {
       setActionError(requestError)
-      if (requestError.response?.status === 401) setMember(null)
+      if (requestError.response?.status === 401) clearMember()
       return false
     } finally { setSubmitting(false) }
   }

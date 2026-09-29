@@ -13,6 +13,7 @@ import {
 
 import api from '../api/axios'
 import { getCurrentMember } from '../api/auth'
+import useCurrentMember, { CurrentMemberProvider } from '../hooks/useCurrentMember'
 import ProfileSetup from './ProfileSetup'
 
 jest.mock('../api/axios', () => ({
@@ -36,27 +37,42 @@ function LocationDisplay() {
   )
 }
 
+function MainScreen() {
+  const { member } = useCurrentMember()
+
+  return (
+    <div>
+      메인 화면
+      <p data-testid="shared-member">
+        {member?.residence} {member?.interestCategories?.join(',')}
+      </p>
+    </div>
+  )
+}
+
 function renderProfile() {
   return render(
     <MemoryRouter initialEntries={['/profile']}>
-      <LocationDisplay />
+      <CurrentMemberProvider>
+        <LocationDisplay />
 
-      <Routes>
-        <Route
-          path="/profile"
-          element={<ProfileSetup />}
-        />
+        <Routes>
+          <Route
+            path="/profile"
+            element={<ProfileSetup />}
+          />
 
-        <Route
-          path="/"
-          element={<div>메인 화면</div>}
-        />
+          <Route
+            path="/"
+            element={<MainScreen />}
+          />
 
-        <Route
-          path="/login"
-          element={<div>로그인 화면</div>}
-        />
-      </Routes>
+          <Route
+            path="/login"
+            element={<div>로그인 화면</div>}
+          />
+        </Routes>
+      </CurrentMemberProvider>
     </MemoryRouter>
   )
 }
@@ -294,6 +310,10 @@ test(
     expect(
       screen.getByTestId('location')
     ).toHaveTextContent('/')
+
+    expect(
+      screen.getByTestId('shared-member')
+    ).toHaveTextContent('마포구 전시')
   }
 )
 

@@ -18,6 +18,7 @@ import {
   removeFavorite,
 } from '../api/favorites'
 import { getCurrentMember } from '../api/auth'
+import { CurrentMemberProvider } from '../hooks/useCurrentMember'
 
 jest.mock('../api/events', () => ({
   getEventDetail: jest.fn(),
@@ -88,17 +89,19 @@ function renderEventDetail() {
         `/events/${encodeURIComponent(EVENT_ID)}`,
       ]}
     >
-      <Routes>
-        <Route
-          path="/events/:id"
-          element={<EventDetail />}
-        />
+      <CurrentMemberProvider>
+        <Routes>
+          <Route
+            path="/events/:id"
+            element={<EventDetail />}
+          />
 
-        <Route
-          path="/login"
-          element={<div>로그인 화면</div>}
-        />
-      </Routes>
+          <Route
+            path="/login"
+            element={<div>로그인 화면</div>}
+          />
+        </Routes>
+      </CurrentMemberProvider>
     </MemoryRouter>
   )
 }

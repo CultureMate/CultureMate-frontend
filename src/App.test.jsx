@@ -192,6 +192,18 @@ describe('로그인 필요 탭 보호', () => {
 
     expect(await screen.findByText('SHARED_COURSE_PAGE')).toBeInTheDocument()
   })
+
+  test('메뉴와 보호 화면은 로그인 확인 결과를 함께 써서 한 번만 요청한다', async () => {
+    getCurrentMember.mockResolvedValue({ memberId: 1 })
+    window.history.replaceState({}, '', '/course')
+
+    render(<App />)
+
+    expect(await screen.findByText('COURSE_PAGE')).toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('link', { name: '관심' })[0])
+    expect(await screen.findByText('FAVORITES_PAGE')).toBeInTheDocument()
+    expect(getCurrentMember).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('앱 메뉴 로그인 상태', () => {

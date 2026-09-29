@@ -15,6 +15,7 @@ import {
 import MyPage from './MyPage'
 import { getCurrentMember } from '../api/auth'
 import api from '../api/axios'
+import useCurrentMember, { CurrentMemberProvider } from '../hooks/useCurrentMember'
 
 jest.mock('../api/auth', () => ({
   getCurrentMember: jest.fn(),
@@ -37,6 +38,16 @@ const MEMBER = {
   favoriteCount: 3,
 }
 
+function SharedMemberProbe() {
+  const { member } = useCurrentMember()
+
+  return (
+    <p data-testid="shared-member">
+      {member === undefined ? '확인 중' : member?.nickname ?? '비로그인'}
+    </p>
+  )
+}
+
 function renderMyPage(
   initialEntry = '/my'
 ) {
@@ -44,17 +55,20 @@ function renderMyPage(
     <MemoryRouter
       initialEntries={[initialEntry]}
     >
-      <Routes>
-        <Route
-          path="/my"
-          element={<MyPage />}
-        />
+      <CurrentMemberProvider>
+        <SharedMemberProbe />
+        <Routes>
+          <Route
+            path="/my"
+            element={<MyPage />}
+          />
 
-        <Route
-          path="/login"
-          element={<div>로그인 화면</div>}
-        />
-      </Routes>
+          <Route
+            path="/login"
+            element={<div>로그인 화면</div>}
+          />
+        </Routes>
+      </CurrentMemberProvider>
     </MemoryRouter>
   )
 }
@@ -204,6 +218,10 @@ test('닉네임 거주지 관심사를 함께 수정한다', async () => {
   expect(
     screen.getByText('음악')
   ).toBeInTheDocument()
+
+  expect(
+    screen.getByTestId('shared-member')
+  ).toHaveTextContent('수정유저')
 })
 
 test('회원정보 저장 실패 시 기존 회원정보를 유지한다', async () => {
@@ -335,6 +353,10 @@ test('로그아웃 API 호출 후 로그인 화면으로 이동한다', async ()
       '로그인 화면'
     )
   ).toBeInTheDocument()
+
+  expect(
+    screen.getByTestId('shared-member')
+  ).toHaveTextContent('비로그인')
 })
 
 test('회원탈퇴 취소 시 탈퇴 API를 호출하지 않는다', async () => {
@@ -411,6 +433,10 @@ test('회원탈퇴 성공 후 로그인 화면으로 이동한다', async () => 
       '로그인 화면'
     )
   ).toBeInTheDocument()
+
+  expect(
+    screen.getByTestId('shared-member')
+  ).toHaveTextContent('비로그인')
 })
 
 test('회원탈퇴 실패 메시지를 탈퇴 확인 모달 내부에 표시한다', async () => {
@@ -500,17 +526,19 @@ test('수정 모드를 연 뒤에는 edit 쿼리를 지워 새로고침해도 �
     <MemoryRouter
       initialEntries={['/my?edit=interests']}
     >
-      <Routes>
-        <Route
-          path="/my"
-          element={
-            <>
-              <MyPage />
-              <LocationProbe />
-            </>
-          }
-        />
-      </Routes>
+      <CurrentMemberProvider>
+        <Routes>
+          <Route
+            path="/my"
+            element={
+              <>
+                <MyPage />
+                <LocationProbe />
+              </>
+            }
+          />
+        </Routes>
+      </CurrentMemberProvider>
     </MemoryRouter>
   )
 

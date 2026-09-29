@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { getCurrentMember } from '../api/auth'
 import api from '../api/axios'
+import useCurrentMember from '../hooks/useCurrentMember'
 import { CATEGORIES, DISTRICTS } from '../data/events'
 
 const CAT_ICONS = {
@@ -20,16 +20,23 @@ export default function MyPage() {
   const location = useLocation()
   const openInterestEdit = new URLSearchParams(location.search).get('edit') === 'interests'
 
-  const [member, setMember] = useState(null)
-  const [nickname, setNickname] = useState('')
-  const [residence, setResidence] = useState('')
-  const [interests, setInterests] = useState(new Set())
+  const {
+    member,
+    error: memberError,
+    setMember,
+    clearMember,
+  } = useCurrentMember()
+  const [nickname, setNickname] = useState(member?.nickname ?? '')
+  const [residence, setResidence] = useState(member?.residence ?? '')
+  const [interests, setInterests] = useState(
+    () => new Set(member?.interestCategories ?? [])
+  )
 
   const [editMode, setEditMode] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] =
     useState(false)
 
-  const [loading, setLoading] = useState(true)
+  const loading = member === undefined
   const [saving, setSaving] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -38,47 +45,18 @@ export default function MyPage() {
   const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => {
-    const controller = new AbortController()
-
-    const loadMember = async () => {
-      try {
-        setLoading(true)
-        setError('')
-
-        const data = await getCurrentMember(
-          controller.signal
-        )
-
-        if (!data) {
-          navigate('/login', { replace: true })
-          return
-        }
-
-        setMember(data)
-        setNickname(data.nickname ?? '')
-        setResidence(data.residence ?? '')
-        setInterests(
-          new Set(data.interestCategories ?? [])
-        )
-      } catch (err) {
-        if (
-          err.name === 'CanceledError' ||
-          err.name === 'AbortError'
-        ) {
-          return
-        }
-
-        console.error('회원정보 조회 실패:', err)
-        setError('회원정보를 불러오지 못했습니다.')
-      } finally {
-        setLoading(false)
-      }
+    if (member === null && !memberError) {
+      navigate('/login', { replace: true })
+      return
     }
+    if (!member) return
 
-    loadMember()
-
-    return () => controller.abort()
-  }, [navigate])
+    setNickname(member.nickname ?? '')
+    setResidence(member.residence ?? '')
+    setInterests(
+      new Set(member.interestCategories ?? [])
+    )
+  }, [member, memberError, navigate])
 
   useEffect(() => {
     if (!openInterestEdit || !member) return
@@ -139,20 +117,13 @@ export default function MyPage() {
       }
 
       setMember(updatedMember)
-      setNickname(updatedMember.nickname ?? '')
-      setResidence(updatedMember.residence ?? '')
-      setInterests(
-        new Set(
-          updatedMember.interestCategories ?? []
-        )
-      )
-
       setEditMode(false)
     } catch (err) {
       console.error('회원정보 수정 실패:', err)
 
       if (err.response?.status === 401) {
         navigate('/login', { replace: true })
+        clearMember()
         return
       }
 
@@ -192,11 +163,13 @@ export default function MyPage() {
       await api.post('/auth/logout')
 
       navigate('/login', { replace: true })
+      clearMember()
     } catch (err) {
       console.error('로그아웃 실패:', err)
 
       if (err.response?.status === 401) {
         navigate('/login', { replace: true })
+        clearMember()
         return
       }
 
@@ -231,11 +204,13 @@ export default function MyPage() {
 
       setShowDeleteConfirm(false)
       navigate('/login', { replace: true })
+      clearMember()
     } catch (err) {
       console.error('회원탈퇴 실패:', err)
 
       if (err.response?.status === 401) {
         navigate('/login', { replace: true })
+        clearMember()
         return
       }
 
@@ -262,7 +237,9 @@ export default function MyPage() {
       <div className="min-h-full bg-[#FAFAF8] flex items-center justify-center px-6">
         <p className="text-[#6B7280] text-sm font-medium text-center">
           {error ||
-            '회원정보를 확인할 수 없습니다.'}
+            (memberError
+              ? '회원정보를 불러오지 못했습니다.'
+              : '회원정보를 확인할 수 없습니다.')}
         </p>
       </div>
     )
@@ -485,13 +462,13 @@ export default function MyPage() {
                 </div>
 
                 <div className="px-4 py-4 flex flex-wrap gap-2">
-                  {interests.size === 0 ? (
+                  {(member.interestCategories ?? []).length === 0 ? (
                     <p className="text-[#9CA3AF] text-sm">
                       선택한 관심 카테고리가
                       없습니다.
                     </p>
                   ) : (
-                    [...interests].map(cat => (
+                    member.interestCategories.map(cat => (
                       <span
                         key={cat}
                         className="px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 border bg-[#FFF0EC] text-[#FF6B47] border-[#FFD5C9]"

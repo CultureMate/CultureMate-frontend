@@ -10,7 +10,7 @@ import {
   getHotEvents,
   getUpcomingEvents,
 } from '../api/home'
-import { getCurrentMember } from '../api/auth'
+import useCurrentMember from '../hooks/useCurrentMember'
 import { getEvents, getEventsError } from '../api/events'
 import { CATEGORY_COLOR } from '../data/events'
 import {
@@ -332,10 +332,8 @@ export default function Home({ showAllHot = false }) {
   const [upcomingRetry, setUpcomingRetry] =
     useState(0)
 
-  const [member, setMember] = useState(null)
-  const [memberLoading, setMemberLoading] =
-    useState(true)
-  const [memberError, setMemberError] = useState(null)
+  const { member, error: memberError } = useCurrentMember()
+  const memberLoading = member === undefined
 
   const [interestEvents, setInterestEvents] =
     useState([])
@@ -419,49 +417,6 @@ export default function Home({ showAllHot = false }) {
 
     return () => controller.abort()
   }, [showAllHot, upcomingRetry])
-
-  // 관심있는 행사에 사용할 최신 회원정보를 매번 다시 조회한다.
-  // 마이페이지에서 관심사를 수정한 뒤 홈으로 돌아오면
-  // 변경된 interestCategories가 반영된다.
-  useEffect(() => {
-    if (showAllHot) return
-
-    const controller = new AbortController()
-
-    const loadMember = async () => {
-      try {
-        setMemberLoading(true)
-        setMemberError(null)
-
-        const data = await getCurrentMember(
-          controller.signal
-        )
-
-        if (!controller.signal.aborted) {
-          setMember(data)
-        }
-      } catch (error) {
-        if (
-          error.name === 'CanceledError' ||
-          error.name === 'AbortError'
-        ) {
-          return
-        }
-
-        if (!controller.signal.aborted) {
-          setMemberError(error)
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setMemberLoading(false)
-        }
-      }
-    }
-
-    loadMember()
-
-    return () => controller.abort()
-  }, [showAllHot])
 
   useEffect(() => {
     if (showAllHot || memberLoading) return

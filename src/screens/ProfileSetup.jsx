@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import api from '../api/axios'
-import { getCurrentMember } from '../api/auth'
+import useCurrentMember from '../hooks/useCurrentMember'
 import {
   CATEGORIES,
   DISTRICTS,
@@ -43,66 +43,30 @@ export default function ProfileSetup() {
   /*
    * /profile 직접 접근 시 먼저 로그인 상태를 확인합니다.
    * 확인이 끝나기 전에는 프로필 입력 화면을 노출하지 않습니다.
+   * 인증 상태를 확인할 수 없는 경우에도 로그인 화면으로 보냅니다.
    */
-  const [authChecking, setAuthChecking] =
-    useState(true)
+  const {
+    member,
+    error: memberError,
+    setMember,
+    clearMember,
+  } = useCurrentMember()
+  const authChecking = !member
 
   useEffect(() => {
-    const controller = new AbortController()
-    let active = true
+    if (member !== null) return
 
-    const checkAuth = async () => {
-      try {
-        const member = await getCurrentMember(
-          controller.signal
-        )
-
-        if (!active) return
-
-        if (!member) {
-          navigate('/login', {
-            replace: true,
-          })
-          return
-        }
-
-        /*
-         * 로그인된 회원만 프로필 설정 화면을
-         * 볼 수 있도록 허용합니다.
-         */
-        setAuthChecking(false)
-      } catch (err) {
-        if (!active) return
-
-        if (
-          err.name === 'CanceledError' ||
-          err.name === 'AbortError'
-        ) {
-          return
-        }
-
-        console.error(
-          '로그인 상태 확인 실패:',
-          err
-        )
-
-        /*
-         * 인증 상태를 확인할 수 없는 경우에도
-         * 프로필 입력 화면을 그대로 노출하지 않습니다.
-         */
-        navigate('/login', {
-          replace: true,
-        })
-      }
+    if (memberError) {
+      console.error(
+        '로그인 상태 확인 실패:',
+        memberError
+      )
     }
 
-    checkAuth()
-
-    return () => {
-      active = false
-      controller.abort()
-    }
-  }, [navigate])
+    navigate('/login', {
+      replace: true,
+    })
+  }, [member, memberError, navigate])
 
   const step = STEPS[stepIdx]
 
@@ -160,7 +124,7 @@ export default function ProfileSetup() {
        * 관심 카테고리가 하나도 선택되지 않은 경우에도
        * 빈 배열을 전송하여 프로필 설정을 완료합니다.
        */
-      await api.put('/auth/me', {
+      const { data } = await api.put('/auth/me', {
         nickname: nickname.trim(),
         residence,
         interestCategories: [
@@ -168,6 +132,14 @@ export default function ProfileSetup() {
         ],
       })
 
+      setMember({
+        ...member,
+        ...data,
+        nickname: data?.nickname ?? nickname.trim(),
+        residence: data?.residence ?? residence,
+        interestCategories:
+          data?.interestCategories ?? [...interests],
+      })
       navigate('/', {
         replace: true,
       })
@@ -181,6 +153,7 @@ export default function ProfileSetup() {
         navigate('/login', {
           replace: true,
         })
+        clearMember()
         return
       }
 

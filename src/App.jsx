@@ -22,9 +22,8 @@ import MyPage from './screens/MyPage'
 import Login from './screens/Login'
 import LoginPrompt from './screens/LoginPrompt'
 import ProfileSetup from './screens/ProfileSetup'
-import { getCurrentMember } from './api/auth'
 import api from './api/axios'
-import useCurrentMember from './hooks/useCurrentMember'
+import useCurrentMember, { CurrentMemberProvider } from './hooks/useCurrentMember'
 import EventDialog from './components/EventDialog'
 
 const NAV_ITEMS = [
@@ -52,6 +51,7 @@ const NAV_ITEMS = [
 function LoginResultHandler() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { member, error } = useCurrentMember()
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -67,62 +67,42 @@ function LoginResultHandler() {
       return
     }
 
-    if (loginResult !== 'success') {
+    if (loginResult !== 'success' || member === undefined) {
       return
     }
 
-    let cancelled = false
-
-    const handleLoginSuccess = async () => {
-      try {
-        const member = await getCurrentMember()
-
-        if (cancelled) return
-
-        if (!member) {
-          navigate('/login', {
-            replace: true,
-          })
-          return
-        }
-
-        // 관심 카테고리는 선택 사항이다.
-        // 닉네임과 거주지만 설정되어 있으면
-        // 관심 카테고리가 없어도 메인 화면으로 이동한다.
-        const profileIncomplete =
-          !member.nickname?.trim() ||
-          !member.residence?.trim()
-
-        if (profileIncomplete) {
-          navigate('/profile', {
-            replace: true,
-          })
-          return
-        }
-
-        navigate('/', {
-          replace: true,
-        })
-      } catch (error) {
-        if (cancelled) return
-
-        console.error(
-          '로그인 후 회원정보 확인 실패:',
-          error
-        )
-
-        navigate('/login', {
-          replace: true,
-        })
-      }
+    if (error) {
+      console.error(
+        '로그인 후 회원정보 확인 실패:',
+        error
+      )
     }
 
-    handleLoginSuccess()
-
-    return () => {
-      cancelled = true
+    if (!member) {
+      navigate('/login', {
+        replace: true,
+      })
+      return
     }
-  }, [location.search, navigate])
+
+    // 관심 카테고리는 선택 사항이다.
+    // 닉네임과 거주지만 설정되어 있으면
+    // 관심 카테고리가 없어도 메인 화면으로 이동한다.
+    const profileIncomplete =
+      !member.nickname?.trim() ||
+      !member.residence?.trim()
+
+    if (profileIncomplete) {
+      navigate('/profile', {
+        replace: true,
+      })
+      return
+    }
+
+    navigate('/', {
+      replace: true,
+    })
+  }, [location.search, navigate, member, error])
 
   return null
 }
@@ -358,90 +338,92 @@ function RequireAuth({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
-      <LoginResultHandler />
+      <CurrentMemberProvider>
+        <LoginResultHandler />
 
-      <Routes>
-        <Route element={<AppLayout />}>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route
+              path="/"
+              element={<Home />}
+            />
+
+            <Route
+              path="/events"
+              element={<EventList />}
+            />
+
+            <Route
+              path="/events/hot"
+              element={<Home showAllHot />}
+            />
+
+            <Route
+              path="/events/filter"
+              element={
+                <EventList initialFilterOpen />
+              }
+            />
+
+            <Route
+              path="/events/:id"
+              element={<EventDetail />}
+            />
+
+            <Route
+              path="/search"
+              element={<Search />}
+            />
+
+            <Route
+              path="/course"
+              element={<RequireAuth><Course /></RequireAuth>}
+            />
+
+            <Route
+              path="/shared/courses/:shareId"
+              element={<RequireAuth><SharedCourse /></RequireAuth>}
+            />
+
+            <Route
+              path="/favorites"
+              element={<RequireAuth><Favorites /></RequireAuth>}
+            />
+
+            <Route
+              path="/favorites/calendar"
+              element={
+                <RequireAuth><Favorites view="calendar" /></RequireAuth>
+              }
+            />
+
+            <Route
+              path="/my"
+              element={<RequireAuth><MyPage /></RequireAuth>}
+            />
+
+            <Route
+              path="/login-prompt"
+              element={<LoginPrompt />}
+            />
+          </Route>
+
           <Route
-            path="/"
+            path="/login"
+            element={<Login />}
+          />
+
+          <Route
+            path="/profile"
+            element={<ProfileSetup />}
+          />
+
+          <Route
+            path="*"
             element={<Home />}
           />
-
-          <Route
-            path="/events"
-            element={<EventList />}
-          />
-
-          <Route
-            path="/events/hot"
-            element={<Home showAllHot />}
-          />
-
-          <Route
-            path="/events/filter"
-            element={
-              <EventList initialFilterOpen />
-            }
-          />
-
-          <Route
-            path="/events/:id"
-            element={<EventDetail />}
-          />
-
-          <Route
-            path="/search"
-            element={<Search />}
-          />
-
-          <Route
-            path="/course"
-            element={<RequireAuth><Course /></RequireAuth>}
-          />
-
-          <Route
-            path="/shared/courses/:shareId"
-            element={<RequireAuth><SharedCourse /></RequireAuth>}
-          />
-
-          <Route
-            path="/favorites"
-            element={<RequireAuth><Favorites /></RequireAuth>}
-          />
-
-          <Route
-            path="/favorites/calendar"
-            element={
-              <RequireAuth><Favorites view="calendar" /></RequireAuth>
-            }
-          />
-
-          <Route
-            path="/my"
-            element={<RequireAuth><MyPage /></RequireAuth>}
-          />
-
-          <Route
-            path="/login-prompt"
-            element={<LoginPrompt />}
-          />
-        </Route>
-
-        <Route
-          path="/login"
-          element={<Login />}
-        />
-
-        <Route
-          path="/profile"
-          element={<ProfileSetup />}
-        />
-
-        <Route
-          path="*"
-          element={<Home />}
-        />
-      </Routes>
+        </Routes>
+      </CurrentMemberProvider>
     </BrowserRouter>
   )
 }

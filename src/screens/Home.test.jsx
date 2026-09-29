@@ -15,6 +15,7 @@ import {
 
 import api from '../api/axios'
 import { getCurrentMember } from '../api/auth'
+import { CurrentMemberProvider } from '../hooks/useCurrentMember'
 import Home from './Home'
 import EventDetail from './EventDetail'
 
@@ -72,11 +73,19 @@ const memberWithInterests = {
   favoriteCount: 0,
 }
 
+function MemberRouter({ children, ...props }) {
+  return (
+    <MemoryRouter {...props}>
+      <CurrentMemberProvider>{children}</CurrentMemberProvider>
+    </MemoryRouter>
+  )
+}
+
 function renderHome(props = {}) {
   return render(
-    <MemoryRouter>
+    <MemberRouter>
       <Home {...props} />
-    </MemoryRouter>
+    </MemberRouter>
   )
 }
 
@@ -401,9 +410,9 @@ test('late responses from a previous view cannot overwrite current events', asyn
   })
 
   rerender(
-    <MemoryRouter>
+    <MemberRouter>
       <Home showAllHot />
-    </MemoryRouter>
+    </MemberRouter>
   )
 
   expect(
@@ -446,7 +455,7 @@ test('clicking a home card fetches that exact event ID and displays real detail'
   )
 
   render(
-    <MemoryRouter>
+    <MemberRouter>
       <Routes>
         <Route
           path="/"
@@ -458,7 +467,7 @@ test('clicking a home card fetches that exact event ID and displays real detail'
           element={<EventDetail />}
         />
       </Routes>
-    </MemoryRouter>
+    </MemberRouter>
   )
 
   fireEvent.click(
@@ -532,7 +541,7 @@ test('offline home opens its sample and supports a direct detail visit', async (
   })
 
   const { unmount } = render(
-    <MemoryRouter>
+    <MemberRouter>
       <Routes>
         <Route
           path="/"
@@ -544,7 +553,7 @@ test('offline home opens its sample and supports a direct detail visit', async (
           element={<EventDetail />}
         />
       </Routes>
-    </MemoryRouter>
+    </MemberRouter>
   )
 
   const card = await within(
@@ -588,7 +597,7 @@ test('offline home opens its sample and supports a direct detail visit', async (
   unmount()
 
   render(
-    <MemoryRouter
+    <MemberRouter
       initialEntries={['/events/mock-1']}
     >
       <Routes>
@@ -597,7 +606,7 @@ test('offline home opens its sample and supports a direct detail visit', async (
           element={<EventDetail />}
         />
       </Routes>
-    </MemoryRouter>
+    </MemberRouter>
   )
 
   expect(
@@ -699,7 +708,7 @@ test('관심 카테고리 설정 버튼은 마이페이지 관심사 수정 경�
   )
 
   render(
-    <MemoryRouter initialEntries={['/']}>
+    <MemberRouter initialEntries={['/']}>
       <Routes>
         <Route
           path="/"
@@ -711,7 +720,7 @@ test('관심 카테고리 설정 버튼은 마이페이지 관심사 수정 경�
           element={<LocationProbe />}
         />
       </Routes>
-    </MemoryRouter>
+    </MemberRouter>
   )
 
   fireEvent.click(

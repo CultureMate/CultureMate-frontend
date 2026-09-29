@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom'
 import EventComments from './EventComments'
 import { getCurrentMember } from '../api/auth'
 import { createComment, deleteComment, getComments, updateComment } from '../api/comments'
+import { CurrentMemberProvider } from '../hooks/useCurrentMember'
 
 jest.mock('../api/auth', () => ({ getCurrentMember: jest.fn() }))
 jest.mock('../api/comments', () => ({
@@ -13,7 +14,8 @@ jest.mock('../api/comments', () => ({
 const event = { eventId: 'event-1', title: '행사' }
 const root = { commentId: 1, eventId: 'event-1', memberId: 7, parentId: null, content: '첫 댓글', createdAt: '2026-09-25T01:00:00Z', updatedAt: '2026-09-25T01:00:00Z' }
 const reply = { commentId: 2, eventId: 'event-1', memberId: 8, parentId: 1, content: '첫 답글', createdAt: '2026-09-25T02:00:00Z', updatedAt: '2026-09-25T02:00:00Z' }
-const renderComments = (value = event) => render(<MemoryRouter><EventComments event={value} /></MemoryRouter>)
+const commentsTree = value => <MemoryRouter><CurrentMemberProvider><EventComments event={value} /></CurrentMemberProvider></MemoryRouter>
+const renderComments = (value = event) => render(commentsTree(value))
 
 beforeEach(() => {
   for (const mock of [getCurrentMember, getComments, createComment, updateComment, deleteComment]) mock.mockReset()
@@ -122,18 +124,22 @@ test('load failure can be retried and old event results are ignored', async () =
   const { rerender } = renderComments()
   await waitFor(() => expect(getComments).toHaveBeenCalledTimes(1))
   const oldSignal = getComments.mock.calls[0][1]
-  rerender(<MemoryRouter><EventComments event={{ ...event, eventId: 'event-2' }} /></MemoryRouter>)
+  rerender(commentsTree({ ...event, eventId: 'event-2' }))
   expect(await screen.findByText('새 행사 댓글')).toBeInTheDocument()
   expect(oldSignal.aborted).toBe(true)
   await act(async () => resolveOld([root]))
   expect(screen.queryByText('첫 댓글')).not.toBeInTheDocument()
 })
 
-test('mock events show sample comments as read-only without checking auth', async () => {
+test('mock events show sample comments as read-only even to the logged-in author', async () => {
+  getCurrentMember.mockResolvedValue({ memberId: 7 })
   getComments.mockResolvedValue([{ ...root, eventId: 'mock-1', isMock: true }])
   renderComments({ ...event, eventId: 'mock-1', isMock: true })
   expect(await screen.findByText('첫 댓글')).toBeInTheDocument()
   expect(screen.getByText('샘플 · 조회만 가능')).toBeInTheDocument()
-  expect(getCurrentMember).not.toHaveBeenCalled()
+  await waitFor(() => expect(getCurrentMember).toHaveBeenCalledTimes(1))
+  await act(async () => {})
+  expect(screen.queryByRole('form', { name: '댓글 작성' })).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: '답글' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: '수정' })).not.toBeInTheDocument()
 })

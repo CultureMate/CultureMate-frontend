@@ -5,6 +5,7 @@ import EventList from './EventList'
 import Search from './Search'
 import EventDetail from './EventDetail'
 import { getCurrentMember } from '../api/auth'
+import { CurrentMemberProvider } from '../hooks/useCurrentMember'
 
 jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn(), delete: jest.fn() } }))
 jest.mock('../api/comments', () => ({ getComments: () => Promise.resolve([]), createComment: jest.fn(), updateComment: jest.fn(), deleteComment: jest.fn(), getCommentError: () => '댓글 오류' }))
@@ -19,12 +20,12 @@ function LocationControls() {
   return <><output data-testid="url">{location.pathname}{location.search}</output><button onClick={() => navigate(-1)}>브라우저 뒤로</button></>
 }
 function renderEvents(initial = '/events') {
-  return render(<MemoryRouter initialEntries={[initial]}><LocationControls /><Routes>
+  return render(<MemoryRouter initialEntries={[initial]}><CurrentMemberProvider><LocationControls /><Routes>
     <Route path="/events" element={<EventList />} />
     <Route path="/events/filter" element={<EventList initialFilterOpen />} />
     <Route path="/search" element={<Search />} />
     <Route path="/events/:id" element={<EventDetail />} />
-  </Routes></MemoryRouter>)
+  </Routes></CurrentMemberProvider></MemoryRouter>)
 }
 
 beforeEach(() => {
@@ -154,8 +155,9 @@ test('a past date range automatically enables the past-events filter', async () 
   expect(screen.getByTestId('url')).toHaveTextContent('includePast=true')
 })
 
-test('completed ranges restart on the third click; clearing and reset restart selection', () => {
+test('completed ranges restart on the third click; clearing and reset restart selection', async () => {
   renderEvents('/search')
+  await act(async () => {})
   const pick = date => fireEvent.click(screen.getByRole('button', { name: date }))
   pick('2026-09-24')
   pick('2026-09-20')
@@ -174,8 +176,9 @@ test('completed ranges restart on the third click; clearing and reset restart se
   expect(screen.getByLabelText('종료일')).toHaveTextContent('2026-09-24')
 })
 
-test('calendar keeps its layout while allowing direct year and month navigation', () => {
+test('calendar keeps its layout while allowing direct year and month navigation', async () => {
   renderEvents('/search')
+  await act(async () => {})
 
   fireEvent.change(screen.getByRole('combobox', { name: '연도 선택' }), { target: { value: '2025' } })
   fireEvent.change(screen.getByRole('combobox', { name: '월 선택' }), { target: { value: '11' } })
