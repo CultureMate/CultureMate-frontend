@@ -26,9 +26,10 @@ test('주변 장소 API에 반복 types와 검색 범위를 전달하고 사진 
 })
 
 test('행사 사이와 사진 API 경로를 계약대로 만든다', async () => {
-  api.get.mockResolvedValue({ data: { places: [{ placeId: 'p2', name: '식당' }] } })
-  await getPlacesBetween({ eventId1: 'e1', eventId2: 'e2', type: 'restaurant' })
+  api.get.mockResolvedValue({ data: { places: [{ placeId: 'p2', name: '식당', nearEventId: 'e2' }, { placeId: 'p3', name: '분식' }] } })
+  const places = await getPlacesBetween({ eventId1: 'e1', eventId2: 'e2', type: 'restaurant' })
   expect(api.get).toHaveBeenCalledWith('/places/between', { params: { eventId1: 'e1', eventId2: 'e2', type: 'restaurant' }, signal: undefined })
+  expect(places.map(place => place.nearEventId)).toEqual(['e2', ''])
   expect(getPlacePhotoUrl('places/photo name', 500)).toBe('/api/places/photo?name=places%2Fphoto+name&maxWidthPx=500')
 })
 

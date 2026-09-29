@@ -77,11 +77,63 @@ test('빈 초안에서는 행사 목록으로 안내한다', () => {
   expect(getNearbyPlaces).not.toHaveBeenCalled()
 })
 
+test('두 행사 연계 장소에는 어느 행사 근처인지 표시한다', async () => {
+  writeCourseDraft(events)
+  getPlacesBetween.mockResolvedValue([
+    { ...cafe, placeId: 'near-first', name: '첫 행사 옆 카페', nearEventId: 'e1' },
+    { ...cafe, placeId: 'near-second', name: '둘째 행사 옆 카페', nearEventId: 'e2' },
+    { ...cafe, placeId: 'unknown', name: '표시 없는 카페', nearEventId: '' },
+  ])
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: '☕ 카페' }))
+
+  const first = (await screen.findByRole('heading', { name: '첫 행사 옆 카페' })).closest('article')
+  const second = screen.getByRole('heading', { name: '둘째 행사 옆 카페' }).closest('article')
+  const unknown = screen.getByRole('heading', { name: '표시 없는 카페' }).closest('article')
+  expect(within(first).getByText(`📍 ${events[0].title} 근처`)).toBeInTheDocument()
+  expect(within(second).getByText(`📍 ${events[1].title} 근처`)).toBeInTheDocument()
+  expect(within(unknown).queryByText(/근처$/)).not.toBeInTheDocument()
+})
+
+test('행사 칩을 고르면 그 행사 근처만 검색하고 담은 장소는 그 행사 다음 순서에 들어간다', async () => {
+  writeCourseDraft(events)
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: '첫 번째 행사 주변' }))
+  expect(screen.getByRole('button', { name: '첫 번째 행사 주변' })).toHaveAttribute('aria-pressed', 'true')
+  fireEvent.click(screen.getByRole('button', { name: '🍽 음식점' }))
+
+  expect(await screen.findByRole('heading', { name: '문화 식당' })).toBeInTheDocument()
+  expect(getNearbyPlaces).toHaveBeenCalledWith(
+    { latitude: 37.566, longitude: 126.978, types: ['restaurant'], radius: 1500, maxResults: 20 }, expect.any(AbortSignal))
+  expect(getPlacesBetween).not.toHaveBeenCalled()
+  expect(screen.getByText('첫 번째 행사 주변 음식점')).toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: '+ 추가' }))
+  const route = screen.getByRole('heading', { name: '코스 순서' }).closest('section')
+  expect(within(route).getAllByRole('heading', { level: 3 }).map(heading => heading.textContent))
+    .toEqual(['첫 번째 행사', '문화 식당', '두 번째 행사'])
+
+  fireEvent.click(screen.getByRole('button', { name: '첫 번째 행사 ~ 두 번째 행사 사이' }))
+  await waitFor(() => expect(getPlacesBetween).toHaveBeenCalledWith({ eventId1: 'e1', eventId2: 'e2', type: 'restaurant' }, expect.any(AbortSignal)))
+
+  fireEvent.click(screen.getByRole('button', { name: '두 번째 행사 주변 장소 찾기' }))
+  expect(screen.getByRole('button', { name: '두 번째 행사 주변' })).toHaveAttribute('aria-pressed', 'true')
+  await waitFor(() => expect(getNearbyPlaces).toHaveBeenLastCalledWith(
+    { latitude: 37.57, longitude: 126.98, types: ['restaurant'], radius: 1500, maxResults: 20 }, expect.any(AbortSignal)))
+
+  fireEvent.click(screen.getByRole('button', { name: '첫 번째 행사 주변' }))
+  expect(await screen.findByRole('button', { name: '추가됨' })).toBeInTheDocument()
+  expect(getNearbyPlaces).toHaveBeenCalledTimes(2)
+})
+
 test('주변 카페를 추가하고 행사와 함께 순서를 변경해 저장한다', async () => {
   writeCourseDraft(events)
   renderCourse()
   expect(getNearbyPlaces).not.toHaveBeenCalled()
-  fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
+  expect(getPlacesBetween).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: '☕ 카페' }))
   expect(await screen.findByText('문화 카페')).toBeInTheDocument()
   const places = screen.getByRole('heading', { name: '코스 주변 장소' }).closest('section')
   expect(places).toHaveClass('min-w-0', 'max-w-full')
@@ -101,7 +153,7 @@ test('주변 카페를 추가하고 행사와 함께 순서를 변경해 저장�
   await waitFor(() => expect(createCourse).toHaveBeenCalledTimes(1))
   expect(createCourse.mock.calls[0][0]).toEqual({
     title: '서울 문화 산책',
-    stops: [expect.objectContaining({ eventId: 'e2', stopType: 'EVENT' }), expect.objectContaining({ eventId: 'e1', stopType: 'EVENT' }), expect.objectContaining({ placeId: 'p1', placeType: 'cafe' })],
+    stops: [expect.objectContaining({ placeId: 'p1', placeType: 'cafe' }), expect.objectContaining({ eventId: 'e1', stopType: 'EVENT' }), expect.objectContaining({ eventId: 'e2', stopType: 'EVENT' })],
   })
   expect(await screen.findByRole('heading', { name: '내 코스' })).toBeInTheDocument()
   expect(screen.queryByText('코스를 저장했어요.')).not.toBeInTheDocument()
@@ -116,7 +168,7 @@ test('행사가 하나면 해당 행사 좌표를 기준으로 주변 장소를 
   writeCourseDraft([events[0]])
   renderCourse()
 
-  fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
+  fireEvent.click(screen.getByRole('button', { name: '☕ 카페' }))
 
   await waitFor(() => expect(getNearbyPlaces).toHaveBeenCalledWith({
     latitude: 37.566,
@@ -133,24 +185,24 @@ test('카페와 음식점을 각각 조회해 유형별 탭에 표시한다', as
   writeCourseDraft(events)
   renderCourse()
 
-  fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
+  expect(screen.getByText('카페나 음식점을 누르면 바로 찾아드려요.')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: '☕ 카페' }))
   expect(await screen.findByText('문화 카페')).toBeInTheDocument()
   fireEvent.mouseEnter(screen.getByText('🕒 오늘 10:00~22:00'))
   expect(screen.getByRole('tooltip')).toHaveTextContent('전체 영업시간')
   expect(screen.getByRole('tooltip')).toHaveTextContent('월요일 10:00~22:00')
   expect(screen.queryByText('문화 식당')).not.toBeInTheDocument()
 
-  fireEvent.click(screen.getByRole('button', { name: /음식점/ }))
-  expect(screen.queryByText('문화 카페')).not.toBeInTheDocument()
-  expect(screen.getByText('음식점 검색 버튼을 눌러 장소를 찾아보세요.')).toBeInTheDocument()
-  expect(getPlacesBetween).toHaveBeenCalledTimes(1)
-
-  fireEvent.click(screen.getByRole('button', { name: '음식점 검색' }))
+  fireEvent.click(screen.getByRole('button', { name: '🍽 음식점' }))
   expect(await screen.findByText('문화 식당')).toBeInTheDocument()
   fireEvent.mouseEnter(screen.getByText('🕒 오늘 10:00~22:00'))
   expect(screen.getByRole('tooltip')).toHaveTextContent('월요일 10:00~22:00')
   expect(screen.queryByText('문화 카페')).not.toBeInTheDocument()
   expect(getPlacesBetween).toHaveBeenLastCalledWith({ eventId1: 'e1', eventId2: 'e2', type: 'restaurant' }, expect.any(AbortSignal))
+
+  fireEvent.click(screen.getByRole('button', { name: '☕ 카페' }))
+  expect(await screen.findByText('문화 카페')).toBeInTheDocument()
+  expect(getPlacesBetween).toHaveBeenCalledTimes(2)
 })
 
 test('장소 후보 사진은 검색 결과가 보이면 불러오고 저작자와 Google Maps 출처를 표시한다', async () => {
@@ -163,7 +215,7 @@ test('장소 후보 사진은 검색 결과가 보이면 불러오고 저작자�
   }])
   renderCourse()
 
-  fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
+  fireEvent.click(screen.getByRole('button', { name: '☕ 카페' }))
   const image = await screen.findByRole('img', { name: '문화 카페' })
   await waitFor(() => expect(image).toHaveAttribute('src', '/api/places/photo?name=places%2Fp1%2Fphotos%2Fone&maxWidthPx=640'))
   expect(screen.queryByRole('button', { name: '사진 보기' })).not.toBeInTheDocument()
@@ -183,7 +235,7 @@ test('장소 사진은 최초 다섯 개만 표시하고 더 보기를 누르면
   getPlacesBetween.mockResolvedValue(places)
   renderCourse()
 
-  fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
+  fireEvent.click(screen.getByRole('button', { name: '☕ 카페' }))
   expect(await screen.findByRole('img', { name: '카페 5' })).toBeInTheDocument()
   expect(screen.queryByRole('img', { name: '카페 6' })).not.toBeInTheDocument()
   for (let index = 1; index <= 5; index += 1) {
@@ -215,25 +267,30 @@ test('코스 이름 없이 저장하면 이름 입력란으로 이동해 오류�
   expect(screen.queryByText('코스 이름을 입력해 주세요.')).not.toBeInTheDocument()
 })
 
-test('행사가 세 개면 순서에 따라 두 구간을 만들고 선택한 구간을 검색한다', async () => {
+test('행사가 세 개면 동선 순서대로 위치 칩을 만들고 고른 사이 구간을 검색한다', async () => {
   const thirdEvent = { eventId: 'e3', title: '세 번째 행사', place: '공연장', imageUrl: 'https://image.example/e3.jpg', latitude: 37.58, longitude: 126.99 }
   writeCourseDraft([...events, thirdEvent])
   renderCourse()
 
-  const segmentSelect = screen.getByLabelText('검색할 행사 구간')
-  expect(within(segmentSelect).getAllByRole('option')).toHaveLength(2)
-  expect(within(segmentSelect).getByRole('option', { name: /1순위 첫 번째 행사 → 2순위 두 번째 행사/ })).toBeInTheDocument()
-  expect(within(segmentSelect).getByRole('option', { name: /2순위 두 번째 행사 → 3순위 세 번째 행사/ })).toBeInTheDocument()
-  fireEvent.change(segmentSelect, { target: { value: '1' } })
-  fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
+  const chips = within(screen.getByRole('group', { name: '검색 위치' })).getAllByRole('button')
+  expect(chips.map(chip => chip.getAttribute('aria-label'))).toEqual([
+    '첫 번째 행사 주변', '첫 번째 행사 ~ 두 번째 행사 사이', '두 번째 행사 주변', '두 번째 행사 ~ 세 번째 행사 사이', '세 번째 행사 주변',
+  ])
+  expect(chips[1]).toHaveAttribute('aria-pressed', 'true')
+  fireEvent.click(chips[3])
+  fireEvent.click(screen.getByRole('button', { name: '☕ 카페' }))
 
   await waitFor(() => expect(getPlacesBetween).toHaveBeenCalledWith({ eventId1: 'e2', eventId2: 'e3', type: 'cafe' }, expect.any(AbortSignal)))
+  fireEvent.click(await screen.findByRole('button', { name: '+ 추가' }))
+  const route = screen.getByRole('heading', { name: '코스 순서' }).closest('section')
+  expect(within(route).getAllByRole('heading', { level: 3 }).map(heading => heading.textContent))
+    .toEqual(['첫 번째 행사', '두 번째 행사', '문화 카페', '세 번째 행사'])
 })
 
 test('목록에 좌표가 없으면 상세를 확인하고 그래도 없을 때 주변 API를 호출하지 않는다', async () => {
   writeCourseDraft([{ eventId: 'missing', title: '좌표 없는 행사', place: '어딘가' }])
   renderCourse()
-  expect(await screen.findByText(/좌표가 없는 행사가 있어 해당 구간을 검색할 수 없어요/)).toBeInTheDocument()
+  expect(await screen.findByText(/위치 정보가 없는 행사라 주변 장소를 찾을 수 없어요/)).toBeInTheDocument()
   expect(getEventDetail).toHaveBeenCalledWith('missing', expect.any(AbortSignal))
   expect(getNearbyPlaces).not.toHaveBeenCalled()
 })

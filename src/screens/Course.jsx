@@ -44,7 +44,19 @@ function SpotImage({ src, alt, className = '' }) {
   )
 }
 
-function StopCard({ stop, index, total, onMove, onRemove, onDragStart, onDrop }) {
+function placeInsertIndex(stops, anchor) {
+  const eventIndex = eventId => stops.findIndex(stop => stop.stopType === 'EVENT' && String(stop.eventId) === String(eventId))
+  if (anchor?.kind === 'between') {
+    const toIndex = eventIndex(anchor.toEventId)
+    return toIndex < 0 ? stops.length : toIndex
+  }
+  const at = anchor?.kind === 'event' ? eventIndex(anchor.eventId) : -1
+  if (at < 0) return stops.length
+  const nextEvent = stops.findIndex((stop, index) => index > at && stop.stopType === 'EVENT')
+  return nextEvent < 0 ? stops.length : nextEvent
+}
+
+function StopCard({ stop, index, total, onMove, onRemove, onDragStart, onDrop, onExplore }) {
   const isEvent = stop.stopType === 'EVENT'
   const label = isEvent ? '행사' : stop.placeType === 'restaurant' ? '음식점' : '카페'
   const badge = isEvent ? 'bg-[#FFF0EC] text-[#FF6B47]' : stop.placeType === 'restaurant' ? 'bg-[#FEF3C7] text-[#B45309]' : 'bg-[#E6FAF7] text-[#008F75]'
@@ -68,6 +80,8 @@ function StopCard({ stop, index, total, onMove, onRemove, onDragStart, onDrop })
         {!isEvent && <GoogleMapsAttribution place={stop} className="mt-1" />}
       </div>
       <div className="col-span-2 flex flex-shrink-0 items-center justify-end gap-1 md:col-span-1" aria-label={`${isEvent ? stop.title : stop.name} 순서 변경`}>
+        {isEvent && onExplore && <button type="button" onClick={() => onExplore(stop)} aria-label={`${stop.title} 주변 장소 찾기`}
+          className="h-8 rounded-lg bg-[#F3EEFF] px-2.5 text-xs font-bold text-[#6D28D9]">🔍 주변</button>}
         <button type="button" disabled={index === 0} onClick={() => onMove(index, index - 1)} aria-label="위로 이동" className="h-8 w-8 rounded-lg bg-[#F3F4F6] text-sm disabled:opacity-30">↑</button>
         <button type="button" disabled={index === total - 1} onClick={() => onMove(index, index + 1)} aria-label="아래로 이동" className="h-8 w-8 rounded-lg bg-[#F3F4F6] text-sm disabled:opacity-30">↓</button>
         <button type="button" onClick={() => onRemove(stop.stopId)} aria-label={`${isEvent ? stop.title : stop.name} 삭제`} className="h-8 w-8 rounded-lg bg-[#FFF0EC] text-[#FF6B47]">×</button>
@@ -76,7 +90,7 @@ function StopCard({ stop, index, total, onMove, onRemove, onDragStart, onDrop })
   )
 }
 
-function PlaceCard({ place, added, onAdd }) {
+function PlaceCard({ place, added, onAdd, nearEventTitle }) {
   const restaurant = place.placeType === 'restaurant'
   return (
     <article className="min-w-0 max-w-full rounded-2xl border border-[#E5E7EB] bg-white">
@@ -84,7 +98,10 @@ function PlaceCard({ place, added, onAdd }) {
       <div className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${restaurant ? 'bg-[#FEF3C7] text-[#B45309]' : 'bg-[#E6FAF7] text-[#008F75]'}`}>{restaurant ? '음식점' : '카페'}</span>
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${restaurant ? 'bg-[#FEF3C7] text-[#B45309]' : 'bg-[#E6FAF7] text-[#008F75]'}`}>{restaurant ? '음식점' : '카페'}</span>
+            {nearEventTitle && <span className="min-w-0 max-w-full truncate rounded-full bg-[#F3EEFF] px-2 py-0.5 text-[10px] font-bold text-[#6D28D9]">📍 {nearEventTitle} 근처</span>}
+          </div>
           <h3 className="mt-2 truncate text-sm font-bold text-[#1A1A2E]">{place.name}</h3>
           <p className="mt-1 line-clamp-2 text-xs text-[#6B7280]">{place.address || '주소 정보 없음'}</p>
         </div>
@@ -471,8 +488,8 @@ export default function Course() {
     return [...savedStops, ...initialEvents.filter(event => !savedEventIds.has(String(event.eventId))).map(asEventStop)]
   })
   const [title, setTitle] = useState(initialBuilder.title)
-  const [placeType, setPlaceType] = useState('cafe')
-  const [placeRequest, setPlaceRequest] = useState({ loading: false, places: [], error: null, isMock: false, searched: false })
+  const [placeType, setPlaceType] = useState(null)
+  const [placeRequest, setPlaceRequest] = useState({ loading: false, places: [], error: null, isMock: false, searched: false, anchor: null })
   const [visibleCount, setVisibleCount] = useState(5)
   const [dragIndex, setDragIndex] = useState(null)
   const [saveState, setSaveState] = useState({ loading: false, message: '', error: '' })
@@ -480,20 +497,31 @@ export default function Course() {
   const [coordinateLoading, setCoordinateLoading] = useState(false)
   const [pageTab, setPageTab] = useState(() => new URLSearchParams(location.search).get('tab') === 'library' ? 'library' : 'builder')
   const [editingCourse, setEditingCourse] = useState(initialEditSession)
-  const [segmentIndex, setSegmentIndex] = useState(0)
+  const [anchorKey, setAnchorKey] = useState(null)
   const coordinateAttempts = useRef(new Set())
   const titleInputRef = useRef(null)
+  const placesSectionRef = useRef(null)
+  const placeCache = useRef(new Map())
+  const placeController = useRef(null)
   const events = stops.filter(stop => stop.stopType === 'EVENT')
-  const segments = events.slice(0, -1).map((event, index) => ({ from: event, to: events[index + 1], index }))
-  const selectedSegment = segments[segmentIndex] || segments[0] || null
-  const singleEventCenter = events.length === 1 ? getEventCoordinates(events[0]) : null
-  const selectedSegmentLocated = selectedSegment
-    ? Boolean(getEventCoordinates(selectedSegment.from) && getEventCoordinates(selectedSegment.to))
-    : false
-  const canSearchPlaces = events.length === 1 ? Boolean(singleEventCenter) : Boolean(selectedSegment && selectedSegmentLocated)
+  const anchors = events.flatMap((event, index) => {
+    const eventAnchor = { key: `event:${event.eventId}`, kind: 'event', event, located: Boolean(getEventCoordinates(event)) }
+    const next = events[index + 1]
+    return next
+      ? [eventAnchor, { key: `between:${event.eventId}:${next.eventId}`, kind: 'between', from: event, to: next,
+        located: Boolean(getEventCoordinates(event) && getEventCoordinates(next)) }]
+      : [eventAnchor]
+  })
+  const anchor = anchors.find(item => item.key === anchorKey) ?? anchors.find(item => item.kind === 'between') ?? anchors[0] ?? null
+  const placeTypeLabel = placeType === 'restaurant' ? '음식점' : '카페'
   const visiblePlaces = placeRequest.places.filter(place => place.placeType === placeType)
 
-  const resetPlaceResults = () => setPlaceRequest({ loading: false, places: [], error: null, isMock: false, searched: false })
+  const resetPlaceResults = () => {
+    placeController.current?.abort()
+    setPlaceRequest({ loading: false, places: [], error: null, isMock: false, searched: false, anchor: null })
+  }
+
+  useEffect(() => () => placeController.current?.abort(), [])
 
   useEffect(() => {
     writeCourseDraft(events)
@@ -523,9 +551,10 @@ export default function Course() {
   }, [stops.filter(stop => stop.stopType === 'PLACE' && !stop.name).map(stop => stop.stopId).join('|')])
 
   useEffect(() => {
-    setSegmentIndex(0)
+    setAnchorKey(null)
+    placeCache.current.clear()
     resetPlaceResults()
-  // 행사 순서가 달라지면 구간과 이전 검색 결과를 초기화합니다.
+  // 행사 순서가 달라지면 검색 위치와 이전 검색 결과를 초기화합니다.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events.map(event => event.eventId).join('|')])
 
@@ -550,35 +579,62 @@ export default function Course() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events.map(event => `${event.eventId}:${getEventCoordinates(event) ? 'located' : 'missing'}:${event.imageUrl || event.img ? 'image' : 'no-image'}`).join('|')])
 
-  const searchPlaces = () => {
-    if (!canSearchPlaces || placeRequest.loading) return
-    const controller = new AbortController()
+  const searchPlaces = (target, type) => {
+    if (!target?.located || !type) return
+    placeController.current?.abort()
     setVisibleCount(5)
-    setPlaceRequest({ loading: true, places: [], error: null, isMock: false, searched: false })
-    const request = events.length === 1
-      ? getNearbyPlaces({ ...singleEventCenter, types: [placeType], radius: 1500, maxResults: 20 }, controller.signal)
-      : getPlacesBetween({ eventId1: selectedSegment.from.eventId, eventId2: selectedSegment.to.eventId, type: placeType }, controller.signal)
+    const resultAnchor = target.kind === 'between'
+      ? { kind: 'between', toEventId: target.to.eventId }
+      : { kind: 'event', eventId: target.event.eventId }
+    const cacheKey = `${target.key}|${type}`
+    const cached = placeCache.current.get(cacheKey)
+    if (cached) {
+      setPlaceRequest({ loading: false, places: cached.places, error: null, isMock: cached.isMock, searched: true, anchor: resultAnchor })
+      return
+    }
+    const controller = new AbortController()
+    placeController.current = controller
+    setPlaceRequest({ loading: true, places: [], error: null, isMock: false, searched: false, anchor: resultAnchor })
+    const request = target.kind === 'event'
+      ? getNearbyPlaces({ ...getEventCoordinates(target.event), types: [type], radius: 1500, maxResults: 20 }, controller.signal)
+      : getPlacesBetween({ eventId1: target.from.eventId, eventId2: target.to.eventId, type }, controller.signal)
         .then(places => ({ places, isMock: false }))
     request
-      .then(result => setPlaceRequest({ loading: false, places: result.places, error: null, isMock: result.isMock, searched: true }))
-      .catch(error => { if (!controller.signal.aborted) setPlaceRequest({ loading: false, places: [], error, isMock: false, searched: true }) })
+      .then(result => {
+        if (controller.signal.aborted) return
+        placeCache.current.set(cacheKey, result)
+        setPlaceRequest({ loading: false, places: result.places, error: null, isMock: result.isMock, searched: true, anchor: resultAnchor })
+      })
+      .catch(error => {
+        if (!controller.signal.aborted) setPlaceRequest({ loading: false, places: [], error, isMock: false, searched: true, anchor: resultAnchor })
+      })
   }
 
   const selectPlaceType = type => {
     setPlaceType(type)
-    setVisibleCount(5)
-    resetPlaceResults()
+    searchPlaces(anchor, type)
   }
 
-  const selectSegment = index => {
-    setSegmentIndex(index)
-    setVisibleCount(5)
-    resetPlaceResults()
+  const selectAnchor = target => {
+    setAnchorKey(target.key)
+    if (placeType && target.located) searchPlaces(target, placeType)
+    else resetPlaceResults()
+  }
+
+  const exploreEvent = event => {
+    const target = anchors.find(item => item.key === `event:${event.eventId}`)
+    if (target) selectAnchor(target)
+    placesSectionRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
   }
 
   const moveStop = (from, to) => setStops(items => moveItem(items, from, to))
   const removeStop = stopId => setStops(items => items.filter(item => item.stopId !== stopId))
-  const addPlace = place => setStops(items => items.some(item => item.stopId === `place:${place.placeId}`) ? items : [...items, asPlaceStop(place)])
+  const addPlace = place => setStops(items => {
+    if (items.some(item => item.stopId === `place:${place.placeId}`)) return items
+    const next = [...items]
+    next.splice(placeInsertIndex(items, placeRequest.anchor), 0, asPlaceStop(place))
+    return next
+  })
   const dropStop = index => {
     if (dragIndex != null) moveStop(dragIndex, index)
     setDragIndex(null)
@@ -590,7 +646,7 @@ export default function Course() {
     const editSession = { courseId: course.courseId ?? course.id, version: course.version }
     setEditingCourse(editSession)
     writeCourseEditSession(editSession)
-    setPlaceRequest({ loading: false, places: [], error: null, isMock: false, searched: false })
+    resetPlaceResults()
     setSaveState({ loading: false, message: '', error: '' })
     setTitleError('')
     setPageTab('builder')
@@ -599,10 +655,11 @@ export default function Course() {
   const clearCourseDraft = () => {
     setTitle('')
     setStops([])
-    setPlaceType('cafe')
-    setSegmentIndex(0)
+    setPlaceType(null)
+    setAnchorKey(null)
     setVisibleCount(5)
-    setPlaceRequest({ loading: false, places: [], error: null, isMock: false, searched: false })
+    placeCache.current.clear()
+    resetPlaceResults()
     coordinateAttempts.current.clear()
     setTitleError('')
     writeCourseDraft([])
@@ -705,51 +762,54 @@ export default function Course() {
               </div>
               <ol className="space-y-3">
                 {stops.map((stop, index) => <StopCard key={stop.stopId} stop={stop} index={index} total={stops.length}
-                  onMove={moveStop} onRemove={removeStop} onDragStart={setDragIndex} onDrop={dropStop} />)}
+                  onMove={moveStop} onRemove={removeStop} onDragStart={setDragIndex} onDrop={dropStop} onExplore={exploreEvent} />)}
               </ol>
               <Link to="/events" className="mt-4 block rounded-xl border border-dashed border-[#FF6B47] py-3 text-center text-sm font-bold text-[#FF6B47]">+ 행사 더 담기</Link>
             </section>
 
-            <section aria-labelledby="places-title" className="min-w-0 max-w-full self-start rounded-2xl bg-white p-4 shadow-sm md:p-5 lg:sticky lg:top-[10rem]">
-              <div className="mb-4"><h2 id="places-title" className="font-bold text-[#1A1A2E]">코스 주변 장소</h2><p className="mt-1 text-xs text-[#6B7280]">행사 순서대로 구간을 선택하고 카페 또는 음식점을 검색해 보세요.</p></div>
-              {segments.length > 0 && <div className="mb-4">
-                <label htmlFor="course-search-segment" className="mb-2 block text-xs font-bold text-[#1A1A2E]">검색할 행사 구간</label>
-                <select id="course-search-segment" value={segmentIndex} onChange={event => selectSegment(Number(event.target.value))}
-                  className="min-w-0 w-full max-w-full rounded-xl border border-[#E5E7EB] bg-white px-3 py-3 text-sm font-semibold text-[#374151] outline-none focus:border-[#FF6B47]">
-                  {segments.map(segment => <option key={`${segment.from.eventId}-${segment.to.eventId}`} value={segment.index}>
-                    구간 {segment.index + 1} · {segment.index + 1}순위 {segment.from.title} → {segment.index + 2}순위 {segment.to.title}
-                  </option>)}
-                </select>
-                <p className="mt-2 text-[11px] text-[#9CA3AF]">선택한 두 행사 사이의 중점과 구간 거리를 기준으로 검색합니다.</p>
-              </div>}
-              <div className="mb-4 grid grid-cols-2 rounded-xl bg-[#F3F4F6] p-1">
-                <button type="button" aria-pressed={placeType === 'cafe'} onClick={() => selectPlaceType('cafe')} className={`rounded-lg py-2 text-sm font-bold ${placeType === 'cafe' ? 'bg-white text-[#1A1A2E] shadow-sm' : 'text-[#9CA3AF]'}`}>☕ 카페</button>
-                <button type="button" aria-pressed={placeType === 'restaurant'} onClick={() => selectPlaceType('restaurant')} className={`rounded-lg py-2 text-sm font-bold ${placeType === 'restaurant' ? 'bg-white text-[#1A1A2E] shadow-sm' : 'text-[#9CA3AF]'}`}>🍽 음식점</button>
+            <section ref={placesSectionRef} aria-labelledby="places-title" className="min-w-0 max-w-full scroll-mt-40 self-start rounded-2xl bg-white p-4 shadow-sm md:p-5 lg:sticky lg:top-[10rem]">
+              <div className="mb-4"><h2 id="places-title" className="font-bold text-[#1A1A2E]">코스 주변 장소</h2><p className="mt-1 text-xs text-[#6B7280]">행사 근처나 두 행사 사이에서 카페·음식점을 찾아 코스에 넣어보세요.</p></div>
+              <div role="group" aria-label="검색 위치" className="-mx-1 mb-3 flex items-center gap-1.5 overflow-x-auto px-1 pb-1 hide-scrollbar">
+                {anchors.map(item => {
+                  const active = item.key === anchor?.key
+                  return item.kind === 'event'
+                    ? <button key={item.key} type="button" aria-pressed={active} onClick={() => selectAnchor(item)} aria-label={`${item.event.title} 주변`}
+                      className={`flex min-w-0 max-w-[11rem] flex-shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-bold ${active ? 'border-[#1A1A2E] bg-[#1A1A2E] text-white' : 'border-[#E5E7EB] bg-white text-[#374151]'}`}>
+                      <span aria-hidden="true">📍</span><span className="truncate">{item.event.title}</span>
+                    </button>
+                    : <button key={item.key} type="button" aria-pressed={active} onClick={() => selectAnchor(item)} aria-label={`${item.from.title} ~ ${item.to.title} 사이`}
+                      className={`flex-shrink-0 rounded-full border border-dashed px-2.5 py-1.5 text-xs font-bold ${active ? 'border-[#1A1A2E] bg-[#1A1A2E] text-white' : 'border-[#D1D5DB] bg-white text-[#6B7280]'}`}>
+                      ↔ 사이
+                    </button>
+                })}
               </div>
-              <div className="rounded-xl bg-[#F8F8F6] p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-[#1A1A2E]">검색 기준</p>
-                    <p className="mt-1 text-xs text-[#6B7280]">{events.length === 1 ? '선택 행사 주변 · 반경 1.5km' : `구간 ${segmentIndex + 1}의 두 행사 사이`}</p>
-                  </div>
-                  <button type="button" onClick={searchPlaces} disabled={!canSearchPlaces || coordinateLoading || placeRequest.loading}
-                    className="w-full flex-shrink-0 rounded-xl bg-[#FF6B47] px-4 py-2.5 text-xs font-bold text-white disabled:bg-[#D1D5DB] sm:w-auto">
-                    {placeRequest.loading ? '검색 중...' : placeType === 'cafe' ? '카페 검색' : '음식점 검색'}
-                  </button>
+              <div role="group" aria-label="장소 종류" className="mb-4 grid grid-cols-2 gap-2">
+                {[['cafe', '☕ 카페'], ['restaurant', '🍽 음식점']].map(([type, label]) => <button key={type} type="button" aria-pressed={placeType === type}
+                  disabled={!anchor?.located || coordinateLoading} onClick={() => selectPlaceType(type)}
+                  className={`rounded-xl border py-2.5 text-sm font-bold disabled:opacity-40 ${placeType === type ? 'border-[#FF6B47] bg-[#FFF0EC] text-[#FF6B47]' : 'border-[#E5E7EB] bg-white text-[#374151]'}`}>{label}</button>)}
+              </div>
+              {anchor && <div className="mb-3 flex items-end justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-[#1A1A2E]">
+                    {anchor.kind === 'event' ? `${anchor.event.title} 주변` : `${anchor.from.title} → ${anchor.to.title}`}{placeType ? ` ${placeTypeLabel}` : ''}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-[#9CA3AF]">{anchor.kind === 'event'
+                    ? '반경 1.5km · 담으면 이 행사 다음 순서에 들어가요'
+                    : '가는 길에서 크게 벗어나지 않는 곳 · 담으면 두 행사 사이에 들어가요'}</p>
                 </div>
-                {events.length === 1 && singleEventCenter && <p className="mt-2 text-[11px] text-[#9CA3AF]">행사 위치를 기준으로 검색합니다.</p>}
-                {events.length > 1 && selectedSegment && <p className="mt-2 text-[11px] text-[#9CA3AF]">{selectedSegment.from.title}과(와) {selectedSegment.to.title}의 중점과 구간 거리를 기준으로 검색합니다.</p>}
-              </div>
+                {placeRequest.searched && !placeRequest.error && <span className="flex-shrink-0 text-xs font-bold text-[#6B7280]">{visiblePlaces.length}곳</span>}
+              </div>}
 
               {coordinateLoading && <p role="status" className="rounded-xl bg-[#F3F4F6] p-4 text-sm text-[#6B7280]">행사 위치를 확인하고 있어요.</p>}
-              {!coordinateLoading && !canSearchPlaces && <div className="mt-4 rounded-xl bg-[#FFF8E7] p-4 text-sm text-[#92400E]">좌표가 없는 행사가 있어 해당 구간을 검색할 수 없어요. 위치 정보가 있는 행사로 구간을 구성해 주세요.</div>}
+              {!coordinateLoading && anchor && !anchor.located && <div className="rounded-xl bg-[#FFF8E7] p-4 text-sm text-[#92400E]">위치 정보가 없는 행사라 주변 장소를 찾을 수 없어요. 다른 위치를 골라 주세요.</div>}
               {placeRequest.loading && <p role="status" className="rounded-xl bg-[#F3F4F6] p-4 text-sm text-[#6B7280]">주변 장소를 찾고 있어요.</p>}
               {placeRequest.error && <p role="alert" className="rounded-xl bg-[#FFF0EC] p-4 text-sm text-[#B42318]">{getPlacesError(placeRequest.error)}</p>}
               {placeRequest.isMock && <DemoNotice />}
-              {!placeRequest.loading && !placeRequest.error && !placeRequest.searched && <p className="mt-4 rounded-xl bg-[#F3F4F6] p-4 text-sm text-[#6B7280]">{placeType === 'cafe' ? '카페' : '음식점'} 검색 버튼을 눌러 장소를 찾아보세요.</p>}
-              {!placeRequest.loading && placeRequest.searched && visiblePlaces.length === 0 && <p className="mt-4 rounded-xl bg-[#F3F4F6] p-4 text-sm text-[#6B7280]">선택한 구간에서 {placeType === 'cafe' ? '카페' : '음식점'}을 찾지 못했어요.</p>}
+              {!coordinateLoading && anchor?.located && !placeType && <p className="rounded-xl bg-[#F3F4F6] p-4 text-sm text-[#6B7280]">카페나 음식점을 누르면 바로 찾아드려요.</p>}
+              {!placeRequest.loading && placeRequest.searched && !placeRequest.error && visiblePlaces.length === 0 && <p className="rounded-xl bg-[#F3F4F6] p-4 text-sm text-[#6B7280]">이 근처에서 {placeType === 'restaurant' ? '음식점을' : '카페를'} 찾지 못했어요.</p>}
               <div className="min-w-0 max-w-full space-y-3">
                 {visiblePlaces.slice(0, visibleCount).map(place => <PlaceCard key={place.placeId} place={place}
+                  nearEventTitle={place.nearEventId ? events.find(event => String(event.eventId) === place.nearEventId)?.title : ''}
                   added={stops.some(stop => stop.stopId === `place:${place.placeId}`)} onAdd={addPlace} />)}
               </div>
               {visibleCount < visiblePlaces.length && <button type="button" onClick={() => setVisibleCount(count => count + 5)} className="mt-3 w-full rounded-xl bg-[#F3F4F6] py-3 text-sm font-bold text-[#374151]">장소 더 보기</button>}
