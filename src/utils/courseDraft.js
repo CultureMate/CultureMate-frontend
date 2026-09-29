@@ -95,6 +95,15 @@ export function clearCourseEditSession() {
   sessionStorage.removeItem(COURSE_EDIT_SESSION_KEY)
 }
 
+export function readActiveCourseEditSession() {
+  const session = readCourseEditSession()
+  if (!session) return null
+  const builder = readCourseBuilder()
+  if (builder.title.trim() || builder.stops.length || readCourseDraft().length) return session
+  clearCourseEditSession()
+  return null
+}
+
 function toCourseBuilderStop(stop) {
   if (stop?.stopType === 'PLACE' || String(stop?.type).toLowerCase() === 'cafe' || String(stop?.type).toLowerCase() === 'restaurant') {
     const placeType = String(stop?.placeType ?? stop?.type).toLowerCase() === 'restaurant' ? 'restaurant' : 'cafe'

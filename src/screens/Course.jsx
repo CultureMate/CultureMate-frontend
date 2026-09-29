@@ -8,7 +8,7 @@ import EventDialog from '../components/EventDialog'
 import GooglePlacePhoto, { GoogleMapsAttribution } from '../components/GooglePlacePhoto'
 import OpeningHours from '../components/OpeningHours'
 import { getEventCoordinates } from '../utils/eventLocation'
-import { clearCourseEditSession, readCourseBuilder, readCourseDraft, readCourseEditSession, writeCourseBuilder, writeCourseDraft, writeCourseEditSession } from '../utils/courseDraft'
+import { clearCourseEditSession, readActiveCourseEditSession, readCourseBuilder, readCourseDraft, writeCourseBuilder, writeCourseDraft, writeCourseEditSession } from '../utils/courseDraft'
 
 const asEventStop = event => ({ ...event, stopId: `event:${event.eventId}`, stopType: 'EVENT' })
 const asPlaceStop = place => ({ ...place, stopId: `place:${place.placeId}`, stopType: 'PLACE' })
@@ -287,7 +287,7 @@ function CourseDetail({ course, loading, error, action, onBack, onToggleFavorite
   )
 }
 
-function CourseLibrary({ onEdit }) {
+function CourseLibrary({ onEdit, onDeleted }) {
   const [filter, setFilter] = useState('all')
   const [request, setRequest] = useState({ loading: true, courses: [], error: '' })
   const [detail, setDetail] = useState({ course: null, loading: false, error: '' })
@@ -366,6 +366,7 @@ function CourseLibrary({ onEdit }) {
       setDeleteOpen(false)
       setDetail({ course: null, loading: false, error: '' })
       setAction({ loading: false, message: '', error: '' })
+      onDeleted?.(courseId)
     } catch (error) {
       setAction({ loading: false, message: '', error: getCourseError(error, '삭제') })
     }
@@ -462,7 +463,7 @@ export default function Course() {
   const location = useLocation()
   const initialEvents = useMemo(() => readCourseDraft(), [])
   const initialBuilder = useMemo(() => readCourseBuilder(), [])
-  const initialEditSession = useMemo(() => readCourseEditSession(), [])
+  const initialEditSession = useMemo(() => readActiveCourseEditSession(), [])
   const [stops, setStops] = useState(() => {
     const eventIds = new Set(initialEvents.map(event => String(event.eventId)))
     const savedStops = initialBuilder.stops.filter(stop => stop?.stopType === 'PLACE' || (stop?.stopType === 'EVENT' && eventIds.has(String(stop.eventId))))
@@ -478,7 +479,7 @@ export default function Course() {
   const [titleError, setTitleError] = useState('')
   const [coordinateLoading, setCoordinateLoading] = useState(false)
   const [pageTab, setPageTab] = useState(() => new URLSearchParams(location.search).get('tab') === 'library' ? 'library' : 'builder')
-  const [editingCourse, setEditingCourse] = useState(() => (initialBuilder.title.trim() || initialBuilder.stops.length) ? initialEditSession : null)
+  const [editingCourse, setEditingCourse] = useState(initialEditSession)
   const [segmentIndex, setSegmentIndex] = useState(0)
   const coordinateAttempts = useRef(new Set())
   const titleInputRef = useRef(null)
@@ -606,6 +607,12 @@ export default function Course() {
     setTitleError('')
     writeCourseDraft([])
     writeCourseBuilder({ title: '', stops: [] })
+    clearCourseEditSession()
+  }
+
+  const handleCourseDeleted = courseId => {
+    if (!editingCourse || String(editingCourse.courseId) !== String(courseId)) return
+    setEditingCourse(null)
     clearCourseEditSession()
   }
 
@@ -765,7 +772,7 @@ export default function Course() {
           </section>
         </form>}
       </main>
-      ) : <CourseLibrary onEdit={editCourse} />}
+      ) : <CourseLibrary onEdit={editCourse} onDeleted={handleCourseDeleted} />}
     </div>
   )
 }

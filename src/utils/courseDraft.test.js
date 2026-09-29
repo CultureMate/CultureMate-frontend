@@ -1,4 +1,4 @@
-import { clearCourseEditSession, COURSE_BUILDER_KEY, COURSE_DRAFT_CHANGED, COURSE_DRAFT_KEY, COURSE_EDIT_SESSION_KEY, readCourseBuilder, readCourseDraft, readCourseEditSession, toggleCourseEvent, writeCourseBuilder, writeCourseDraft, writeCourseEditSession } from './courseDraft'
+import { clearCourseEditSession, COURSE_BUILDER_KEY, COURSE_DRAFT_CHANGED, COURSE_DRAFT_KEY, COURSE_EDIT_SESSION_KEY, readActiveCourseEditSession, readCourseBuilder, readCourseDraft, readCourseEditSession, toggleCourseEvent, writeCourseBuilder, writeCourseDraft, writeCourseEditSession } from './courseDraft'
 
 beforeEach(() => {
   localStorage.clear()
@@ -41,6 +41,20 @@ test('수정 중인 코스 식별자와 version은 현재 브라우저 세션에
 
   clearCourseEditSession()
   expect(readCourseEditSession()).toBeNull()
+})
+
+test('작성 중인 내용이 있을 때만 수정 상태를 이어서 쓴다', () => {
+  writeCourseEditSession({ courseId: 12, version: 4 })
+  expect(readActiveCourseEditSession()).toBeNull()
+  expect(readCourseEditSession()).toBeNull()
+
+  writeCourseEditSession({ courseId: 12, version: 4 })
+  writeCourseDraft([{ eventId: 'e1', title: '서울 전시' }])
+  expect(readActiveCourseEditSession()).toEqual({ courseId: 12, version: 4 })
+
+  writeCourseDraft([])
+  writeCourseBuilder({ title: '수정 중인 코스', stops: [] })
+  expect(readActiveCourseEditSession()).toEqual({ courseId: 12, version: 4 })
 })
 
 test('잘못된 코스 수정 세션은 복원하지 않는다', () => {

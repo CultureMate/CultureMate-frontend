@@ -10,7 +10,7 @@ import EventDialog from '../components/EventDialog'
 import EventFilterFields from '../components/EventFilterFields'
 import { addFavorite, getFavorites, removeFavorite } from '../api/favorites'
 import useCurrentMember from '../hooks/useCurrentMember'
-import { COURSE_DRAFT_CHANGED, readCourseBuilder, readCourseDraft, readCourseEditSession, toggleCourseEvent } from '../utils/courseDraft'
+import { COURSE_DRAFT_CHANGED, readActiveCourseEditSession, readCourseBuilder, readCourseDraft, toggleCourseEvent } from '../utils/courseDraft'
 
 function FilterSheet({ filters, onClose, onApply }) {
   const [draft, setDraft] = useState(filters)
@@ -129,7 +129,7 @@ export default function EventList({ initialFilterOpen = false }) {
   const [emptyNotice, setEmptyNotice] = useState(false)
   const [courseEvents, setCourseEvents] = useState(() => readCourseDraft())
   const [coursePlaces, setCoursePlaces] = useState(() => readCourseBuilder().stops.filter(stop => stop.stopType === 'PLACE'))
-  const [courseEditSession] = useState(() => readCourseEditSession())
+  const [courseEditSession] = useState(() => readActiveCourseEditSession())
   const [favoriteIds, setFavoriteIds] = useState(new Set())
   const [favoriteLoadingId, setFavoriteLoadingId] = useState(null)
   const [favoriteError, setFavoriteError] = useState('')

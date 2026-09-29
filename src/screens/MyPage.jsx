@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { getCurrentMember, setCurrentMemberCache } from '../api/auth'
 import api from '../api/axios'
 import { CATEGORIES, DISTRICTS } from '../data/events'
+import { clearCourseEditSession } from '../utils/courseDraft'
 
 const CAT_ICONS = {
   공연: '🎭',
@@ -208,12 +209,14 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
       await api.post('/auth/logout')
 
       setCurrentMemberCache(null)
+      clearCourseEditSession()
       navigate('/login', { replace: true })
     } catch (err) {
       console.error('로그아웃 실패:', err)
 
       if (err.response?.status === 401) {
         setCurrentMemberCache(null)
+        clearCourseEditSession()
         navigate('/login', { replace: true })
         return
       }
@@ -248,6 +251,7 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
       await api.delete('/auth/me')
 
       setCurrentMemberCache(null)
+      clearCourseEditSession()
       setShowDeleteConfirm(false)
       navigate('/login', { replace: true })
     } catch (err) {
@@ -255,6 +259,7 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
 
       if (err.response?.status === 401) {
         setCurrentMemberCache(null)
+        clearCourseEditSession()
         navigate('/login', { replace: true })
         return
       }
