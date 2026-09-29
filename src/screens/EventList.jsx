@@ -249,11 +249,10 @@ export default function EventList({ initialFilterOpen = false }) {
 
   return (
     <div className="flex flex-col min-h-full bg-canvas">
-      <PageHeader title="행사 목록" live
-        description={loading ? '행사를 찾고 있어요' : error ? '조회 실패' : `${(data?.totalCount ?? 0).toLocaleString('ko-KR')}개의 행사`} />
-
-      <div className="bg-white px-5 md:px-8 lg:px-10 pt-3 pb-3">
-        <div className="flex items-center gap-2 max-w-5xl">
+      <PageHeader title="행사 목록" live hideOnScroll
+        description={loading ? '행사를 찾고 있어요' : error ? '조회 실패' : `${(data?.totalCount ?? 0).toLocaleString('ko-KR')}개의 행사`}>
+      <div className="pt-3">
+        <div className="flex items-center gap-2">
           <form aria-label="행사 검색" onSubmit={event => { event.preventDefault(); applyFilters({ ...filters, keyword }) }} className="relative flex flex-1 min-w-0 gap-2">
             <Icon name="search" size={18} strokeWidth={2} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted" />
             <input aria-label="행사 이름, 장소로 검색" type="search" value={keyword} onChange={event => setKeyword(event.target.value)} placeholder="행사 이름, 장소로 검색"
@@ -267,7 +266,7 @@ export default function EventList({ initialFilterOpen = false }) {
             {tags.length > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-coral px-1 text-[11px] text-white">{tags.length}</span>}
           </button>
         </div>
-        {(tags.length > 0 || filters.keyword) && <div aria-label="적용된 검색 조건" className="flex flex-wrap items-center gap-2 mt-3 max-w-5xl">
+        {(tags.length > 0 || filters.keyword) && <div aria-label="적용된 검색 조건" className="flex flex-wrap items-center gap-2 mt-3">
           {tags.map(({ key, value }) => <button key={`${key}-${value}`} type="button" aria-label={`${value} 조건 해제`}
             onClick={() => applyFilters(key === 'range' ? { ...filters, from: '', to: '' } : { ...filters, [key]: filters[key].filter(item => item !== value) })}
             className="flex items-center gap-1 rounded-full bg-coral-light py-1 pl-3 pr-2 text-xs font-semibold text-coral">{value} <Icon name="close" size={13} strokeWidth={2.4} /></button>)}
@@ -276,7 +275,7 @@ export default function EventList({ initialFilterOpen = false }) {
         </div>}
       </div>
 
-      <div aria-label="분야 빠른 선택" className="bg-white border-b border-black/[0.06] flex overflow-x-auto md:flex-wrap px-5 md:px-8 lg:px-10 pb-3 pt-1 gap-2 hide-scrollbar">
+      <div aria-label="분야 빠른 선택" className="-mx-5 -mb-1 mt-3 flex gap-2 overflow-x-auto px-5 pb-1 hide-scrollbar md:mx-0 md:flex-wrap md:px-0">
         {['전체', ...CATEGORIES].map(category => {
           const selected = category === '전체' ? !filters.category.length : filters.category.includes(category)
           return <button key={category} type="button" aria-pressed={selected}
@@ -288,6 +287,7 @@ export default function EventList({ initialFilterOpen = false }) {
           지난 행사 보기
         </label>
       </div>
+      </PageHeader>
 
       <section aria-label="행사 검색 결과" aria-busy={loading} className="px-5 md:px-8 lg:px-10 pt-4 pb-8">
         <div className="max-w-5xl">

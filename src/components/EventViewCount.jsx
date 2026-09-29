@@ -6,7 +6,7 @@ function safeCount(value) {
   return Number.isInteger(value) && value >= 0 ? value : 0
 }
 
-export default function EventViewCount({ eventId, initialCount, isMock }) {
+export default function EventViewCount({ eventId, initialCount, isMock, solid = false }) {
   const [state, setState] = useState({ count: safeCount(initialCount), loading: !isMock, error: null })
 
   useEffect(() => {
@@ -34,9 +34,9 @@ export default function EventViewCount({ eventId, initialCount, isMock }) {
     }
   }, [eventId, initialCount, isMock])
 
-  return <div className="absolute right-4 top-[calc(env(safe-area-inset-top)+0.75rem)] flex h-10 items-center gap-1.5 rounded-full bg-black/45 px-3.5 backdrop-blur-sm">
-    <Icon name="eye" size={15} className="text-white/80" />
-    <span aria-label={`조회수 ${state.count.toLocaleString('ko-KR')}`} className="text-white text-xs font-semibold">{state.count.toLocaleString('ko-KR')}</span>
+  return <div className={`flex h-10 flex-shrink-0 items-center gap-1.5 rounded-full px-3.5 transition-colors duration-200 ${solid ? 'bg-[#F2F4F6] text-ink-soft' : 'bg-black/45 text-white backdrop-blur-sm'}`}>
+    <Icon name="eye" size={15} className={solid ? 'text-ink-muted' : 'text-white/80'} />
+    <span aria-label={`조회수 ${state.count.toLocaleString('ko-KR')}`} className="text-xs font-semibold">{state.count.toLocaleString('ko-KR')}</span>
     {state.loading && <span className="sr-only" role="status">조회수를 반영하고 있습니다.</span>}
     {state.error && <span role="status" title="조회수를 반영하지 못했습니다."
       className="text-[#FFD23F] text-xs" aria-label="조회수 반영 실패">!</span>}

@@ -28,6 +28,7 @@ import useCurrentMember from './hooks/useCurrentMember'
 import EventDialog from './components/EventDialog'
 import Icon from './components/Icon'
 import BrandMark, { BrandWordmark } from './components/BrandMark'
+import ScrollManager from './components/ScrollManager'
 import { clearCourseEditSession } from './utils/courseDraft'
 
 const NAV_ITEMS = [
@@ -132,7 +133,7 @@ function LoginResultHandler() {
 }
 
 function AppLayout() {
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const navigate = useNavigate()
   const { member, clearMember } = useCurrentMember()
   const [logoutOpen, setLogoutOpen] = useState(false)
@@ -143,6 +144,12 @@ function AppLayout() {
     path === '/'
       ? pathname === '/'
       : pathname.startsWith(path)
+
+  const scrollTopOnSameTab = (event, path) => {
+    if (pathname !== path || search) return
+    event.preventDefault()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const handleLogout = async () => {
     if (loggingOut) return
@@ -187,6 +194,7 @@ function AppLayout() {
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={event => scrollTopOnSameTab(event, item.path)}
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
                 className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors md:justify-center lg:justify-start ${
@@ -259,6 +267,7 @@ function AppLayout() {
                 <Link
                   key={item.path}
                   to={item.path}
+                  onClick={event => scrollTopOnSameTab(event, item.path)}
                   aria-label={item.label}
                   aria-current={active ? 'page' : undefined}
                   className={`flex h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 transition-colors active:bg-black/[0.03] ${
@@ -321,6 +330,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <LoginResultHandler />
+      <ScrollManager />
 
       <Routes>
         <Route element={<AppLayout />}>

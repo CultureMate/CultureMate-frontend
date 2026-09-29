@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   getFavorites,
   removeFavorite,
@@ -240,12 +240,22 @@ function EventsCalendar({
 
 export default function Favorites({ view = 'list' }) {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const dateParam = searchParams.get('date')
+  const selectedDate =
+    view === 'calendar' && /^\d{4}-\d{2}-\d{2}$/.test(dateParam || '')
+      ? dateParam
+      : null
 
   const [favoriteEvents, setFavoriteEvents] = useState([])
-  const [monthDate, setMonthDate] = useState(
-    () => new Date()
-  )
-  const [selectedDate, setSelectedDate] = useState(null)
+  const [monthDate, setMonthDate] = useState(() => {
+    if (!selectedDate) return new Date()
+    const [year, month] = selectedDate.split('-').map(Number)
+    return new Date(year, month - 1, 1)
+  })
+
+  const setSelectedDate = date =>
+    setSearchParams(date ? { date } : {}, { replace: true })
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -480,7 +490,7 @@ export default function Favorites({ view = 'list' }) {
                               <EventCard
                                 key={event.eventId}
                                 event={event}
-                                returnTo="/favorites/calendar"
+                                returnTo={`/favorites/calendar?date=${selectedDate}`}
                                 onRemove={handleRemove}
                                 removing={
                                   removingId ===

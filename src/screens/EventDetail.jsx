@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Link,
   useLocation,
@@ -161,6 +161,23 @@ function EventDetailView({ event }) {
 
   const [favoriteStatusLoading, setFavoriteStatusLoading] =
     useState(false)
+
+  const heroRef = useRef(null)
+  const [barSolid, setBarSolid] = useState(false)
+
+  useEffect(() => {
+    const update = () => {
+      const heroBottom = heroRef.current?.getBoundingClientRect().bottom ?? 0
+      setBarSolid(window.innerWidth >= 1024 || heroBottom <= 64)
+    }
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      window.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [])
 
   useEffect(() => {
     const sync = event => setCourseEvents(event.detail || readCourseDraft())
@@ -326,16 +343,57 @@ function EventDetailView({ event }) {
     }
   }
 
+  const goBack = () => {
+    if (window.history.state?.idx > 0) navigate(-1)
+    else navigate(returnTo)
+  }
+
   return (
     <div className="flex flex-col min-h-full bg-canvas">
-      {event.isMock && (
-        <div className="px-5 pt-5">
-          <DemoNotice />
+      <div
+        className={`sticky top-0 z-30 -mb-[calc(4rem+env(safe-area-inset-top))] border-b pt-[env(safe-area-inset-top)] transition-colors duration-200 lg:mb-0 ${
+          barSolid
+            ? 'border-black/[0.06] bg-white/95 backdrop-blur-md'
+            : 'border-transparent bg-transparent'
+        }`}
+      >
+        <div className="mx-auto flex h-16 max-w-5xl items-center gap-2 px-4 md:px-8 lg:px-10">
+          <button
+            type="button"
+            aria-label={
+              returnTo === '/'
+                ? '홈으로'
+                : '목록으로'
+            }
+            onClick={goBack}
+            className={`-ml-1 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-200 ${
+              barSolid
+                ? 'text-ink hover:bg-[#F2F4F6]'
+                : 'bg-white/90 text-ink shadow-card backdrop-blur-sm'
+            }`}
+          >
+            <Icon name="arrowLeft" size={20} strokeWidth={2.2} />
+          </button>
+
+          <span
+            aria-hidden="true"
+            data-title={event.title}
+            className={`min-w-0 flex-1 truncate text-base font-bold text-ink transition-opacity duration-200 before:content-[attr(data-title)] ${
+              barSolid ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+
+          <EventViewCount
+            eventId={event.eventId}
+            initialCount={event.viewCount}
+            isMock={event.isMock}
+            solid={barSolid}
+          />
         </div>
-      )}
+      </div>
 
       {/* 히어로 이미지 */}
-      <div className="relative mx-auto aspect-video w-full max-w-5xl overflow-hidden bg-[#E9ECEF] max-sm:aspect-[4/3] lg:mt-6 lg:rounded-3xl">
+      <div ref={heroRef} className="relative mx-auto aspect-video w-full max-w-5xl overflow-hidden bg-[#E9ECEF] max-sm:aspect-[4/3] lg:mt-6 lg:rounded-3xl">
         {event.img && (
           <img
             src={event.img}
@@ -344,29 +402,14 @@ function EventDetailView({ event }) {
           />
         )}
 
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/40 to-transparent" />
-
-        <button
-          type="button"
-          aria-label={
-            returnTo === '/'
-              ? '홈으로'
-              : '목록으로'
-          }
-          onClick={() =>
-            navigate(returnTo)
-          }
-          className="absolute left-4 top-[calc(env(safe-area-inset-top)+0.75rem)] flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-ink shadow-card backdrop-blur-sm transition-colors hover:bg-white"
-        >
-          <Icon name="arrowLeft" size={20} strokeWidth={2.2} />
-        </button>
-
-        <EventViewCount
-          eventId={event.eventId}
-          initialCount={event.viewCount}
-          isMock={event.isMock}
-        />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/40 to-transparent lg:hidden" />
       </div>
+
+      {event.isMock && (
+        <div className="mx-auto w-full max-w-5xl px-5 pt-5 md:px-8 lg:px-10">
+          <DemoNotice />
+        </div>
+      )}
 
       <div className="mx-auto w-full max-w-5xl px-5 pb-32 pt-5 md:px-8 lg:px-10 lg:pb-12">
         {/* 제목 */}

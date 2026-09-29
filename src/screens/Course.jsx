@@ -207,10 +207,12 @@ function CourseDetail({ course, loading, error, action, onBack, onToggleFavorite
   const favorite = Boolean(course?.favorite ?? course?.favorited ?? course?.isFavorite)
 
   return (
-    <main className="mx-auto max-w-3xl px-5 py-6 md:px-8 lg:px-10">
-      <button type="button" onClick={onBack} className="-ml-2 mb-4 flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-bold text-ink-soft hover:bg-white">
-        <Icon name="arrowLeft" size={18} /> 내 코스 목록
-      </button>
+    <main className="mx-auto max-w-3xl px-5 pb-6 md:px-8 lg:px-10">
+      <div className="sticky top-0 z-20 -mx-5 mb-2 bg-canvas/90 px-5 py-2 backdrop-blur-md md:-mx-8 md:px-8 lg:-mx-10 lg:px-10">
+        <button type="button" onClick={onBack} className="-ml-2 flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-bold text-ink-soft hover:bg-white">
+          <Icon name="arrowLeft" size={18} /> 내 코스 목록
+        </button>
+      </div>
 
       {loading ? (
         <p role="status" className="rounded-2xl bg-white px-6 py-16 text-center text-sm text-[#6B7280] shadow-sm">코스 상세를 불러오고 있어요.</p>
@@ -306,15 +308,31 @@ function CourseDetail({ course, loading, error, action, onBack, onToggleFavorite
   )
 }
 
-function CourseLibrary({ onEdit, onDeleted }) {
+function CourseLibrary({ onEdit, onDeleted, resetSignal = 0 }) {
   const [filter, setFilter] = useState('all')
   const [request, setRequest] = useState({ loading: true, courses: [], error: '' })
   const [detail, setDetail] = useState({ course: null, loading: false, error: '' })
   const [action, setAction] = useState({ loading: false, message: '', error: '' })
   const [deleteOpen, setDeleteOpen] = useState(false)
   const detailRequest = useRef(null)
+  const listScroll = useRef(0)
+  const detailOpen = Boolean(detail.course)
+  const wasDetailOpen = useRef(false)
 
   useEffect(() => () => detailRequest.current?.abort(), [])
+
+  useEffect(() => {
+    if (!resetSignal) return
+    detailRequest.current?.abort()
+    setDetail({ course: null, loading: false, error: '' })
+  }, [resetSignal])
+
+  useEffect(() => {
+    if (detailOpen === wasDetailOpen.current) return
+    wasDetailOpen.current = detailOpen
+    if (detailOpen) window.scrollTo(0, 0)
+    else requestAnimationFrame(() => window.scrollTo(0, listScroll.current))
+  }, [detailOpen])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -356,6 +374,7 @@ function CourseLibrary({ onEdit, onDeleted }) {
 
   const openCourse = course => {
     const courseId = course.courseId ?? course.id
+    if (!detail.course) listScroll.current = window.scrollY
     detailRequest.current?.abort()
     const controller = new AbortController()
     detailRequest.current = controller
@@ -498,6 +517,23 @@ export default function Course() {
   const [titleError, setTitleError] = useState('')
   const [coordinateLoading, setCoordinateLoading] = useState(false)
   const [pageTab, setPageTab] = useState(() => new URLSearchParams(location.search).get('tab') === 'library' ? 'library' : 'builder')
+  const [libraryReset, setLibraryReset] = useState(0)
+  const shownTab = useRef(pageTab)
+
+  useEffect(() => {
+    if (shownTab.current === pageTab) return
+    shownTab.current = pageTab
+    window.scrollTo(0, 0)
+  }, [pageTab])
+
+  const selectTab = tab => {
+    if (tab !== pageTab) {
+      setPageTab(tab)
+      return
+    }
+    if (tab === 'library') setLibraryReset(value => value + 1)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
   const [editingCourse, setEditingCourse] = useState(initialEditSession)
   const [anchorKey, setAnchorKey] = useState(null)
   const coordinateAttempts = useRef(new Set())
@@ -713,10 +749,10 @@ export default function Course() {
 
   return (
     <div className="min-h-full bg-canvas pb-12">
-      <PageHeader title="코스" description="나만의 동선을 만들고 저장한 코스를 한곳에서 관리하세요." innerClassName="mx-auto max-w-6xl">
+      <PageHeader title="코스" description="나만의 동선을 만들고 저장한 코스를 한곳에서 관리하세요." innerClassName="mx-auto max-w-6xl" hideOnScroll>
         <nav className="mt-4 flex gap-6 border-b border-transparent" aria-label="코스 메뉴">
           {[['builder', '코스 만들기'], ['library', '내 코스']].map(([tab, label]) => (
-            <button key={tab} type="button" aria-pressed={pageTab === tab} onClick={() => setPageTab(tab)}
+            <button key={tab} type="button" aria-pressed={pageTab === tab} onClick={() => selectTab(tab)}
               className={`-mb-4 border-b-2 pb-3 text-[15px] font-bold transition-colors ${pageTab === tab ? 'border-ink text-ink' : 'border-transparent text-ink-muted hover:text-ink-soft'}`}>
               {label}
             </button>
@@ -808,23 +844,23 @@ export default function Course() {
             </section>
           </div>
 
-          <section className="mt-5 rounded-2xl bg-white p-4 shadow-sm md:flex md:items-center md:justify-between md:p-5">
-            <div aria-live="polite" className="mb-3 text-sm md:mb-0">
+          <section className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 mt-5 flex items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-lift md:static md:p-5 md:shadow-sm">
+            <div aria-live="polite" className="min-w-0 flex-1 text-[13px] leading-snug md:text-sm">
               {saveState.error && <p role="alert" className="text-[#B42318]">{saveState.error}</p>}
               {saveState.message && <p className="font-semibold text-[#008F75]">{saveState.message}</p>}
               {!saveState.error && !saveState.message && <p className="text-[#6B7280]">행사 {events.length}개 · 주변 장소 {stops.length - events.length}개</p>}
             </div>
-            <div className="flex w-full gap-2 md:w-auto">
+            <div className="flex flex-shrink-0 gap-2">
               {editingCourse && <button type="button" disabled={saveState.loading} onClick={cancelEdit}
-                className="flex-1 rounded-xl border border-[#E5E7EB] px-5 py-3 text-sm font-bold text-[#6B7280] disabled:opacity-50">수정 취소</button>}
-              <button type="submit" disabled={saveState.loading} className="flex-1 whitespace-nowrap rounded-xl bg-[#FF6B47] px-6 py-3 text-sm font-bold text-white disabled:opacity-50 md:w-auto">
+                className="whitespace-nowrap rounded-xl border border-[#E5E7EB] px-3 py-3 text-sm font-bold text-[#6B7280] disabled:opacity-50 md:px-5">수정 취소</button>}
+              <button type="submit" disabled={saveState.loading} className="whitespace-nowrap rounded-xl bg-[#FF6B47] px-4 py-3 text-sm font-bold text-white disabled:opacity-50 md:px-6">
                 {saveState.loading ? '저장 중...' : editingCourse ? '수정 내용 저장' : '이 코스 저장하기'}
               </button>
             </div>
           </section>
         </form>}
       </main>
-      ) : <CourseLibrary onEdit={editCourse} onDeleted={handleCourseDeleted} />}
+      ) : <CourseLibrary onEdit={editCourse} onDeleted={handleCourseDeleted} resetSignal={libraryReset} />}
     </div>
   )
 }

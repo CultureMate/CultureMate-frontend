@@ -21,6 +21,7 @@ import { getDataMode } from '../api/dataMode'
 import DemoNotice from '../components/DemoNotice'
 import Icon from '../components/Icon'
 import BrandMark, { BrandWordmark } from '../components/BrandMark'
+import PageHeader from '../components/PageHeader'
 
 function eventPath(event) {
   return `/events/${encodeURIComponent(event.eventId)}`
@@ -565,91 +566,76 @@ export default function Home({ showAllHot = false }) {
 
   return (
     <div className="flex flex-col min-h-full bg-canvas">
+      {showAllHot ? (
+        <PageHeader
+          title="HOT한 행사"
+          description="조회수가 높은 행사 최대 30개를 보여드려요."
+          onBack={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate('/'))}
+          backLabel="홈으로"
+        />
+      ) : (
       <header className="border-b border-black/[0.06] bg-white px-5 pb-5 pt-[calc(env(safe-area-inset-top)+0.875rem)] md:px-8 md:pb-8 md:pt-8 lg:px-10">
         <div className="max-w-5xl">
-          {showAllHot ? (
-            <Link
-              to="/"
-              className="-ml-2 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-semibold text-ink-soft hover:bg-[#F2F4F6]"
-            >
-              <Icon name="arrowLeft" size={18} />
-              홈으로
-            </Link>
-          ) : (
-            <div className="flex items-center gap-2.5 md:hidden">
-              <BrandMark size={32} />
-              <BrandWordmark />
-            </div>
-          )}
+          <div className="flex items-center gap-2.5 md:hidden">
+            <BrandMark size={32} />
+            <BrandWordmark />
+          </div>
 
           <h1 className="font-display mt-4 text-[26px] font-bold leading-[1.3] text-ink md:mt-0 md:text-[40px] md:leading-[1.25]">
-            {showAllHot ? (
-              'HOT한 행사'
-            ) : (
-              <>
-                오늘 뭐할까,
-                <br />
-                <em className="text-coral not-italic">
-                  같이 찾아봐요
-                </em>
-              </>
-            )}
+            오늘 뭐할까,
+            <br />
+            <em className="text-coral not-italic">
+              같이 찾아봐요
+            </em>
           </h1>
 
-          {!showAllHot && (
-            <>
-              <Link
-                to="/search"
-                className="mt-4 flex h-[52px] items-center gap-3 rounded-2xl bg-[#F2F4F6] px-4 text-[15px] text-ink-muted transition-colors hover:bg-[#E9ECEF] md:mt-5 md:h-14 md:max-w-2xl"
-              >
-                <Icon name="search" size={20} strokeWidth={2} className="text-ink-soft" />
-                어떤 문화행사를 찾으세요?
-                <Icon name="arrowRight" size={18} className="ml-auto text-ink-muted" />
-              </Link>
+          <Link
+            to="/search"
+            className="mt-4 flex h-[52px] items-center gap-3 rounded-2xl bg-[#F2F4F6] px-4 text-[15px] text-ink-muted transition-colors hover:bg-[#E9ECEF] md:mt-5 md:h-14 md:max-w-2xl"
+          >
+            <Icon name="search" size={20} strokeWidth={2} className="text-ink-soft" />
+            어떤 문화행사를 찾으세요?
+            <Icon name="arrowRight" size={18} className="ml-auto text-ink-muted" />
+          </Link>
 
-              <nav aria-label="카테고리 바로가기" className="-mx-5 mt-3 flex snap-x gap-2 overflow-x-auto scroll-px-5 px-5 hide-scrollbar md:mx-0 md:mt-4 md:px-0">
-                {CATEGORIES.map(category => (
-                  <Link
-                    key={category}
-                    to={`/events?category=${encodeURIComponent(category)}`}
-                    className="flex-shrink-0 snap-start rounded-full border border-black/[0.08] bg-white px-3.5 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-coral hover:text-coral active:bg-[#F2F4F6]"
-                  >
-                    {category}
-                  </Link>
-                ))}
-              </nav>
-            </>
-          )}
+          <nav aria-label="카테고리 바로가기" className="-mx-5 mt-3 flex snap-x gap-2 overflow-x-auto scroll-px-5 px-5 hide-scrollbar md:mx-0 md:mt-4 md:px-0">
+            {CATEGORIES.map(category => (
+              <Link
+                key={category}
+                to={`/events?category=${encodeURIComponent(category)}`}
+                className="flex-shrink-0 snap-start rounded-full border border-black/[0.08] bg-white px-3.5 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-coral hover:text-coral active:bg-[#F2F4F6]"
+              >
+                {category}
+              </Link>
+            ))}
+          </nav>
         </div>
       </header>
+      )}
 
       <div className="flex-1 px-5 md:px-8 lg:px-10">
         <section
-          aria-labelledby="hot-title"
+          aria-labelledby={showAllHot ? undefined : 'hot-title'}
+          aria-label={showAllHot ? 'HOT한 행사 목록' : undefined}
           aria-busy={hotLoading}
-          className="pt-7 pb-2 max-w-5xl"
+          className={`${showAllHot ? 'pt-5' : 'pt-7'} pb-2 max-w-5xl`}
         >
-          <SectionTitle
-            id="hot-title"
-            icon="flame"
-            iconClassName="text-coral"
-            title="HOT한 행사"
-            action={!showAllHot && (
-              <Link
-                to="/events/hot"
-                className="flex items-center gap-0.5 text-sm font-semibold text-ink-muted hover:text-ink"
-              >
-                전체보기
-                <Icon name="chevronRight" size={16} />
-              </Link>
-            )}
-          />
-
-          {showAllHot && (
-            <p className="text-sm text-ink-muted mb-4">
-              조회수가 높은 행사 최대 30개를
-              보여드려요.
-            </p>
+          {!showAllHot && (
+            <SectionTitle
+              id="hot-title"
+              icon="flame"
+              iconClassName="text-coral"
+              title="HOT한 행사"
+              action={
+                <Link
+                  to="/events/hot"
+                  className="flex items-center gap-0.5 text-sm font-semibold text-ink-muted hover:text-ink"
+                >
+                  전체보기
+                  <Icon name="chevronRight" size={16} />
+                </Link>
+              }
+            />
           )}
 
           {hotMock && (

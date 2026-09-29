@@ -12,7 +12,8 @@ export default function Search() {
   const filledSections = [filters.district.length, filters.category.length, filters.from].filter(Boolean).length
   return (
     <div className="flex flex-col min-h-full bg-canvas">
-      <PageHeader title="행사 찾기" description="원하는 조건을 골라 서울 문화행사를 찾아보세요." innerClassName="max-w-3xl" />
+      <PageHeader title="행사 찾기" description="원하는 조건을 골라 서울 문화행사를 찾아보세요." innerClassName="max-w-3xl"
+        onBack={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate('/'))} />
       <form className="px-5 md:px-8 lg:px-10 pt-5 max-w-3xl w-full" onSubmit={event => { event.preventDefault(); navigate(`/events?${createEventParams({ ...filters, page: 0 })}`) }}>
         <label className="sr-only" htmlFor="search-keyword">행사 이름 또는 장소</label>
         <div className="relative mb-4">
