@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { createCourse, deleteCourse, getCourseDetail, getCourseError, getCourses, shareCourse, unshareCourse, updateCourse, updateCourseFavorite } from '../api/courses'
 import { getNearbyPlaces, getPlaceDetails, getPlacesBetween, getPlacesError } from '../api/places'
 import { getEventDetail } from '../api/events'
 import DemoNotice from '../components/DemoNotice'
 import EventDialog from '../components/EventDialog'
+import GooglePlacePhoto, { GoogleMapsAttribution } from '../components/GooglePlacePhoto'
 import { getEventCoordinates } from '../utils/eventLocation'
 import { readCourseBuilder, readCourseDraft, writeCourseBuilder, writeCourseDraft } from '../utils/courseDraft'
 
@@ -76,7 +77,9 @@ function StopCard({ stop, index, total, onMove, onRemove, onDragStart, onDrop })
     <li draggable onDragStart={() => onDragStart(index)} onDragOver={event => event.preventDefault()} onDrop={() => onDrop(index)}
       className="relative flex gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3 shadow-sm">
       <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl">
-        <SpotImage src={stop.imageUrl || stop.img} alt={isEvent ? stop.title : stop.name} className="h-full w-full" />
+        {isEvent
+          ? <SpotImage src={stop.imageUrl || stop.img} alt={stop.title} className="h-full w-full" />
+          : <GooglePlacePhoto place={stop} alt={stop.name} imageClassName="h-16 w-16" />}
         <span className="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#1A1A2E] text-[11px] font-black text-white">{index + 1}</span>
       </div>
       <div className="min-w-0 flex-1">
@@ -87,6 +90,7 @@ function StopCard({ stop, index, total, onMove, onRemove, onDragStart, onDrop })
         <h3 className="truncate text-sm font-bold text-[#1A1A2E]">{isEvent ? stop.title : stop.name}</h3>
         <p className="mt-1 truncate text-xs text-[#6B7280]">📍 {isEvent ? stop.place || '장소 확인 필요' : stop.address || '주소 정보 없음'}</p>
         {!isEvent && <OpeningHours spot={stop} className="mt-1" />}
+        {!isEvent && <GoogleMapsAttribution place={stop} className="mt-1" />}
       </div>
       <div className="flex flex-shrink-0 items-center gap-1" aria-label={`${isEvent ? stop.title : stop.name} 순서 변경`}>
         <button type="button" disabled={index === 0} onClick={() => onMove(index, index - 1)} aria-label="위로 이동" className="h-8 w-8 rounded-lg bg-[#F3F4F6] text-sm disabled:opacity-30">↑</button>
@@ -101,7 +105,7 @@ function PlaceCard({ place, added, onAdd }) {
   const restaurant = place.placeType === 'restaurant'
   return (
     <article className="rounded-2xl border border-[#E5E7EB] bg-white">
-      <SpotImage src={place.imageUrl} alt={place.name} className="h-32 w-full rounded-t-2xl" />
+      <GooglePlacePhoto place={place} alt={place.name} imageClassName="h-32 w-full rounded-t-2xl" manualLoad />
       <div className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -112,6 +116,7 @@ function PlaceCard({ place, added, onAdd }) {
         {place.openNow != null && <span className={`flex-shrink-0 text-[11px] font-semibold ${place.openNow ? 'text-[#008F75]' : 'text-[#9CA3AF]'}`}>{place.openNow ? '영업 중' : '영업 종료'}</span>}
       </div>
       <OpeningHours spot={place} />
+      <GoogleMapsAttribution place={place} className="mt-2" />
       <div className="mt-3 flex items-center justify-between gap-2">
         <p className="text-xs text-[#6B7280]">{place.rating != null ? `★ ${place.rating} · 리뷰 ${place.userRatingCount.toLocaleString('ko-KR')}` : '평점 정보 없음'}</p>
         <div className="flex gap-2">
@@ -131,17 +136,27 @@ function formatCourseDate(value) {
   return new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric' }).format(date)
 }
 
+function getCourseStopKind(stop) {
+  const type = String(stop?.type ?? stop?.stopType ?? '').toLowerCase()
+  const placeType = String(stop?.placeType ?? '').toLowerCase()
+  if (type === 'event') return 'event'
+  if (type === 'restaurant' || placeType === 'restaurant') return 'restaurant'
+  return 'cafe'
+}
+
 function CourseCard({ course, onOpen, onToggleFavorite }) {
   const courseId = course.courseId ?? course.id
   const name = course.name ?? course.title ?? '이름 없는 코스'
-  const stops = Array.isArray(course.stops) ? course.stops : []
+  const stops = Array.isArray(course.previewStops) ? course.previewStops : Array.isArray(course.stops) ? course.stops : []
   const stopCount = course.stopCount ?? stops.length
   const favorite = Boolean(course.favorite ?? course.favorited ?? course.isFavorite)
-  const previewStops = stops.length > 0
-    ? stops.slice(0, 5)
+  const availablePreviewStops = stops.length > 0
+    ? stops
     : course.firstEventImageUrl
       ? [{ stopId: 'first-event', stopType: 'EVENT', title: course.firstEventTitle || '첫 행사', imageUrl: course.firstEventImageUrl }]
       : []
+  const previewStops = availablePreviewStops.slice(0, 4)
+  const remainingCount = Math.max(stopCount, availablePreviewStops.length) - previewStops.length
 
   return (
     <article className="rounded-2xl bg-white p-4 shadow-sm">
@@ -158,19 +173,27 @@ function CourseCard({ course, onOpen, onToggleFavorite }) {
       </div>
 
       {previewStops.length > 0 ? (
-        <div className="mt-4 flex items-center gap-2 overflow-x-auto hide-scrollbar" aria-label={`${name} 코스 미리보기`}>
+        <div className="mt-4 flex items-center gap-1 overflow-x-auto hide-scrollbar" aria-label={`${name} 코스 미리보기`}>
           {previewStops.map((stop, index) => (
-            <div key={stop.stopId ?? `${stop.type}-${stop.eventId ?? stop.placeId}-${index}`} className="flex flex-shrink-0 items-center gap-2">
-              <div className="relative h-12 w-12 overflow-hidden rounded-xl border border-[#E5E7EB]">
-                <SpotImage src={stop.imageUrl || stop.img} alt={stop.name ?? stop.title ?? '코스 장소'} className="h-full w-full" />
+            <div key={stop.stopId ?? `${stop.type}-${stop.eventId ?? stop.placeId}-${index}`} className="flex flex-shrink-0 items-center gap-1">
+              <div className="relative h-11 w-11 overflow-hidden rounded-lg border border-[#E5E7EB]">
+                {getCourseStopKind(stop) === 'event'
+                  ? <SpotImage src={stop.imageUrl || stop.img || stop.eventImageUrl} alt={stop.name ?? stop.title ?? '행사'} className="h-full w-full" />
+                  : <div role="img" aria-label={getCourseStopKind(stop) === 'restaurant' ? '음식점' : '카페'}
+                    className={`flex h-full w-full items-center justify-center text-xl ${getCourseStopKind(stop) === 'restaurant' ? 'bg-[#FFF2C7]' : 'bg-[#DDF7F1]'}`}>
+                    {getCourseStopKind(stop) === 'restaurant' ? '🍽️' : '☕'}
+                  </div>}
                 <span className="absolute bottom-0 left-0 right-0 bg-black/55 py-0.5 text-center text-[9px] font-bold text-white">
-                  {String(stop.type ?? stop.stopType).toUpperCase() === 'EVENT' ? '행사' : String(stop.placeType ?? stop.type).toLowerCase() === 'restaurant' ? '음식점' : '카페'}
+                  {getCourseStopKind(stop) === 'event' ? '행사' : getCourseStopKind(stop) === 'restaurant' ? '음식점' : '카페'}
                 </span>
               </div>
-              {index < previewStops.length - 1 && <span className="text-xs text-[#D1D5DB]">→</span>}
+              {(index < previewStops.length - 1 || remainingCount > 0) && <span className="text-[10px] leading-none text-[#D1D5DB]">→</span>}
             </div>
           ))}
-          {stopCount > previewStops.length && <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[#F3F4F6] text-xs font-bold text-[#6B7280]">+{stopCount - previewStops.length}</span>}
+          {remainingCount > 0 && <span aria-label={`남은 장소 ${remainingCount}곳`}
+            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-[#F3F4F6] text-xs font-bold text-[#6B7280]">
+            +{remainingCount}
+          </span>}
         </div>
       ) : (
         <p className="mt-4 rounded-xl bg-[#F8F8F6] px-3 py-3 text-xs text-[#6B7280]">코스 상세에서 전체 동선을 확인할 수 있어요.</p>
@@ -252,16 +275,29 @@ function CourseDetail({ course, loading, error, action, onBack, onToggleFavorite
                   const label = isEvent ? '행사' : String(stop.placeType).toUpperCase() === 'RESTAURANT' ? '음식점' : '카페'
                   const todayHours = getTodayHours(stop)
                   return (
-                    <li key={stop.stopId ?? `${stop.type}-${stop.eventId ?? stop.placeId}-${index}`} className="flex gap-3 rounded-2xl border border-[#E5E7EB] p-4">
-                      <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl">
-                        <SpotImage src={stop.imageUrl || stop.img} alt={stop.name ?? stop.title ?? label} className="h-full w-full" />
-                        <span className="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#FF6B47] text-[11px] font-black text-white">{index + 1}</span>
+                    <li key={stop.stopId ?? `${stop.type}-${stop.eventId ?? stop.placeId}-${index}`}
+                      className={`relative flex gap-3 rounded-2xl border border-[#E5E7EB] p-4 ${isEvent ? 'transition-colors hover:border-[#FF8A70] hover:bg-[#FFFDFC]' : ''}`}>
+                      {isEvent && stop.eventId && <Link to={`/events/${encodeURIComponent(stop.eventId)}`} state={{ returnTo: '/course?tab=library' }}
+                        aria-label={`${stop.name ?? stop.title ?? label} 상세 보기`}
+                        className="absolute inset-0 z-10 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FF6B47]">
+                        <span className="sr-only">{stop.name ?? stop.title ?? label} 상세 보기</span>
+                      </Link>}
+                      <div className="w-20 flex-shrink-0">
+                        {isEvent
+                          ? <div className="relative h-20 w-20 overflow-hidden rounded-xl">
+                            <SpotImage src={stop.imageUrl || stop.img} alt={stop.name ?? stop.title ?? label} className="h-full w-full" />
+                            <span className="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#FF6B47] text-[11px] font-black text-white">{index + 1}</span>
+                          </div>
+                          : <GooglePlacePhoto place={stop} alt={stop.name ?? label} imageClassName="h-20 w-20 rounded-xl" autoLoad>
+                            <span className="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#FF6B47] text-[11px] font-black text-white">{index + 1}</span>
+                          </GooglePlacePhoto>}
                       </div>
                       <div className="min-w-0">
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${isEvent ? 'bg-[#FFF0EC] text-[#FF6B47]' : 'bg-[#E6FAF7] text-[#008F75]'}`}>{label}</span>
                         <p className="mt-1.5 font-bold text-[#1A1A2E]">{stop.name ?? stop.title ?? `${label} ${index + 1}`}</p>
                         {(stop.address ?? stop.place) && <p className="mt-1 text-xs text-[#6B7280]">📍 {stop.address ?? stop.place}</p>}
                         {!isEvent && todayHours && <p className="mt-1 text-xs text-[#6B7280]">🕒 {todayHours}</p>}
+                        {!isEvent && <GoogleMapsAttribution place={stop} className="mt-2" />}
                       </div>
                     </li>
                   )
@@ -324,9 +360,6 @@ function CourseLibrary({ onEdit }) {
       .then(data => {
         const hydrated = data || course
         setDetail({ course: hydrated, loading: false, error: '' })
-        setRequest(current => ({ ...current, courses: current.courses.map(item => String(item.courseId ?? item.id) === String(courseId)
-          ? { ...item, ...hydrated }
-          : item) }))
       })
       .catch(() => setDetail({ course, loading: false, error: '코스 상세를 불러오지 못했습니다.' }))
   }
@@ -433,6 +466,7 @@ function CourseLibrary({ onEdit }) {
 }
 
 export default function Course() {
+  const location = useLocation()
   const initialEvents = useMemo(() => readCourseDraft(), [])
   const initialBuilder = useMemo(() => readCourseBuilder(), [])
   const [stops, setStops] = useState(() => {
@@ -448,7 +482,7 @@ export default function Course() {
   const [dragIndex, setDragIndex] = useState(null)
   const [saveState, setSaveState] = useState({ loading: false, message: '', error: '' })
   const [coordinateLoading, setCoordinateLoading] = useState(false)
-  const [pageTab, setPageTab] = useState('builder')
+  const [pageTab, setPageTab] = useState(() => new URLSearchParams(location.search).get('tab') === 'library' ? 'library' : 'builder')
   const [editingCourse, setEditingCourse] = useState(null)
   const [segmentIndex, setSegmentIndex] = useState(0)
   const coordinateAttempts = useRef(new Set())
@@ -471,6 +505,22 @@ export default function Course() {
   }, [events.map(stop => stop.eventId).join('|')])
 
   useEffect(() => { writeCourseBuilder({ title, stops }) }, [title, stops])
+
+  useEffect(() => {
+    const pending = stops.filter(stop => stop.stopType === 'PLACE' && stop.placeId && !stop.name)
+    if (!pending.length) return
+    const controller = new AbortController()
+    Promise.all(pending.map(stop => getPlaceDetails(stop.placeId, stop.placeType, controller.signal)
+      .then(place => ({ stopId: stop.stopId, place }))
+      .catch(() => null)))
+      .then(results => setStops(items => items.map(stop => {
+        const result = results.find(item => item?.stopId === stop.stopId)
+        return result?.place ? { ...stop, ...result.place, stopId: stop.stopId, stopType: 'PLACE' } : stop
+      })))
+    return () => controller.abort()
+  // 저장된 장소 참조가 화면 상태로 복원됐을 때 한 번만 상세를 보완합니다.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stops.filter(stop => stop.stopType === 'PLACE' && !stop.name).map(stop => stop.stopId).join('|')])
 
   useEffect(() => {
     setSegmentIndex(0)

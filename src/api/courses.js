@@ -1,5 +1,5 @@
 import api from './axios'
-import { canUseMock, getDataMode } from './dataMode'
+import { getDataMode } from './dataMode'
 
 export const SAVED_COURSES_KEY = 'culturemate.saved-courses.v1'
 
@@ -8,7 +8,10 @@ const now = () => new Date().toISOString()
 function readLocalCourses() {
   try {
     const courses = JSON.parse(localStorage.getItem(SAVED_COURSES_KEY) || '[]')
-    return Array.isArray(courses) ? courses : []
+    if (!Array.isArray(courses)) return []
+    const safeCourses = courses.map(course => ({ ...course, stops: stripPlacePhotoData(course.stops) }))
+    if (JSON.stringify(safeCourses) !== JSON.stringify(courses)) writeLocalCourses(safeCourses)
+    return safeCourses
   } catch {
     return []
   }
@@ -16,6 +19,28 @@ function readLocalCourses() {
 
 function writeLocalCourses(courses) {
   localStorage.setItem(SAVED_COURSES_KEY, JSON.stringify(courses))
+}
+
+function canUseCourseMock(error) {
+  if (getDataMode() !== 'auto' || error?.code === 'ERR_CANCELED') return false
+  if (['ERR_NETWORK', 'ECONNREFUSED', 'ECONNABORTED', 'ETIMEDOUT'].includes(error?.code)) return true
+  const body = typeof error?.response?.data === 'string' ? error.response.data : ''
+  return error?.response?.status === 500
+    && body.startsWith('Proxy error: Could not proxy request')
+    && body.includes('ECONNREFUSED')
+}
+
+function stripPlacePhotoData(stops = []) {
+  return stops.map(stop => {
+    if (String(stop?.type ?? stop?.stopType).toLowerCase() === 'event') return stop
+    const safeStop = { ...stop }
+    delete safeStop.photoName
+    delete safeStop.photoUrl
+    delete safeStop.imageUrl
+    delete safeStop.authorAttributions
+    delete safeStop.photoAttribution
+    return safeStop
+  })
 }
 
 function localCourseDetail(course) {
@@ -31,6 +56,7 @@ function localCourseDetail(course) {
 function saveLocally(course) {
   const saved = localCourseDetail({
     ...course,
+    stops: stripPlacePhotoData(course.stops),
     courseId: `local-${Date.now()}`,
     createdAt: now(),
     updatedAt: now(),
@@ -46,7 +72,7 @@ function updateLocally(courseId, changes) {
   let updated = null
   const courses = readLocalCourses().map(course => {
     if (String(course.courseId) !== String(courseId)) return course
-    updated = localCourseDetail({ ...course, ...changes, updatedAt: now() })
+    updated = localCourseDetail({ ...course, ...changes, stops: changes.stops ? stripPlacePhotoData(changes.stops) : course.stops, updatedAt: now() })
     return updated
   })
   writeLocalCourses(courses)
@@ -98,11 +124,15 @@ export function normalizeCourse(course) {
   const stops = Array.isArray(course.stops)
     ? course.stops.map(normalizeCourseStop).sort((a, b) => a.order - b.order)
     : course.stops
+  const previewStops = Array.isArray(course.previewStops)
+    ? course.previewStops.map(normalizeCourseStop).sort((a, b) => a.order - b.order)
+    : course.previewStops
   return {
     ...course,
     title: course.title ?? course.name,
     favorited: Boolean(course.favorited ?? course.favorite ?? course.isFavorite),
     stops,
+    previewStops,
   }
 }
 
@@ -113,7 +143,7 @@ export async function createCourse(course, signal) {
     const { data } = await api.post('/courses', payload, { signal })
     return normalizeCourse(data)
   } catch (error) {
-    if (canUseMock(error)) return saveLocally({ ...course, ...payload, stops: course.stops })
+    if (canUseCourseMock(error)) return saveLocally({ ...course, ...payload, stops: course.stops })
     throw error
   }
 }
@@ -125,7 +155,7 @@ export async function getCourses(signal) {
     const courses = Array.isArray(data) ? data : data?.courses || []
     return courses.map(normalizeCourse)
   } catch (error) {
-    if (canUseMock(error)) return readLocalCourses().map(normalizeCourse)
+    if (canUseCourseMock(error)) return readLocalCourses().map(normalizeCourse)
     throw error
   }
 }
@@ -137,7 +167,7 @@ export async function getCourseDetail(courseId, signal) {
     const { data } = await api.get(`/courses/${courseId}`, { signal })
     return normalizeCourse(data)
   } catch (error) {
-    if (canUseMock(error)) return localDetail()
+    if (canUseCourseMock(error)) return localDetail()
     throw error
   }
 }
@@ -149,7 +179,7 @@ export async function updateCourse(courseId, course, signal) {
     const { data } = await api.put(`/courses/${courseId}`, payload, { signal })
     return normalizeCourse(data)
   } catch (error) {
-    if (canUseMock(error)) return updateLocally(courseId, { ...course, ...payload, stops: course.stops, version: payload.version + 1 })
+    if (canUseCourseMock(error)) return updateLocally(courseId, { ...course, ...payload, stops: course.stops, version: payload.version + 1 })
     throw error
   }
 }
@@ -160,7 +190,7 @@ export async function updateCourseFavorite(courseId, favorited, signal) {
     const { data } = await api.put(`/courses/${courseId}/favorite`, { favorited }, { signal })
     return normalizeCourse(data)
   } catch (error) {
-    if (canUseMock(error)) return updateLocally(courseId, { favorited, favorite: favorited })
+    if (canUseCourseMock(error)) return updateLocally(courseId, { favorited, favorite: favorited })
     throw error
   }
 }
@@ -173,7 +203,7 @@ export async function deleteCourse(courseId, signal) {
   try {
     await api.delete(`/courses/${courseId}`, { signal })
   } catch (error) {
-    if (canUseMock(error)) {
+    if (canUseCourseMock(error)) {
       writeLocalCourses(readLocalCourses().filter(course => String(course.courseId) !== String(courseId)))
       return
     }
@@ -191,7 +221,7 @@ export async function shareCourse(courseId, signal) {
     const { data } = await api.post(`/courses/${courseId}/share`, null, { signal })
     return data
   } catch (error) {
-    if (canUseMock(error)) {
+    if (canUseCourseMock(error)) {
       const shareId = `local-${Date.now()}`
       updateLocally(courseId, { shareId, shared: true })
       return { shareId }
@@ -205,7 +235,7 @@ export async function unshareCourse(courseId, signal) {
   try {
     await api.delete(`/courses/${courseId}/share`, { signal })
   } catch (error) {
-    if (canUseMock(error)) return updateLocally(courseId, { shareId: null, shared: false })
+    if (canUseCourseMock(error)) return updateLocally(courseId, { shareId: null, shared: false })
     throw error
   }
 }
@@ -217,7 +247,7 @@ export async function getSharedCourse(shareId, signal) {
     const { data } = await api.get(`/courses/shared/${shareId}`, { signal })
     return normalizeCourse(data)
   } catch (error) {
-    if (canUseMock(error)) return localShared()
+    if (canUseCourseMock(error)) return localShared()
     throw error
   }
 }

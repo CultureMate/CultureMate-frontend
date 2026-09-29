@@ -47,12 +47,32 @@ export function toggleCourseEvent(event) {
 export function readCourseBuilder() {
   try {
     const value = JSON.parse(localStorage.getItem(COURSE_BUILDER_KEY) || '{}')
-    return { title: typeof value.title === 'string' ? value.title : '', stops: Array.isArray(value.stops) ? value.stops : [] }
+    const builder = { title: typeof value.title === 'string' ? value.title : '', stops: Array.isArray(value.stops) ? value.stops.map(toCourseBuilderStop) : [] }
+    if (JSON.stringify(builder) !== JSON.stringify(value)) localStorage.setItem(COURSE_BUILDER_KEY, JSON.stringify(builder))
+    return builder
   } catch {
     return { title: '', stops: [] }
   }
 }
 
 export function writeCourseBuilder(builder) {
-  localStorage.setItem(COURSE_BUILDER_KEY, JSON.stringify(builder))
+  const value = {
+    title: typeof builder?.title === 'string' ? builder.title : '',
+    stops: Array.isArray(builder?.stops) ? builder.stops.map(toCourseBuilderStop) : [],
+  }
+  localStorage.setItem(COURSE_BUILDER_KEY, JSON.stringify(value))
+  return value
+}
+
+function toCourseBuilderStop(stop) {
+  if (stop?.stopType === 'PLACE' || String(stop?.type).toLowerCase() === 'cafe' || String(stop?.type).toLowerCase() === 'restaurant') {
+    const placeType = String(stop?.placeType ?? stop?.type).toLowerCase() === 'restaurant' ? 'restaurant' : 'cafe'
+    return {
+      stopId: stop.stopId || `place:${stop.placeId}`,
+      stopType: 'PLACE',
+      placeId: String(stop.placeId ?? ''),
+      placeType,
+    }
+  }
+  return stop
 }

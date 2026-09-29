@@ -1,5 +1,5 @@
 import api from './axios'
-import { createCourse, deleteCourse, getCourseDetail, getSharedCourse, shareCourse, unshareCourse, updateCourse, updateCourseFavorite } from './courses'
+import { createCourse, deleteCourse, getCourseDetail, getCourses, getSharedCourse, shareCourse, unshareCourse, updateCourse, updateCourseFavorite } from './courses'
 
 jest.mock('./axios', () => ({
   __esModule: true,
@@ -9,6 +9,7 @@ jest.mock('./axios', () => ({
 beforeEach(() => {
   process.env.REACT_APP_DATA_MODE = 'api'
   jest.clearAllMocks()
+  localStorage.clear()
 })
 
 afterEach(() => { delete process.env.REACT_APP_DATA_MODE })
@@ -76,4 +77,30 @@ test('공유 코스 공개 경로를 조회한다', async () => {
   api.get.mockResolvedValue({ data: { title: '공유 코스', stops: [] } })
   await getSharedCourse('share-1')
   expect(api.get).toHaveBeenCalledWith('/courses/shared/share-1', { signal: undefined })
+})
+
+test('auto 모드에서도 서버의 일반 오류는 로컬 코스로 대체하지 않는다', async () => {
+  process.env.REACT_APP_DATA_MODE = 'auto'
+  const error = { response: { status: 500, data: { code: 'INTERNAL_SERVER_ERROR' } } }
+  api.post.mockRejectedValue(error)
+
+  await expect(createCourse({ title: '실패 코스', stops })).rejects.toBe(error)
+  expect(localStorage.getItem('culturemate.saved-courses.v1')).toBeNull()
+})
+
+test('auto 모드에서 코스 조회 404도 로컬 데이터로 대체하지 않는다', async () => {
+  process.env.REACT_APP_DATA_MODE = 'auto'
+  const error = { response: { status: 404, data: { code: 'COURSE_NOT_FOUND' } } }
+  api.get.mockRejectedValue(error)
+
+  await expect(getCourses()).rejects.toBe(error)
+})
+
+test('auto 모드에서 CRA 프록시 연결 거부만 로컬 코스로 대체한다', async () => {
+  process.env.REACT_APP_DATA_MODE = 'auto'
+  api.post.mockRejectedValue({ response: { status: 500, data: 'Proxy error: Could not proxy request /api/courses (ECONNREFUSED)' } })
+
+  const course = await createCourse({ title: '오프라인 코스', stops })
+
+  expect(course).toEqual(expect.objectContaining({ title: '오프라인 코스', isLocal: true }))
 })

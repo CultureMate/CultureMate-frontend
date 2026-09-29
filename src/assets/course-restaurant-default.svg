@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="title description">
+  <title id="title">음식점 기본 이미지</title>
+  <desc id="description">노란색 배경 위의 접시와 식기</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFF2C7"/>
+      <stop offset="1" stop-color="#FFD991"/>
+    </linearGradient>
+  </defs>
+  <rect width="240" height="240" rx="36" fill="url(#background)"/>
+  <circle cx="190" cy="52" r="18" fill="#FFFFFF" opacity=".38"/>
+  <circle cx="50" cy="188" r="25" fill="#B45309" opacity=".09"/>
+  <circle cx="121" cy="125" r="58" fill="#FFFFFF"/>
+  <circle cx="121" cy="125" r="37" fill="none" stroke="#F7C766" stroke-width="8"/>
+  <path d="M51 65v48M65 65v48M79 65v48M65 113v68" fill="none" stroke="#B45309" stroke-width="8" stroke-linecap="round"/>
+  <path d="M187 66v115M187 66c-18 14-18 46 0 54" fill="none" stroke="#B45309" stroke-width="8" stroke-linecap="round"/>
+</svg>

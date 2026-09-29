@@ -2,24 +2,29 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getSharedCourse } from '../api/courses'
 import { getPlaceDetails } from '../api/places'
+import GooglePlacePhoto, { GoogleMapsAttribution } from '../components/GooglePlacePhoto'
 
 function SharedStop({ stop, index }) {
   const event = stop.stopType === 'EVENT'
   const label = event ? '행사' : stop.placeType === 'restaurant' ? '음식점' : '카페'
   const title = event ? stop.title : stop.name
-  const imageUrl = stop.imageUrl || stop.img
   return (
     <li className="flex gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
-      <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-[#F3F4F6]">
-        {imageUrl ? <img src={imageUrl} alt={title} className="h-full w-full object-cover" />
-          : <div role="img" aria-label={`${title} 이미지 없음`} className="flex h-full items-center justify-center text-2xl">🗺️</div>}
-        <span className="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#FF6B47] text-[11px] font-black text-white">{index + 1}</span>
+      <div className="w-20 flex-shrink-0">
+        {event ? <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-[#F3F4F6]">
+          {stop.imageUrl || stop.img ? <img src={stop.imageUrl || stop.img} alt={title} loading="lazy" className="h-full w-full object-cover" />
+            : <div role="img" aria-label={`${title} 이미지 없음`} className="flex h-full items-center justify-center text-2xl">🗺️</div>}
+          <span className="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#FF6B47] text-[11px] font-black text-white">{index + 1}</span>
+        </div> : <GooglePlacePhoto place={stop} alt={title} imageClassName="h-20 w-20 rounded-xl" autoLoad>
+          <span className="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#FF6B47] text-[11px] font-black text-white">{index + 1}</span>
+        </GooglePlacePhoto>}
       </div>
       <div className="min-w-0">
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${event ? 'bg-[#FFF0EC] text-[#FF6B47]' : 'bg-[#E6FAF7] text-[#008F75]'}`}>{label}</span>
         <h2 className="mt-2 font-bold text-[#1A1A2E]">{title}</h2>
         {(stop.place || stop.address) && <p className="mt-1 text-xs text-[#6B7280]">📍 {stop.place || stop.address}</p>}
         {!event && stop.openNow != null && <p className="mt-1 text-xs text-[#6B7280]">{stop.openNow ? '현재 영업 중' : '현재 영업 종료'}</p>}
+        {!event && <GoogleMapsAttribution place={stop} className="mt-2" />}
       </div>
     </li>
   )

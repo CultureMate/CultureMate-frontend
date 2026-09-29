@@ -111,14 +111,25 @@ GET /api/events?district=강남구&district=마포구&category=전시&category=�
 | --- | --- |
 | 행사 주변 장소 | `GET /api/places/nearby?latitude=...&longitude=...&types=cafe&radius=1500&maxResults=20` |
 | 두 행사 사이 장소 | `GET /api/places/between?eventId1=...&eventId2=...&type=restaurant` |
+| 장소 상세 | `GET /api/places/details?placeId=...` |
 | 장소 사진 | `GET /api/places/photo?name=...&maxWidthPx=640` |
 | 코스 저장 | `POST /api/courses` |
+| 내 코스 목록 | `GET /api/courses` |
+| 코스 상세 | `GET /api/courses/{courseId}` |
+| 코스 수정 | `PUT /api/courses/{courseId}` |
+| 코스 삭제 | `DELETE /api/courses/{courseId}` |
+| 코스 즐겨찾기 | `PUT /api/courses/{courseId}/favorite` |
+| 코스 공유 시작·중지 | `POST /api/courses/{courseId}/share` · `DELETE /api/courses/{courseId}/share` |
+| 공유 코스 조회 | `GET /api/courses/shared/{shareId}` |
 
-- 주변 장소 응답은 `placeId`, `name`, `address`, `rating`, `userRatingCount`, `latitude`, `longitude`, `mapUrl`, `photoName`, `photoAttribution`, `businessStatus`, `openNow`를 사용합니다.
+- 주변 장소 응답은 `placeId`, `name`, `address`, `rating`, `userRatingCount`, `latitude`, `longitude`, `mapUrl`, `photoName`, `authorAttributions`, `businessStatus`, `openNow`를 사용합니다. 사진을 표시할 때 모든 저작자 이름과 제공 URI를 사진 가까이에 표시하고, Google 장소 정보에는 Google Maps 출처를 표시합니다.
+- 검색 후보는 기본 이미지를 먼저 표시하며 사용자가 `사진 보기`를 누른 경우에만 Google 사진을 요청합니다. 코스·공유 상세 사진은 화면에 들어왔을 때 불러오고, 같은 실행 화면의 동일 장소 상세 및 사진 요청은 메모리에서 합칩니다. `photoName`과 Google 사진 URL은 코스 초안이나 로컬 코스에 저장하지 않습니다.
 - 행사 좌표가 없으면 임의 위치로 검색하지 않고 안내를 표시합니다. 좌표가 있는 다른 행사를 기준으로 선택할 수 있습니다.
-- 코스 저장 payload는 `{ name, stops }`이며 각 stop에 0부터 시작하는 `order`를 보냅니다. 행사는 `{ type: "EVENT", eventId, order }`, 장소는 `{ type: "PLACE", placeId, placeType, name, address, latitude, longitude, order }` 형식입니다.
-- 현재 백엔드에는 코스 저장 API가 아직 없어 `auto`/`mock` 모드에서는 연결 불가 시 브라우저에 개발용 코스로 저장합니다. 백엔드가 `POST /api/courses`를 제공하면 같은 화면에서 서버 저장으로 자동 전환됩니다.
+- 코스 저장 payload는 `{ title, stops }`입니다. 각 stop은 행사 `{ type: "event", eventId }`, 카페 `{ type: "cafe", placeId }`, 음식점 `{ type: "restaurant", placeId }` 형식입니다. 수정 요청에는 현재 `version`도 함께 보냅니다.
+- 코스 목록은 응답의 `previewStops`를 순서대로 4곳까지 표시하고, 나머지 행사·카페·음식점은 합계 `+n`으로 표시합니다. 행사는 행사 이미지를 사용하고 카페·음식점은 아이콘만 표시하므로 목록에서 Google 사진을 요청하지 않습니다. `previewStops`가 없는 이전 응답은 `firstEventImageUrl`을 사용합니다.
+- `auto` 모드의 코스 API는 실제 네트워크 오류 또는 CRA 프록시의 `ECONNREFUSED` 응답에서만 개발용 로컬 코스로 전환합니다. 서버가 반환한 4xx·일반 5xx 오류는 성공으로 대체하지 않습니다. `mock` 모드는 API 요청 없이 로컬 코스를 사용합니다.
 - `auto` 모드에서도 실행 중인 서버가 `PLACES_UNAVAILABLE` 또는 `PLACES_QUOTA_EXCEEDED`를 반환하면 샘플 장소로 바꾸지 않고 오류를 표시합니다. 서버가 실제로 연결되지 않을 때만 데모 장소로 대체합니다.
+- 장소 API의 `429 PLACES_MEMBER_DAILY_LIMITED`는 회원별 일일 사진 한도, `429 PLACES_RATE_LIMITED`는 일시적인 장소 사진 요청 제한으로 구분해 안내합니다.
 
 ### 카카오맵 연동 (FR-13)
 

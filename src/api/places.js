@@ -6,6 +6,9 @@ const SAMPLE_NAMES = {
   restaurant: ['서울 한상', '골목 식당', '키친 온', '오늘의 식탁', '동네 맛집'],
 }
 
+const placeDetailRequests = new Map()
+const placePhotoRequests = new Map()
+
 const placeType = value => value === 'restaurant' ? 'restaurant' : 'cafe'
 
 function normalizePlace(place, fallbackType) {
@@ -14,7 +17,6 @@ function normalizePlace(place, fallbackType) {
   const weekdayDescriptions = Array.isArray(openingHours)
     ? openingHours
     : openingHours?.weekdayDescriptions ?? place.weekdayDescriptions ?? []
-  const photoName = place.photoName || ''
   return {
     placeId: String(place.placeId),
     name: place.name,
@@ -24,9 +26,9 @@ function normalizePlace(place, fallbackType) {
     latitude: Number(place.latitude),
     longitude: Number(place.longitude),
     mapUrl: place.mapUrl || '',
-    imageUrl: place.imageUrl || place.photoUrl || (photoName ? getPlacePhotoUrl(photoName) : ''),
-    photoName,
-    photoAttribution: place.photoAttribution || '',
+    imageUrl: place.imageUrl || place.photoUrl || '',
+    photoName: place.photoName || '',
+    authorAttributions: Array.isArray(place.authorAttributions) ? place.authorAttributions : [],
     businessStatus: place.businessStatus || '',
     openNow: typeof place.openNow === 'boolean' ? place.openNow
       : typeof openingHours?.openNow === 'boolean' ? openingHours.openNow : null,
@@ -80,8 +82,17 @@ export async function getPlacesBetween({ eventId1, eventId2, type = 'cafe' }, si
 }
 
 export async function getPlaceDetails(placeId, type = 'cafe', signal) {
-  const { data } = await api.get('/places/details', { params: { placeId }, signal })
-  return normalizePlace(data, type)
+  const key = `${placeType(type)}:${placeId}`
+  if (!placeDetailRequests.has(key)) {
+    const request = api.get('/places/details', { params: { placeId }, signal })
+      .then(({ data }) => normalizePlace(data, type))
+      .catch(error => {
+        placeDetailRequests.delete(key)
+        throw error
+      })
+    placeDetailRequests.set(key, request)
+  }
+  return placeDetailRequests.get(key)
 }
 
 export function getPlacePhotoUrl(name, maxWidthPx = 640) {
@@ -89,7 +100,26 @@ export function getPlacePhotoUrl(name, maxWidthPx = 640) {
   return `/api/places/photo?${params}`
 }
 
+export async function loadPlacePhoto(name, maxWidthPx = 640) {
+  if (!name) return ''
+  const key = `${name}:${maxWidthPx}`
+  if (!placePhotoRequests.has(key)) {
+    const request = api.get('/places/photo', {
+      params: { name, maxWidthPx },
+      responseType: 'blob',
+    }).then(({ data }) => URL.createObjectURL(data)).catch(error => {
+      placePhotoRequests.delete(key)
+      throw error
+    })
+    placePhotoRequests.set(key, request)
+  }
+  return placePhotoRequests.get(key)
+}
+
 export function getPlacesError(error) {
+  const code = error.response?.data?.code
+  if (error.response?.status === 429 && code === 'PLACES_MEMBER_DAILY_LIMITED') return '오늘 사용할 수 있는 장소 사진 횟수를 모두 사용했어요.'
+  if (error.response?.status === 429 && code === 'PLACES_RATE_LIMITED') return '장소 사진 요청이 많아요. 잠시 후 다시 시도해 주세요.'
   if (error.response?.status === 400) return '행사 위치나 검색 조건을 확인해 주세요.'
   if (error.response?.status === 503) return '주변 장소 검색 서비스가 잠시 지연되고 있어요.'
   return '주변 장소를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'

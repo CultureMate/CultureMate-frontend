@@ -22,7 +22,10 @@ test('깨진 저장값은 빈 초안으로 복구한다', () => {
 })
 
 test('작성 중인 코스 이름과 전체 동선을 보관한다', () => {
-  writeCourseBuilder({ title: '주말 코스', stops: [{ stopId: 'place:p1', stopType: 'PLACE' }] })
-  expect(readCourseBuilder()).toEqual({ title: '주말 코스', stops: [{ stopId: 'place:p1', stopType: 'PLACE' }] })
+  writeCourseBuilder({ title: '주말 코스', stops: [{ stopId: 'place:p1', stopType: 'PLACE', placeId: 'p1', placeType: 'cafe',
+    name: '카페', photoName: 'places/p1/photos/one', imageUrl: '/api/places/photo?name=secret' }] })
+  expect(readCourseBuilder()).toEqual({ title: '주말 코스', stops: [{ stopId: 'place:p1', stopType: 'PLACE', placeId: 'p1', placeType: 'cafe' }] })
   expect(localStorage.getItem(COURSE_BUILDER_KEY)).toContain('주말 코스')
+  expect(localStorage.getItem(COURSE_BUILDER_KEY)).not.toContain('photoName')
+  expect(localStorage.getItem(COURSE_BUILDER_KEY)).not.toContain('/api/places/photo')
 })
