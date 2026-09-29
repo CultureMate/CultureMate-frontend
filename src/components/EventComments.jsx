@@ -38,7 +38,7 @@ function CommentItem({ comment, replies, member, submitting, onReply, onUpdate, 
   return <article className="border-t border-[#F3F4F6] py-4 first:border-t-0">
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <p className="text-xs font-semibold text-[#374151]">{mine ? '나' : `회원 ${comment.memberId}`}</p>
+        <p className="text-xs font-semibold text-[#374151]">{mine ? '나' : (comment.nickname || `회원 ${comment.memberId}`)}</p>
         <p className="mt-1 text-xs text-[#9CA3AF]">{formatCommentDate(comment.createdAt)}{edited ? ' · 수정됨' : ''}</p>
       </div>
       <div className="flex shrink-0 gap-3 text-xs">
@@ -63,7 +63,7 @@ function ReplyItem({ reply, member, submitting, onUpdate, onDelete }) {
   const mine = member?.memberId === reply.memberId
   return <div className="rounded-xl bg-[#FAFAF8] p-3">
     <div className="flex items-start justify-between gap-3">
-      <div><p className="text-xs font-semibold text-[#374151]">{mine ? '나' : `회원 ${reply.memberId}`}</p>
+      <div><p className="text-xs font-semibold text-[#374151]">{mine ? '나' : (reply.nickname || `회원 ${reply.memberId}`)}</p>
         <p className="mt-1 text-xs text-[#9CA3AF]">{formatCommentDate(reply.createdAt)}{reply.updatedAt && reply.updatedAt !== reply.createdAt ? ' · 수정됨' : ''}</p></div>
       {mine && <div className="flex gap-3 text-xs">
         <button type="button" disabled={submitting} onClick={() => setEditing(true)} className="text-[#6B7280] disabled:opacity-50">수정</button>
@@ -145,7 +145,7 @@ export default function EventComments({ event }) {
   }
   const remove = comment => runAction(async () => {
     await deleteComment(comment.commentId)
-    setComments(items => items.filter(item => item.commentId !== comment.commentId))
+    setComments(items => items.filter(item => item.commentId !== comment.commentId && item.parentId !== comment.commentId))
   })
 
   return <section aria-label="댓글" className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4 mb-4">
