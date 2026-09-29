@@ -1,32 +1,355 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Course from './Course'
-import { COURSE_DRAFT_KEY, writeCourseDraft } from '../utils/courseDraft'
+import { createCourse, deleteCourse, getCourseDetail, getCourses, shareCourse, unshareCourse, updateCourse, updateCourseFavorite } from '../api/courses'
+import { getNearbyPlaces, getPlaceDetails, getPlacesBetween } from '../api/places'
+import { writeCourseDraft } from '../utils/courseDraft'
+import { getEventDetail } from '../api/events'
 
-const renderCourse = () => render(<MemoryRouter><Course /></MemoryRouter>)
+jest.mock('../api/courses', () => ({
+  createCourse: jest.fn(),
+  deleteCourse: jest.fn(),
+  getCourseDetail: jest.fn(),
+  getCourses: jest.fn(),
+  shareCourse: jest.fn(),
+  unshareCourse: jest.fn(),
+  updateCourse: jest.fn(),
+  updateCourseFavorite: jest.fn(),
+  getCourseError: () => '저장 실패',
+}))
+jest.mock('../api/places', () => ({
+  getNearbyPlaces: jest.fn(),
+  getPlaceDetails: jest.fn(),
+  getPlacePhotoUrl: (name, maxWidthPx = 640) => `/api/places/photo?name=${encodeURIComponent(name)}&maxWidthPx=${maxWidthPx}`,
+  getPlacesBetween: jest.fn(),
+  getPlacesError: () => '장소 조회 실패',
+}))
+jest.mock('../api/events', () => ({ getEventDetail: jest.fn() }))
 
-afterEach(() => localStorage.clear())
+const events = [
+  { eventId: 'e1', title: '첫 번째 행사', place: '서울광장', imageUrl: 'https://image.example/e1.jpg', latitude: 37.566, longitude: 126.978 },
+  { eventId: 'e2', title: '두 번째 행사', place: '미술관', imageUrl: 'https://image.example/e2.jpg', latitude: 37.57, longitude: 126.98 },
+]
+const cafe = { placeId: 'p1', name: '문화 카페', address: '서울 중구', rating: 4.7, userRatingCount: 120,
+  latitude: 37.567, longitude: 126.979, placeType: 'cafe', mapUrl: 'https://map.example/p1',
+  imageUrl: 'https://image.example/cafe.jpg', openNow: true, todayHours: '오늘 10:00~22:00', openingHours: ['월요일 10:00~22:00'] }
+const restaurant = { ...cafe, placeId: 'p2', name: '문화 식당', placeType: 'restaurant' }
 
-test('shows the events added with "코스에 담기" in order and lets the user remove them', () => {
-  writeCourseDraft([
-    { eventId: 'a', title: '사진 전시', place: '서울 전시장', startDate: '2026-10-10', endDate: '2026-10-12' },
-    { eventId: 'b', title: '가을 공연', place: '서울 공연장', startDate: '2026-10-11', endDate: '2026-10-11' },
+beforeEach(() => {
+  localStorage.clear()
+  jest.clearAllMocks()
+  getNearbyPlaces.mockImplementation(({ types }) => Promise.resolve({
+    places: [types[0] === 'restaurant' ? restaurant : cafe],
+    isMock: false,
+  }))
+  getPlacesBetween.mockImplementation(({ type }) => Promise.resolve([type === 'restaurant' ? restaurant : cafe]))
+  getPlaceDetails.mockImplementation((placeId, type) => Promise.resolve({ placeId, name: type === 'restaurant' ? '문화 식당' : '문화 카페', placeType: type }))
+  createCourse.mockResolvedValue({ courseId: 1 })
+  getCourses.mockResolvedValue([])
+  getCourseDetail.mockResolvedValue(null)
+  updateCourseFavorite.mockResolvedValue({})
+  updateCourse.mockResolvedValue({ courseId: 1, version: 2 })
+  deleteCourse.mockResolvedValue()
+  shareCourse.mockResolvedValue({ shareId: 'share-1' })
+  unshareCourse.mockResolvedValue()
+  getEventDetail.mockRejectedValue(new Error('좌표 없음'))
+})
+
+function renderCourse() {
+  return render(<MemoryRouter><Course /></MemoryRouter>)
+}
+
+test('빈 초안에서는 행사 목록으로 안내한다', () => {
+  renderCourse()
+  expect(screen.getByText('코스에 담긴 행사가 없어요')).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: '행사 둘러보기' })).toHaveAttribute('href', '/events')
+  expect(getNearbyPlaces).not.toHaveBeenCalled()
+})
+
+test('주변 카페를 추가하고 행사와 함께 순서를 변경해 저장한다', async () => {
+  writeCourseDraft(events)
+  renderCourse()
+  expect(getNearbyPlaces).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
+  expect(await screen.findByText('문화 카페')).toBeInTheDocument()
+  expect(getNearbyPlaces).not.toHaveBeenCalled()
+  expect(getPlacesBetween).toHaveBeenCalledTimes(1)
+  expect(getPlacesBetween).toHaveBeenCalledWith({ eventId1: 'e1', eventId2: 'e2', type: 'cafe' }, expect.any(AbortSignal))
+  fireEvent.click(screen.getByRole('button', { name: '+ 추가' }))
+  const route = screen.getByRole('heading', { name: '코스 순서' }).closest('section')
+  expect(within(route).getByText('문화 카페')).toBeInTheDocument()
+  const downButtons = within(route).getAllByRole('button', { name: '아래로 이동' })
+  fireEvent.click(downButtons[0])
+  fireEvent.change(screen.getByLabelText('코스 이름'), { target: { value: '서울 문화 산책' } })
+  fireEvent.click(screen.getByRole('button', { name: '이 코스 저장하기' }))
+  await waitFor(() => expect(createCourse).toHaveBeenCalledTimes(1))
+  expect(createCourse.mock.calls[0][0]).toEqual({
+    title: '서울 문화 산책',
+    stops: [expect.objectContaining({ eventId: 'e2', stopType: 'EVENT' }), expect.objectContaining({ eventId: 'e1', stopType: 'EVENT' }), expect.objectContaining({ placeId: 'p1', placeType: 'cafe' })],
+  })
+  expect(await screen.findByText('코스를 저장했어요.')).toBeInTheDocument()
+  expect(screen.getByText('코스에 담긴 행사가 없어요')).toBeInTheDocument()
+  expect(screen.queryByLabelText('코스 이름')).not.toBeInTheDocument()
+  await waitFor(() => {
+    expect(JSON.parse(localStorage.getItem('culturemate.course-draft.v1'))).toEqual([])
+    expect(JSON.parse(localStorage.getItem('culturemate.course-builder.v1'))).toEqual({ title: '', stops: [] })
+  })
+})
+
+test('행사가 하나면 해당 행사 좌표를 기준으로 주변 장소를 검색한다', async () => {
+  writeCourseDraft([events[0]])
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
+
+  await waitFor(() => expect(getNearbyPlaces).toHaveBeenCalledWith({
+    latitude: 37.566,
+    longitude: 126.978,
+    types: ['cafe'],
+    radius: 1500,
+    maxResults: 20,
+  }, expect.any(AbortSignal)))
+  expect(getNearbyPlaces).toHaveBeenCalledTimes(1)
+  expect(getPlacesBetween).not.toHaveBeenCalled()
+})
+
+test('카페와 음식점을 각각 조회해 유형별 탭에 표시한다', async () => {
+  writeCourseDraft(events)
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
+  expect(await screen.findByText('문화 카페')).toBeInTheDocument()
+  expect(screen.getByRole('tooltip', { hidden: true })).toHaveTextContent('전체 영업시간')
+  expect(screen.getByRole('tooltip', { hidden: true })).toHaveTextContent('월요일 10:00~22:00')
+  expect(screen.queryByText('문화 식당')).not.toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: /음식점/ }))
+  expect(screen.queryByText('문화 카페')).not.toBeInTheDocument()
+  expect(screen.getByText('음식점 검색 버튼을 눌러 장소를 찾아보세요.')).toBeInTheDocument()
+  expect(getPlacesBetween).toHaveBeenCalledTimes(1)
+
+  fireEvent.click(screen.getByRole('button', { name: '음식점 검색' }))
+  expect(await screen.findByText('문화 식당')).toBeInTheDocument()
+  expect(screen.getByRole('tooltip', { hidden: true })).toHaveTextContent('월요일 10:00~22:00')
+  expect(screen.queryByText('문화 카페')).not.toBeInTheDocument()
+  expect(getPlacesBetween).toHaveBeenLastCalledWith({ eventId1: 'e1', eventId2: 'e2', type: 'restaurant' }, expect.any(AbortSignal))
+})
+
+test('장소 후보 사진은 사용자가 요청한 뒤 불러오고 저작자와 Google Maps 출처를 표시한다', async () => {
+  writeCourseDraft(events)
+  getPlacesBetween.mockResolvedValue([{
+    ...cafe,
+    photoName: 'places/p1/photos/one',
+    authorAttributions: [{ displayName: '카페 촬영자', uri: 'https://example.com/photographer' }],
+    mapUrl: 'https://maps.google.com/p1',
+  }])
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
+  const image = await screen.findByRole('img', { name: '문화 카페' })
+  expect(image.getAttribute('src')).toContain('course-cafe-default.svg')
+
+  fireEvent.click(screen.getByRole('button', { name: '사진 보기' }))
+
+  expect(image).toHaveAttribute('src', '/api/places/photo?name=places%2Fp1%2Fphotos%2Fone&maxWidthPx=640')
+  fireEvent.load(image)
+  expect(screen.getByRole('link', { name: '카페 촬영자' })).toHaveAttribute('href', 'https://example.com/photographer')
+  expect(screen.getByRole('link', { name: 'Google Maps' })).toHaveAttribute('href', 'https://maps.google.com/p1')
+})
+
+test('행사가 세 개면 순서에 따라 두 구간을 만들고 선택한 구간을 검색한다', async () => {
+  const thirdEvent = { eventId: 'e3', title: '세 번째 행사', place: '공연장', imageUrl: 'https://image.example/e3.jpg', latitude: 37.58, longitude: 126.99 }
+  writeCourseDraft([...events, thirdEvent])
+  renderCourse()
+
+  const segmentSelect = screen.getByLabelText('검색할 행사 구간')
+  expect(within(segmentSelect).getAllByRole('option')).toHaveLength(2)
+  expect(within(segmentSelect).getByRole('option', { name: /1순위 첫 번째 행사 → 2순위 두 번째 행사/ })).toBeInTheDocument()
+  expect(within(segmentSelect).getByRole('option', { name: /2순위 두 번째 행사 → 3순위 세 번째 행사/ })).toBeInTheDocument()
+  fireEvent.change(segmentSelect, { target: { value: '1' } })
+  fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
+
+  await waitFor(() => expect(getPlacesBetween).toHaveBeenCalledWith({ eventId1: 'e2', eventId2: 'e3', type: 'cafe' }, expect.any(AbortSignal)))
+})
+
+test('목록에 좌표가 없으면 상세를 확인하고 그래도 없을 때 주변 API를 호출하지 않는다', async () => {
+  writeCourseDraft([{ eventId: 'missing', title: '좌표 없는 행사', place: '어딘가' }])
+  renderCourse()
+  expect(await screen.findByText(/좌표가 없는 행사가 있어 해당 구간을 검색할 수 없어요/)).toBeInTheDocument()
+  expect(getEventDetail).toHaveBeenCalledWith('missing', expect.any(AbortSignal))
+  expect(getNearbyPlaces).not.toHaveBeenCalled()
+})
+
+test('내 코스에서 전체와 관심 코스를 나누어 본다', async () => {
+  getCourses.mockResolvedValue([
+    { courseId: 1, title: '서울 문화 산책', stopCount: 3, firstEventTitle: '서울 전시', firstEventImageUrl: 'https://image.example/preview.jpg', createdAt: '2026-09-28', favorite: true },
+    { courseId: 2, title: '주말 전시 코스', stopCount: 2, createdAt: '2026-09-27', favorite: false },
   ])
   renderCourse()
 
-  const list = screen.getByRole('list')
-  expect(screen.getByRole('heading', { name: /코스에 담은 행사 2개/ })).toBeInTheDocument()
-  expect(within(list).getAllByRole('listitem').map(item => item.textContent)).toEqual([
-    expect.stringContaining('사진 전시'),
-    expect.stringContaining('가을 공연'),
+  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  expect(await screen.findByText('서울 문화 산책')).toBeInTheDocument()
+  expect(screen.getByText('주말 전시 코스')).toBeInTheDocument()
+  expect(screen.getByRole('img', { name: '서울 전시' })).toHaveAttribute('src', 'https://image.example/preview.jpg')
+
+  fireEvent.click(screen.getByRole('button', { name: /관심만 보기/ }))
+  expect(screen.getByText('서울 문화 산책')).toBeInTheDocument()
+  expect(screen.queryByText('주말 전시 코스')).not.toBeInTheDocument()
+})
+
+test('내 코스 미리보기는 네 곳까지 표시하고 나머지 장소 수를 보여준다', async () => {
+  getCourses.mockResolvedValue([{
+    courseId: 1,
+    title: '여섯 곳 코스',
+    stopCount: 6,
+    stops: [
+      { stopId: 'event:e1', type: 'event', eventId: 'e1', title: '첫 행사', imageUrl: 'https://image.example/event.jpg' },
+      { stopId: 'place:c1', type: 'cafe', placeId: 'c1', name: '첫 카페', imageUrl: 'https://image.example/should-not-load-cafe.jpg' },
+      { stopId: 'place:r1', type: 'restaurant', placeId: 'r1', name: '첫 음식점', imageUrl: 'https://image.example/should-not-load-restaurant.jpg' },
+      { stopId: 'event:e2', type: 'event', eventId: 'e2', title: '둘째 행사', imageUrl: 'https://image.example/event-2.jpg' },
+      { stopId: 'place:c2', type: 'cafe', placeId: 'c2', name: '둘째 카페' },
+      { stopId: 'place:r2', type: 'restaurant', placeId: 'r2', name: '둘째 음식점' },
+    ],
+  }])
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  await screen.findByText('여섯 곳 코스')
+
+  expect(screen.getByRole('img', { name: '첫 행사' })).toHaveAttribute('src', 'https://image.example/event.jpg')
+  expect(screen.getAllByRole('img', { name: '카페' })).toHaveLength(1)
+  expect(screen.getAllByRole('img', { name: '음식점' })).toHaveLength(1)
+  expect(screen.getByRole('img', { name: '둘째 행사' })).toHaveAttribute('src', 'https://image.example/event-2.jpg')
+  expect(screen.getByText('+2')).toHaveAttribute('aria-label', '남은 장소 2곳')
+})
+
+test('내 코스의 상세 동선을 확인하고 목록으로 돌아간다', async () => {
+  const course = { courseId: 1, title: '서울 문화 산책', stopCount: 2, createdAt: '2026-09-28' }
+  getCourses.mockResolvedValue([course])
+  getCourseDetail.mockResolvedValue({
+    ...course,
+    stops: [
+      { type: 'EVENT', eventId: 'e1', name: '서울 전시', address: '서울광장', order: 0 },
+      { type: 'PLACE', placeId: 'p1', placeType: 'CAFE', name: '문화 카페', address: '서울 중구', order: 1 },
+    ],
+  })
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  await screen.findByText('서울 문화 산책')
+  fireEvent.click(screen.getByRole('button', { name: '상세 보기' }))
+
+  expect(await screen.findByText('서울 전시')).toBeInTheDocument()
+  expect(screen.getByText('문화 카페')).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: '서울 전시 상세 보기' })).toHaveAttribute('href', '/events/e1')
+  expect(getCourseDetail).toHaveBeenCalledWith(1, expect.any(AbortSignal))
+
+  fireEvent.click(screen.getByRole('button', { name: '내 코스' }))
+  expect(screen.getByRole('button', { name: '상세 보기' })).toBeInTheDocument()
+})
+
+function deferred() {
+  let resolve
+  const promise = new Promise(done => { resolve = done })
+  return { promise, resolve }
+}
+
+const courseDetail = (courseId, eventTitle) => ({
+  courseId,
+  title: `코스 ${courseId}`,
+  stopCount: 2,
+  stops: [
+    { type: 'EVENT', eventId: `e${courseId}`, name: eventTitle, order: 0 },
+    { type: 'PLACE', placeId: `p${courseId}`, placeType: 'CAFE', name: `카페 ${courseId}`, order: 1 },
+  ],
+})
+
+test('상세 로딩 중 목록으로 돌아가면 늦게 도착한 상세가 화면을 다시 열지 않는다', async () => {
+  getCourses.mockResolvedValue([{ courseId: 1, title: '코스 1', stopCount: 2 }])
+  getCourseDetail.mockResolvedValue(courseDetail(1, '첫 코스 행사'))
+  const place = deferred()
+  getPlaceDetails.mockReturnValue(place.promise)
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  await screen.findByText('코스 1')
+  fireEvent.click(screen.getByRole('button', { name: '상세 보기' }))
+  fireEvent.click(await screen.findByRole('button', { name: '내 코스' }))
+  await act(async () => { place.resolve({ placeId: 'p1', name: '카페 1', placeType: 'cafe' }) })
+
+  expect(screen.getByRole('button', { name: '상세 보기' })).toBeInTheDocument()
+  expect(screen.queryByText('첫 코스 행사')).not.toBeInTheDocument()
+})
+
+test('다른 코스 상세를 열면 이전 코스의 늦은 응답이 현재 상세를 덮지 않는다', async () => {
+  getCourses.mockResolvedValue([
+    { courseId: 1, title: '코스 1', stopCount: 2 },
+    { courseId: 2, title: '코스 2', stopCount: 2 },
   ])
-  expect(within(list).getByRole('link', { name: /사진 전시/ })).toHaveAttribute('href', '/events/a')
+  getCourseDetail.mockImplementation(courseId => Promise.resolve(courseDetail(courseId, courseId === 1 ? '첫 코스 행사' : '둘째 코스 행사')))
+  const firstPlace = deferred()
+  getPlaceDetails.mockImplementation(placeId => placeId === 'p1'
+    ? firstPlace.promise
+    : Promise.resolve({ placeId, name: '카페 2', placeType: 'cafe' }))
+  renderCourse()
 
-  fireEvent.click(screen.getByRole('button', { name: '사진 전시 코스에서 빼기' }))
-  expect(screen.getByRole('heading', { name: /코스에 담은 행사 1개/ })).toBeInTheDocument()
-  expect(JSON.parse(localStorage.getItem(COURSE_DRAFT_KEY)).map(item => item.eventId)).toEqual(['b'])
+  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  await screen.findByText('코스 1')
+  fireEvent.click(screen.getAllByRole('button', { name: '상세 보기' })[0])
+  fireEvent.click(await screen.findByRole('button', { name: '내 코스' }))
+  fireEvent.click(screen.getAllByRole('button', { name: '상세 보기' })[1])
+  await screen.findByText('둘째 코스 행사')
+  await act(async () => { firstPlace.resolve({ placeId: 'p1', name: '카페 1', placeType: 'cafe' }) })
 
-  fireEvent.click(screen.getByRole('button', { name: '모두 비우기' }))
-  expect(screen.getByText(/아직 담은 행사가 없어요/)).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: '행사 담으러 가기' })).toHaveAttribute('href', '/events')
+  expect(screen.getByText('둘째 코스 행사')).toBeInTheDocument()
+  expect(screen.queryByText('첫 코스 행사')).not.toBeInTheDocument()
+})
+
+test('코스 상세에서 수정 화면을 열고 version과 함께 저장한다', async () => {
+  const course = { courseId: 1, title: '서울 문화 산책', stopCount: 1, version: 3 }
+  getCourses.mockResolvedValue([course])
+  getCourseDetail.mockResolvedValue({
+    ...course,
+    stops: [{ type: 'event', stopType: 'EVENT', stopId: 'event:e1', eventId: 'e1', title: '서울 전시', place: '서울광장' }],
+  })
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  await screen.findByText('서울 문화 산책')
+  fireEvent.click(screen.getByRole('button', { name: '상세 보기' }))
+  await screen.findByText('서울 전시')
+  fireEvent.click(screen.getByRole('button', { name: '수정' }))
+
+  expect(screen.getByText('수정 중')).toBeInTheDocument()
+  fireEvent.change(screen.getByLabelText('코스 이름'), { target: { value: '수정한 코스' } })
+  fireEvent.click(screen.getByRole('button', { name: '수정 내용 저장' }))
+
+  await waitFor(() => expect(updateCourse).toHaveBeenCalledWith(1, expect.objectContaining({ title: '수정한 코스', version: 3 })))
+  expect(await screen.findByText('코스를 수정했어요.')).toBeInTheDocument()
+  expect(screen.getByText('코스에 담긴 행사가 없어요')).toBeInTheDocument()
+  expect(screen.queryByLabelText('코스 이름')).not.toBeInTheDocument()
+  expect(JSON.parse(localStorage.getItem('culturemate.course-draft.v1'))).toEqual([])
+  expect(JSON.parse(localStorage.getItem('culturemate.course-builder.v1'))).toEqual({ title: '', stops: [] })
+})
+
+test('코스 공유 링크를 만들고 삭제할 수 있다', async () => {
+  const course = { courseId: 1, title: '서울 문화 산책', stopCount: 1, version: 1 }
+  getCourses.mockResolvedValue([course])
+  getCourseDetail.mockResolvedValue({ ...course, stops: [{ type: 'event', stopType: 'EVENT', stopId: 'event:e1', eventId: 'e1', title: '서울 전시' }] })
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  await screen.findByText('서울 문화 산책')
+  fireEvent.click(screen.getByRole('button', { name: '상세 보기' }))
+  await screen.findByText('서울 전시')
+  fireEvent.click(screen.getByRole('button', { name: '공유 링크 만들기' }))
+
+  await waitFor(() => expect(shareCourse).toHaveBeenCalledWith(1))
+  expect(await screen.findByLabelText('공유 링크')).toHaveValue(`${window.location.origin}/shared/courses/share-1`)
+
+  fireEvent.click(screen.getByRole('button', { name: '삭제' }))
+  const dialog = screen.getByRole('dialog', { name: '코스 삭제' })
+  fireEvent.click(within(dialog).getByRole('button', { name: '삭제' }))
+  await waitFor(() => expect(deleteCourse).toHaveBeenCalledWith(1))
+  expect(await screen.findByText('아직 만든 코스가 없어요')).toBeInTheDocument()
 })

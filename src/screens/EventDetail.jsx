@@ -233,7 +233,7 @@ function EventDetailView({ event }) {
   )
 
   const returnTo =
-    /^\/events(?:\?|$)/.test(
+    /^(?:\/events|\/course)(?:\?|$)/.test(
       state?.returnTo || ''
     )
       ? state.returnTo

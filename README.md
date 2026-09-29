@@ -45,7 +45,7 @@ Figma에서 가져온 화면을 URL로 각각 미리 볼 수 있습니다. 홈�
 | `/events/filter` | 행사 목록의 필터 레이어 바로 열기 |
 | `/events/:id` | 행사 상세 (샘플: `/events/mock-1`) |
 | `/search` | 다중 조건·키워드 선택 후 행사 목록으로 이동 |
-| `/course` | 코스 목록 |
+| `/course` | 코스 만들기 |
 | `/favorites` | 관심 목록 |
 | `/favorites/calendar` | 관심 행사 캘린더 시안 |
 | `/my` | 마이페이지 |
@@ -53,7 +53,7 @@ Figma에서 가져온 화면을 URL로 각각 미리 볼 수 있습니다. 홈�
 | `/login` | 로그인 |
 | `/profile` | 프로필 설정 |
 
-홈·행사 목록·검색·필터·행사 상세는 기능이 연결되어 있습니다. 코스·관심목록·로그인 화면은 아직 시안입니다. 행사 상세는 원문 링크, AI 소개문 요청, 조회수 증가, 댓글·대댓글, 카카오맵을 제공합니다(아래 지도 설정 필요). 목록의 기존 비동작 찜·코스 버튼과 동행인 필터는 이번 검색 범위에서 제외했습니다. 찜 API 연동은 별도 작업입니다. 지도·이미지·글꼴은 외부 서비스를 사용하므로 인터넷 연결 상태에 따라 표시가 달라질 수 있습니다.
+홈·행사 목록·검색·필터·행사 상세·코스 만들기는 기능이 연결되어 있습니다. 관심목록·로그인 화면은 아직 시안입니다. 행사 상세는 원문 링크, AI 소개문 요청, 조회수 증가, 댓글·대댓글, 카카오맵을 제공합니다(아래 지도 설정 필요). 찜 API 연동은 별도 작업입니다. 지도·이미지·글꼴은 외부 서비스를 사용하므로 인터넷 연결 상태에 따라 표시가 달라질 수 있습니다.
 
 ## API 통신
 
@@ -102,6 +102,34 @@ GET /api/events?district=강남구&district=마포구&category=전시&category=�
 - 목업도 종료된 행사와 다가오는 행사를 함께 제공하고 동일한 조건 필터링 → 시작일 정렬 → 페이지 분할을 적용합니다. 실제 인증 오류와 정상 빈 결과는 목업으로 바꾸지 않습니다.
 
 목록·검색 계약은 [백엔드 API 명세](https://github.com/CultureMate/CultureMate-backend/blob/develop/docs/api-contract.md)와 `EventService`를 확인했습니다. 실제 서울시 데이터를 사용하는 통합 검증에는 백엔드 실행과 서울시 API 키 설정이 필요합니다.
+
+### 코스 만들기·주변 장소 API
+
+행사 목록의 `코스에 담기`로 고른 행사를 `/course`에서 불러옵니다. 행사·카페·음식점은 하나의 동선으로 관리하므로 드래그 또는 위·아래 버튼으로 종류와 관계없이 순서를 바꿀 수 있습니다. 작성 중인 이름과 동선은 브라우저에 임시 저장되어 행사 목록을 다시 다녀와도 유지됩니다.
+
+| 기능 | 요청 |
+| --- | --- |
+| 행사 주변 장소 | `GET /api/places/nearby?latitude=...&longitude=...&types=cafe&radius=1500&maxResults=20` |
+| 두 행사 사이 장소 | `GET /api/places/between?eventId1=...&eventId2=...&type=restaurant` |
+| 장소 상세 | `GET /api/places/details?placeId=...` |
+| 장소 사진 | `GET /api/places/photo?name=...&maxWidthPx=640` |
+| 코스 저장 | `POST /api/courses` |
+| 내 코스 목록 | `GET /api/courses` |
+| 코스 상세 | `GET /api/courses/{courseId}` |
+| 코스 수정 | `PUT /api/courses/{courseId}` |
+| 코스 삭제 | `DELETE /api/courses/{courseId}` |
+| 코스 즐겨찾기 | `PUT /api/courses/{courseId}/favorite` |
+| 코스 공유 시작·중지 | `POST /api/courses/{courseId}/share` · `DELETE /api/courses/{courseId}/share` |
+| 공유 코스 조회 | `GET /api/courses/shared/{shareId}` |
+
+- 주변 장소 응답은 `placeId`, `name`, `address`, `rating`, `userRatingCount`, `latitude`, `longitude`, `mapUrl`, `photoName`, `authorAttributions`, `businessStatus`, `openNow`를 사용합니다. 사진을 표시할 때 모든 저작자 이름과 제공 URI를 사진 가까이에 표시하고, Google 장소 정보에는 Google Maps 출처를 표시합니다.
+- 검색 후보는 기본 이미지를 먼저 표시하며 사용자가 `사진 보기`를 누른 경우에만 사진 `<img>`를 렌더링합니다. 코스·공유 상세 사진은 화면에 들어왔을 때 사진 API URL을 `src`로 지정해 302 리다이렉트를 브라우저가 직접 처리하도록 합니다. 같은 실행 화면의 동일 장소 상세 요청은 호출자별 AbortSignal과 분리된 메모리 Promise로 합칩니다. `photoName`과 Google 사진 URL은 코스 초안이나 로컬 코스에 저장하지 않습니다.
+- 행사 좌표가 없으면 임의 위치로 검색하지 않고 안내를 표시합니다. 좌표가 있는 다른 행사를 기준으로 선택할 수 있습니다.
+- 코스 저장 payload는 `{ title, stops }`입니다. 각 stop은 행사 `{ type: "event", eventId }`, 카페 `{ type: "cafe", placeId }`, 음식점 `{ type: "restaurant", placeId }` 형식입니다. 수정 요청에는 현재 `version`도 함께 보냅니다.
+- 코스 목록은 응답의 `previewStops`를 순서대로 4곳까지 표시하고, 나머지 행사·카페·음식점은 합계 `+n`으로 표시합니다. 행사는 행사 이미지를 사용하고 카페·음식점은 아이콘만 표시하므로 목록에서 Google 사진을 요청하지 않습니다. `previewStops`가 없는 이전 응답은 `firstEventImageUrl`을 사용합니다.
+- `auto` 모드의 코스 조회 API만 실제 네트워크 연결 실패 또는 CRA 프록시의 `ECONNREFUSED` 응답에서 개발용 로컬 코스로 전환합니다. 생성·수정·삭제·즐겨찾기·공유 같은 변경 요청과 타임아웃은 로컬 성공으로 대체하지 않습니다. `mock` 모드는 API 요청 없이 로컬 코스를 사용합니다.
+- `auto` 모드에서도 실행 중인 서버가 `PLACES_UNAVAILABLE` 또는 `PLACES_QUOTA_EXCEEDED`를 반환하면 샘플 장소로 바꾸지 않고 오류를 표시합니다. 서버가 실제로 연결되지 않을 때만 데모 장소로 대체합니다.
+- 장소 API의 `429 PLACES_MEMBER_DAILY_LIMITED`는 회원별 일일 장소 정보 조회 한도, `429 PLACES_RATE_LIMITED`는 일시적인 장소 정보 요청 제한으로 구분해 안내합니다.
 
 ### 카카오맵 연동 (FR-13)
 

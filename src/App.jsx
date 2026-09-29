@@ -16,6 +16,7 @@ import EventList from './screens/EventList'
 import EventDetail from './screens/EventDetail'
 import Search from './screens/Search'
 import Course from './screens/Course'
+import SharedCourse from './screens/SharedCourse'
 import Favorites from './screens/Favorites'
 import MyPage from './screens/MyPage'
 import Login from './screens/Login'
@@ -393,6 +394,11 @@ export default function App() {
           <Route
             path="/course"
             element={<RequireAuth><Course /></RequireAuth>}
+          />
+
+          <Route
+            path="/shared/courses/:shareId"
+            element={<RequireAuth><SharedCourse /></RequireAuth>}
           />
 
           <Route
