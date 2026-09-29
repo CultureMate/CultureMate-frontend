@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   getFavorites,
   removeFavorite,
@@ -59,37 +59,44 @@ function EventCard({
   event,
   onRemove,
   removing,
+  returnTo,
 }) {
   return (
-    <div className="bg-white rounded-2xl flex shadow-sm border border-[#F3F4F6] overflow-hidden">
+    <article className="flex w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-[#F3F4F6] bg-white shadow-sm">
       <div className="w-2 flex-shrink-0 bg-[#FF6B47]" />
 
-      <div className="flex-1 p-4 min-w-0">
-        <p className="font-semibold text-[#1A1A2E] text-sm leading-tight">
-          {event.title}
-        </p>
+      <Link
+        to={`/events/${encodeURIComponent(event.eventId)}`}
+        state={{ returnTo }}
+        className="min-w-0 flex-1 p-4 transition-colors hover:bg-[#FAFAF8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[#FF6B47]"
+      >
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold leading-tight text-[#1A1A2E]">
+            {event.title}
+          </p>
 
-        <p className="text-[#6B7280] text-xs mt-2">
-          📍 {event.place || '장소 정보 없음'}
-        </p>
+          <p className="mt-2 truncate text-xs text-[#6B7280]">
+            📍 {event.place || '장소 정보 없음'}
+          </p>
 
-        <p className="text-[#9CA3AF] text-xs mt-1">
-          📅 {formatDate(event)}
-        </p>
-      </div>
+          <p className="mt-1 text-xs text-[#9CA3AF]">
+            📅 {formatDate(event)}
+          </p>
+        </div>
+      </Link>
 
       <button
         type="button"
         onClick={() => onRemove(event.eventId)}
         disabled={removing}
         aria-label={`${event.title} 관심행사 삭제`}
-        className="flex-shrink-0 px-4 flex items-center disabled:opacity-40 active:scale-90 transition-transform"
+        className="flex flex-shrink-0 items-center px-4 transition-transform active:scale-90 disabled:opacity-40"
       >
         <span className="text-lg">
           {removing ? '⏳' : '❤️'}
         </span>
       </button>
-    </div>
+    </article>
   )
 }
 
@@ -441,6 +448,7 @@ export default function Favorites({ view = 'list' }) {
                       <EventCard
                         key={event.eventId}
                         event={event}
+                        returnTo="/favorites"
                         onRemove={handleRemove}
                         removing={
                           removingId === event.eventId
@@ -454,7 +462,7 @@ export default function Favorites({ view = 'list' }) {
 
             {view === 'calendar' && (
               <div className="max-w-5xl mx-auto px-5 md:px-8 lg:px-10 pt-4">
-                <div className="lg:flex lg:gap-6 lg:items-start">
+                <div className="min-w-0 lg:flex lg:items-start lg:gap-6">
                   <div className="lg:flex-shrink-0 lg:w-[360px] md:max-w-md md:mx-auto lg:mx-0">
                     <EventsCalendar
                       monthDate={monthDate}
@@ -466,7 +474,7 @@ export default function Favorites({ view = 'list' }) {
                     />
                   </div>
 
-                  <div className="mt-4 lg:mt-0 lg:flex-1">
+                  <div className="min-w-0 max-w-full mt-4 lg:mt-0 lg:flex-1">
                     {!selectedDate ? (
                       <div className="text-center py-10 text-[#9CA3AF] text-sm">
                         달력에서 날짜를 선택하면
@@ -489,6 +497,7 @@ export default function Favorites({ view = 'list' }) {
                               <EventCard
                                 key={event.eventId}
                                 event={event}
+                                returnTo="/favorites/calendar"
                                 onRemove={handleRemove}
                                 removing={
                                   removingId ===
