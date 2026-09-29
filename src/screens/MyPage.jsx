@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { getCurrentMember, setCurrentMemberCache } from '../api/auth'
 import api from '../api/axios'
@@ -16,9 +16,12 @@ const CAT_ICONS = {
 }
 
 export default function MyPage() {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const openInterestEdit = new URLSearchParams(location.search).get('edit') === 'interests'
+ const navigate = useNavigate()
+ const location = useLocation()
+ const interestSectionRef = useRef(null)
+
+ const openInterestEdit =
+   new URLSearchParams(location.search).get('edit') === 'interests'
 
   const [member, setMember] = useState(null)
   const [nickname, setNickname] = useState('')
@@ -80,12 +83,23 @@ export default function MyPage() {
     return () => controller.abort()
   }, [navigate])
 
-  useEffect(() => {
-    if (!openInterestEdit || !member) return
+ useEffect(() => {
+  if (!openInterestEdit || !member) return
 
-    setEditMode(true)
-    navigate(location.pathname, { replace: true })
-  }, [openInterestEdit, member, navigate, location.pathname])
+  setEditMode(true)
+  navigate(location.pathname, { replace: true })
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
+  interestSectionRef.current.scrollIntoView({
+    behavior: 'smooth',
+    block: 'center',
+  })
+}
+    })
+  })
+}, [openInterestEdit, member, navigate, location.pathname])
 
   const handleEditStart = () => {
     setNickname(member?.nickname ?? '')
@@ -390,14 +404,18 @@ export default function MyPage() {
                     ))}
                   </div>
 
-                  <p className="text-xs text-[#6B7280] font-medium mb-2">
-                    관심 카테고리
-                  </p>
+                                  <div
+                    ref={interestSectionRef}
+                    className="scroll-mt-6"
+                  >
+                    <p className="text-xs text-[#6B7280] font-medium mb-2">
+                      관심 카테고리
+                    </p>
 
-                  <p className="text-[11px] text-[#9CA3AF] mb-2">
-                    최대 10개까지 선택할 수 있어요.
-                  </p>
-
+                    <p className="text-[11px] text-[#9CA3AF] mb-2">
+                      최대 10개까지 선택할 수 있어요.
+                    </p>
+                  </div>
                   <div className="flex flex-wrap gap-2 mb-5">
                     {CATEGORIES.map(cat => {
                       const selected =
