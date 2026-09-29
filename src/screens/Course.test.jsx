@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom'
 import Course from './Course'
 import { createCourse, deleteCourse, getCourseDetail, getCourses, shareCourse, unshareCourse, updateCourse, updateCourseFavorite } from '../api/courses'
 import { getNearbyPlaces, getPlaceDetails, getPlacesBetween } from '../api/places'
@@ -57,6 +57,17 @@ beforeEach(() => {
 
 function renderCourse() {
   return render(<MemoryRouter><Course /></MemoryRouter>)
+}
+
+function renderCourseWithEventList() {
+  return render(
+    <MemoryRouter initialEntries={['/course']}>
+      <Routes>
+        <Route path="/course" element={<Course />} />
+        <Route path="/events" element={<main><h1>행사 목록</h1><Link to="/course">코스로 돌아가기</Link></main>} />
+      </Routes>
+    </MemoryRouter>,
+  )
 }
 
 test('빈 초안에서는 행사 목록으로 안내한다', () => {
@@ -414,6 +425,82 @@ test('코스 상세에서 수정 화면을 열고 version과 함께 저장한다
   expect(screen.queryByLabelText('코스 이름')).not.toBeInTheDocument()
   expect(JSON.parse(localStorage.getItem('culturemate.course-draft.v1'))).toEqual([])
   expect(JSON.parse(localStorage.getItem('culturemate.course-builder.v1'))).toEqual({ title: '', stops: [] })
+})
+
+test('코스 수정 중 행사 목록을 다녀와도 기존 코스를 version과 함께 수정한다', async () => {
+  const course = { courseId: 1, title: '서울 문화 산책', stopCount: 1, version: 3 }
+  getCourses.mockResolvedValue([course])
+  getCourseDetail.mockResolvedValue({
+    ...course,
+    stops: [{ type: 'event', stopType: 'EVENT', stopId: 'event:e1', eventId: 'e1', title: '서울 전시', place: '서울광장' }],
+  })
+  renderCourseWithEventList()
+
+  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  await screen.findByText('서울 문화 산책')
+  fireEvent.click(screen.getByRole('button', { name: '상세 보기' }))
+  await screen.findByText('서울 전시')
+  fireEvent.click(screen.getByRole('button', { name: '수정' }))
+  fireEvent.click(screen.getByRole('link', { name: '+ 행사 더 담기' }))
+
+  expect(screen.getByRole('heading', { name: '행사 목록' })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('link', { name: '코스로 돌아가기' }))
+
+  expect(screen.getByText('수정 중')).toBeInTheDocument()
+  expect(screen.getByLabelText('코스 이름')).toHaveValue('서울 문화 산책')
+  fireEvent.change(screen.getByLabelText('코스 이름'), { target: { value: '행사를 더 담은 코스' } })
+  fireEvent.click(screen.getByRole('button', { name: '수정 내용 저장' }))
+
+  await waitFor(() => expect(updateCourse).toHaveBeenCalledWith(1, expect.objectContaining({ title: '행사를 더 담은 코스', version: 3 })))
+  expect(createCourse).not.toHaveBeenCalled()
+  expect(localStorage.getItem('culturemate.course-edit.v1')).toBeNull()
+})
+
+test('수정 중인 코스를 삭제하면 작성 내용은 두고 수정 상태만 해제한다', async () => {
+  const course = { courseId: 1, title: '서울 문화 산책', stopCount: 1, version: 3 }
+  getCourses.mockResolvedValue([course])
+  getCourseDetail.mockResolvedValue({
+    ...course,
+    stops: [{ type: 'event', stopType: 'EVENT', stopId: 'event:e1', eventId: 'e1', title: '서울 전시', place: '서울광장' }],
+  })
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  await screen.findByText('서울 문화 산책')
+  fireEvent.click(screen.getByRole('button', { name: '상세 보기' }))
+  await screen.findByText('서울 전시')
+  fireEvent.click(screen.getByRole('button', { name: '수정' }))
+  expect(screen.getByText('수정 중')).toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  fireEvent.click(await screen.findByRole('button', { name: '상세 보기' }))
+  await screen.findByText('서울 전시')
+  fireEvent.click(screen.getByRole('button', { name: '삭제' }))
+  fireEvent.click(within(screen.getByRole('dialog', { name: '코스 삭제' })).getByRole('button', { name: '삭제' }))
+  await waitFor(() => expect(deleteCourse).toHaveBeenCalledWith(1))
+
+  expect(localStorage.getItem('culturemate.course-edit.v1')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: /🗺️ 코스 만들기/ }))
+  expect(screen.queryByText('수정 중')).not.toBeInTheDocument()
+  expect(screen.getByLabelText('코스 이름')).toHaveValue('서울 문화 산책')
+})
+
+test('새 탭에서 코스 화면을 열어도 작성 중이던 수정 상태를 이어간다', () => {
+  localStorage.setItem('culturemate.course-draft.v1', JSON.stringify([{ eventId: 'e1', title: '서울 전시', place: '서울광장' }]))
+  localStorage.setItem('culturemate.course-builder.v1', JSON.stringify({ title: '서울 문화 산책', stops: [] }))
+  localStorage.setItem('culturemate.course-edit.v1', JSON.stringify({ courseId: 1, version: 3 }))
+  renderCourse()
+
+  expect(screen.getByText('수정 중')).toBeInTheDocument()
+  expect(screen.getByLabelText('코스 이름')).toHaveValue('서울 문화 산책')
+})
+
+test('작성 내용이 모두 비어 있으면 남은 수정 상태를 복원하지 않고 지운다', () => {
+  localStorage.setItem('culturemate.course-edit.v1', JSON.stringify({ courseId: 1, version: 3 }))
+  renderCourse()
+
+  expect(screen.queryByText('수정 중')).not.toBeInTheDocument()
+  expect(localStorage.getItem('culturemate.course-edit.v1')).toBeNull()
 })
 
 test('코스 공유 링크를 만들고 삭제할 수 있다', async () => {

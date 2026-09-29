@@ -26,6 +26,7 @@ import { getCurrentMember } from './api/auth'
 import api from './api/axios'
 import useCurrentMember from './hooks/useCurrentMember'
 import EventDialog from './components/EventDialog'
+import { clearCourseEditSession } from './utils/courseDraft'
 
 const NAV_ITEMS = [
   { icon: '🏠', label: '홈', path: '/' },
@@ -148,11 +149,13 @@ function AppLayout() {
     try {
       await api.post('/auth/logout')
       clearMember()
+      clearCourseEditSession()
       setLogoutOpen(false)
       navigate('/', { replace: true })
     } catch (error) {
       if (error.response?.status === 401) {
         clearMember()
+        clearCourseEditSession()
         setLogoutOpen(false)
         navigate('/', { replace: true })
         return

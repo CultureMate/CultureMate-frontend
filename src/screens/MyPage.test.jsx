@@ -321,6 +321,7 @@ test('로그아웃 API 호출 후 로그인 화면으로 이동한다', async ()
   api.post.mockResolvedValue({
     status: 204,
   })
+  localStorage.setItem('culturemate.course-edit.v1', JSON.stringify({ courseId: 1, version: 3 }))
 
   renderMyPage()
 
@@ -347,6 +348,7 @@ test('로그아웃 API 호출 후 로그인 화면으로 이동한다', async ()
       '로그인 화면'
     )
   ).toBeInTheDocument()
+  expect(localStorage.getItem('culturemate.course-edit.v1')).toBeNull()
 })
 
 test('회원탈퇴 취소 시 탈퇴 API를 호출하지 않는다', async () => {
@@ -391,6 +393,7 @@ test('회원탈퇴 성공 후 로그인 화면으로 이동한다', async () => 
   api.delete.mockResolvedValue({
     status: 204,
   })
+  localStorage.setItem('culturemate.course-edit.v1', JSON.stringify({ courseId: 1, version: 3 }))
 
   renderMyPage()
 
@@ -423,6 +426,7 @@ test('회원탈퇴 성공 후 로그인 화면으로 이동한다', async () => 
       '로그인 화면'
     )
   ).toBeInTheDocument()
+  expect(localStorage.getItem('culturemate.course-edit.v1')).toBeNull()
 })
 
 test('회원탈퇴 실패 메시지를 탈퇴 확인 모달 내부에 표시한다', async () => {

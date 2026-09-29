@@ -10,7 +10,7 @@ import EventDialog from '../components/EventDialog'
 import EventFilterFields from '../components/EventFilterFields'
 import { addFavorite, getFavorites, removeFavorite } from '../api/favorites'
 import useCurrentMember from '../hooks/useCurrentMember'
-import { COURSE_DRAFT_CHANGED, readCourseBuilder, readCourseDraft, toggleCourseEvent } from '../utils/courseDraft'
+import { COURSE_DRAFT_CHANGED, readActiveCourseEditSession, readCourseBuilder, readCourseDraft, toggleCourseEvent } from '../utils/courseDraft'
 
 function FilterSheet({ filters, onClose, onApply }) {
   const [draft, setDraft] = useState(filters)
@@ -129,6 +129,7 @@ export default function EventList({ initialFilterOpen = false }) {
   const [emptyNotice, setEmptyNotice] = useState(false)
   const [courseEvents, setCourseEvents] = useState(() => readCourseDraft())
   const [coursePlaces, setCoursePlaces] = useState(() => readCourseBuilder().stops.filter(stop => stop.stopType === 'PLACE'))
+  const [courseEditSession] = useState(() => readActiveCourseEditSession())
   const [favoriteIds, setFavoriteIds] = useState(new Set())
   const [favoriteLoadingId, setFavoriteLoadingId] = useState(null)
   const [favoriteError, setFavoriteError] = useState('')
@@ -284,7 +285,7 @@ export default function EventList({ initialFilterOpen = false }) {
         <div className="max-w-5xl">
           {member && courseEvents.length > 0 && <div className="sticky top-[8.75rem] z-20 mb-4 flex items-center justify-between gap-3 rounded-2xl bg-[#1A1A2E] px-4 py-3 text-white shadow-lg">
             <p className="text-sm"><strong>{courseSummary}</strong>를 코스에 담았어요.</p>
-            <Link to="/course" className="flex-shrink-0 rounded-xl bg-[#FF6B47] px-4 py-2 text-sm font-bold">코스 만들기 →</Link>
+            <Link to="/course" className="flex-shrink-0 rounded-xl bg-[#FF6B47] px-4 py-2 text-sm font-bold">{courseEditSession ? '코스 수정 계속하기 →' : '코스 만들기 →'}</Link>
           </div>}
           {loading && <p role="status" className="p-6 rounded-2xl bg-white text-sm text-[#6B7280]">행사를 불러오는 중입니다.</p>}
           {error && <div role="alert" className="p-6 rounded-2xl bg-white text-sm text-[#6B7280]">

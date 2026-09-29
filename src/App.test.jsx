@@ -222,6 +222,7 @@ describe('앱 메뉴 로그인 상태', () => {
   test('로그인 상태에서는 확인 후 로그아웃한다', async () => {
     getCurrentMember.mockResolvedValue({ memberId: 1 })
     api.post.mockResolvedValue({ status: 204 })
+    localStorage.setItem('culturemate.course-edit.v1', JSON.stringify({ courseId: 1, version: 3 }))
     render(<App />)
 
     fireEvent.click(await screen.findByRole('button', { name: '로그아웃' }))
@@ -235,5 +236,6 @@ describe('앱 메뉴 로그인 상태', () => {
     expect(window.location.pathname).toBe('/')
     expect(screen.getByRole('link', { name: '로그인' })).toHaveAttribute('href', '/login')
     expect(screen.queryByRole('button', { name: '로그아웃' })).not.toBeInTheDocument()
+    expect(localStorage.getItem('culturemate.course-edit.v1')).toBeNull()
   })
 })
