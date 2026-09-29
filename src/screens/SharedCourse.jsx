@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { getSharedCourse } from '../api/courses'
 import { getPlaceDetails } from '../api/places'
 import GooglePlacePhoto, { GoogleMapsAttribution } from '../components/GooglePlacePhoto'
+import OpeningHours from '../components/OpeningHours'
 
 function SharedStop({ stop, index }) {
   const event = stop.stopType === 'EVENT'
@@ -24,6 +25,7 @@ function SharedStop({ stop, index }) {
         <h2 className="mt-2 font-bold text-[#1A1A2E]">{title}</h2>
         {(stop.place || stop.address) && <p className="mt-1 text-xs text-[#6B7280]">📍 {stop.place || stop.address}</p>}
         {!event && stop.openNow != null && <p className="mt-1 text-xs text-[#6B7280]">{stop.openNow ? '현재 영업 중' : '현재 영업 종료'}</p>}
+        {!event && <OpeningHours spot={stop} className="mt-1" />}
         {!event && <GoogleMapsAttribution place={stop} className="mt-2" />}
       </div>
     </li>

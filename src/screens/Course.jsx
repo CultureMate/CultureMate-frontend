@@ -6,6 +6,7 @@ import { getEventDetail } from '../api/events'
 import DemoNotice from '../components/DemoNotice'
 import EventDialog from '../components/EventDialog'
 import GooglePlacePhoto, { GoogleMapsAttribution } from '../components/GooglePlacePhoto'
+import OpeningHours from '../components/OpeningHours'
 import { getEventCoordinates } from '../utils/eventLocation'
 import { readCourseBuilder, readCourseDraft, writeCourseBuilder, writeCourseDraft } from '../utils/courseDraft'
 
@@ -40,32 +41,6 @@ function SpotImage({ src, alt, className = '' }) {
     <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} className={`object-cover ${className}`} />
   ) : (
     <div role="img" aria-label={`${alt} 이미지 없음`} className={`flex items-center justify-center bg-[#F3F4F6] text-2xl ${className}`}>🗺️</div>
-  )
-}
-
-function getTodayHours(spot) {
-  if (spot?.todayHours) return spot.todayHours
-  if (!Array.isArray(spot?.openingHours) || !spot.openingHours.length) return ''
-  const day = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][new Date().getDay()]
-  return spot.openingHours.find(value => String(value).startsWith(day)) || spot.openingHours[0]
-}
-
-function OpeningHours({ spot, className = 'mt-2' }) {
-  const todayHours = getTodayHours(spot)
-  const openingHours = Array.isArray(spot?.openingHours) ? spot.openingHours : []
-  if (!todayHours) return null
-  return (
-    <div className={`group relative max-w-full ${className}`}>
-      <p tabIndex={openingHours.length ? 0 : undefined}
-        className={`truncate text-xs text-[#6B7280] ${openingHours.length ? 'cursor-help decoration-dotted underline underline-offset-2 outline-none' : ''}`}>
-        🕒 {todayHours}
-      </p>
-      {openingHours.length > 0 && <div role="tooltip"
-        className="pointer-events-none absolute left-0 top-full z-40 mt-2 hidden w-72 max-w-[calc(100vw-3rem)] rounded-xl bg-[#1A1A2E] p-3 text-left text-xs leading-5 text-white shadow-xl group-hover:block group-focus-within:block">
-        <p className="mb-1 font-bold text-[#FF8A70]">전체 영업시간</p>
-        {openingHours.map((hours, index) => <p key={`${hours}-${index}`}>{hours}</p>)}
-      </div>}
-    </div>
   )
 }
 
@@ -273,7 +248,6 @@ function CourseDetail({ course, loading, error, action, onBack, onToggleFavorite
                 {stops.map((stop, index) => {
                   const isEvent = String(stop.type ?? stop.stopType).toUpperCase() === 'EVENT'
                   const label = isEvent ? '행사' : String(stop.placeType).toUpperCase() === 'RESTAURANT' ? '음식점' : '카페'
-                  const todayHours = getTodayHours(stop)
                   return (
                     <li key={stop.stopId ?? `${stop.type}-${stop.eventId ?? stop.placeId}-${index}`}
                       className={`relative flex gap-3 rounded-2xl border border-[#E5E7EB] p-4 ${isEvent ? 'transition-colors hover:border-[#FF8A70] hover:bg-[#FFFDFC]' : ''}`}>
@@ -296,7 +270,7 @@ function CourseDetail({ course, loading, error, action, onBack, onToggleFavorite
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${isEvent ? 'bg-[#FFF0EC] text-[#FF6B47]' : 'bg-[#E6FAF7] text-[#008F75]'}`}>{label}</span>
                         <p className="mt-1.5 font-bold text-[#1A1A2E]">{stop.name ?? stop.title ?? `${label} ${index + 1}`}</p>
                         {(stop.address ?? stop.place) && <p className="mt-1 text-xs text-[#6B7280]">📍 {stop.address ?? stop.place}</p>}
-                        {!isEvent && todayHours && <p className="mt-1 text-xs text-[#6B7280]">🕒 {todayHours}</p>}
+                        {!isEvent && <OpeningHours spot={stop} className="mt-1" />}
                         {!isEvent && <GoogleMapsAttribution place={stop} className="mt-2" />}
                       </div>
                     </li>
