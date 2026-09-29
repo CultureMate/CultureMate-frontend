@@ -71,7 +71,11 @@ test('추가 버튼은 로그인 사용자에게만 표시한다', async () => {
   getCurrentMember.mockResolvedValue({ memberId: 1 })
   renderEvents()
   expect(await screen.findByRole('button', { name: /관심행사 추가/ })).toBeInTheDocument()
-  expect(screen.getByRole('button', { name: /코스에 추가/ })).toBeInTheDocument()
+  const courseButton = screen.getByRole('button', { name: /코스에 추가/ })
+  expect(courseButton).toHaveClass('bg-[#F3EEFF]', 'text-[#8B5CF6]')
+  fireEvent.click(courseButton)
+  expect(courseButton).toHaveAttribute('aria-pressed', 'true')
+  expect(courseButton).toHaveClass('bg-[#008F75]', 'text-white')
 })
 
 test('코스 현황 배너는 행사와 주변 장소 수를 표시하고 헤더 아래에 고정된다', async () => {
@@ -103,10 +107,12 @@ test('a saved favorite can be cancelled from the card, and failures are shown', 
   renderEvents()
 
   const add = await screen.findByRole('button', { name: /관심행사 추가/ })
-  expect(add).toHaveTextContent('🤍 관심행사')
+  expect(add).toHaveTextContent('♡ 관심행사')
+  expect(add).toHaveClass('bg-[#FFF0EC]', 'text-[#B93820]')
   fireEvent.click(add)
   const cancel = await screen.findByRole('button', { name: /관심행사 취소/ })
   expect(cancel).toHaveTextContent('❤️ 저장됨')
+  expect(cancel).toHaveClass('bg-[#FF6B47]', 'text-white')
   expect(cancel).toBeEnabled()
   expect(api.post).toHaveBeenCalledWith('/favorites', { eventId })
 
@@ -245,6 +251,7 @@ test('pagination shows ten page indices and supports direct page entry', async (
   renderEvents()
   await screen.findByText('65개의 행사')
   expect(within(screen.getByLabelText('페이지 번호')).getAllByRole('button')).toHaveLength(10)
+  expect(screen.getByRole('spinbutton', { name: '페이지' })).toHaveClass('text-center', 'tabular-nums')
   fireEvent.change(screen.getByRole('spinbutton', { name: '페이지' }), { target: { value: '11' } })
   fireEvent.submit(screen.getByRole('form', { name: '페이지 직접 이동' }))
   await waitFor(() => expect(api.get.mock.calls[1][1].params.get('page')).toBe('10'))

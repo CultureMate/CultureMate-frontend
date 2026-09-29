@@ -416,8 +416,8 @@ function EventDetailView({ event }) {
               aria-label={favoriteSaved ? '관심행사 저장 취소' : '관심행사 저장'}
               className={`w-full py-3.5 rounded-xl font-bold text-sm transition-colors ${
                 favoriteSaved
-                  ? 'bg-[#FFF0EC] text-[#FF6B47]'
-                  : 'bg-[#FF6B47] text-white'
+                  ? 'bg-[#FF6B47] text-white shadow-sm'
+                  : 'border border-[#FFD5CC] bg-[#FFF0EC] text-[#B93820]'
               } disabled:opacity-70`}
             >
               {favoriteStatusLoading
@@ -426,7 +426,7 @@ function EventDetailView({ event }) {
                   ? (favoriteSaved ? '취소 중...' : '저장 중...')
                   : favoriteSaved
                     ? '❤️ 관심행사에 저장됨'
-                    : '🤍 관심행사에 저장'}
+                    : '♡ 관심행사에 저장'}
             </button>
 
             <button
@@ -436,7 +436,7 @@ function EventDetailView({ event }) {
               onClick={() => setCourseEvents(toggleCourseEvent(event))}
               className={`w-full rounded-xl py-3.5 text-sm font-bold transition-colors ${
                 courseSaved
-                  ? 'bg-[#E6FAF7] text-[#008F75]'
+                  ? 'bg-[#008F75] text-white shadow-sm'
                   : 'bg-[#F3EEFF] text-[#8B5CF6]'
               }`}
             >
