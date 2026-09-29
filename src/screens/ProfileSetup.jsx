@@ -9,12 +9,12 @@ import {
 } from '../data/events'
 
 const CAT_ICONS = {
-  '공연': '🎭',
-  '전시': '🖼️',
+  공연: '🎭',
+  전시: '🖼️',
   '교육/체험': '🎨',
-  '스포츠': '⚽',
-  '음악': '🎵',
-  '영화': '🎬',
+  스포츠: '⚽',
+  음악: '🎵',
+  영화: '🎬',
   '축제/행사': '🎪',
   '문화/예술': '🏛️',
 }
@@ -131,11 +131,13 @@ export default function ProfileSetup() {
       return Boolean(residence)
     }
 
+    /*
+     * 관심 카테고리는 선택 사항입니다.
+     * 아무것도 선택하지 않아도 개인정보 동의만 하면
+     * 프로필 설정을 완료할 수 있습니다.
+     */
     if (step === 'interests') {
-      return (
-        interests.size >= 1 &&
-        privacyAgreed
-      )
+      return privacyAgreed
     }
 
     return false
@@ -154,7 +156,10 @@ export default function ProfileSetup() {
     try {
       setLoading(true)
 
-      // 프로필 정보 + 관심 카테고리를 함께 저장
+      /*
+       * 관심 카테고리가 하나도 선택되지 않은 경우에도
+       * 빈 배열을 전송하여 프로필 설정을 완료합니다.
+       */
       await api.put('/auth/me', {
         nickname: nickname.trim(),
         residence,
@@ -163,7 +168,6 @@ export default function ProfileSetup() {
         ],
       })
 
-      // 프로필 설정 완료 후 메인으로 이동
       navigate('/', {
         replace: true,
       })
@@ -173,7 +177,6 @@ export default function ProfileSetup() {
         err
       )
 
-      // 로그인 세션이 없거나 만료된 경우
       if (err.response?.status === 401) {
         navigate('/login', {
           replace: true,
@@ -274,7 +277,7 @@ export default function ProfileSetup() {
             '근처 행사를 먼저 추천해드릴게요'}
 
           {step === 'interests' &&
-            '1개 이상 선택해주세요 (복수 선택 가능)'}
+            '선택하지 않고 넘어가도 괜찮아요 (복수 선택 가능)'}
         </p>
       </div>
 
@@ -375,6 +378,12 @@ export default function ProfileSetup() {
                 )
               })}
             </div>
+
+            {interests.size === 0 && (
+              <p className="text-[#9CA3AF] text-xs mt-3 text-center">
+                관심 카테고리는 나중에 마이페이지에서도 설정할 수 있어요.
+              </p>
+            )}
 
             {/* 개인정보 동의 */}
             <label className="flex items-start gap-3 mt-8 p-4 bg-white border border-[#E5E7EB] rounded-2xl cursor-pointer">

@@ -41,8 +41,9 @@ const NAV_ITEMS = [
  * 성공:
  * - /?login=success
  * - 세션 없음 -> /login
- * - 프로필 정보가 하나라도 미완성 -> /profile
- * - nickname, residence, interestCategories 모두 있음 -> /
+ * - nickname 또는 residence가 미완성 -> /profile
+ * - nickname, residence가 모두 있음 -> /
+ * - interestCategories는 비어 있어도 메인 화면 진입 가능
  *
  * 취소:
  * - /?login=cancelled
@@ -85,10 +86,12 @@ function LoginResultHandler() {
           return
         }
 
+        // 관심 카테고리는 선택 사항이다.
+        // 닉네임과 거주지만 설정되어 있으면
+        // 관심 카테고리가 없어도 메인 화면으로 이동한다.
         const profileIncomplete =
           !member.nickname?.trim() ||
-          !member.residence?.trim() ||
-          !member.interestCategories?.length
+          !member.residence?.trim()
 
         if (profileIncomplete) {
           navigate('/profile', {

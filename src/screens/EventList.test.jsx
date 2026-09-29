@@ -118,7 +118,7 @@ test('filter changes are drafts until Apply, cancel discards them, dates support
   await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2))
   const params = api.get.mock.calls[1][1].params
   expect(params.getAll('district')).toEqual(['강남구', '마포구'])
-  expect(params.getAll('category')).toEqual(['전시', '공연'])
+  expect(params.getAll('category')).toEqual(['전시', '공연', '연극', '뮤지컬', '오페라', '무용'])
   expect(params.get('from')).toBe('2026-09-30')
   expect(params.get('to')).toBe('2026-10-01')
   expect(screen.getByRole('button', { name: '2026-09-30 ~ 2026-10-01 조건 해제' })).toBeInTheDocument()

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { getCurrentMember } from '../api/auth'
 import api from '../api/axios'
 import { CATEGORIES, DISTRICTS } from '../data/events'
@@ -17,6 +17,8 @@ const CAT_ICONS = {
 
 export default function MyPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const openInterestEdit = new URLSearchParams(location.search).get('edit') === 'interests'
 
   const [member, setMember] = useState(null)
   const [nickname, setNickname] = useState('')
@@ -77,6 +79,13 @@ export default function MyPage() {
 
     return () => controller.abort()
   }, [navigate])
+
+  useEffect(() => {
+    if (!openInterestEdit || !member) return
+
+    setEditMode(true)
+    navigate(location.pathname, { replace: true })
+  }, [openInterestEdit, member, navigate, location.pathname])
 
   const handleEditStart = () => {
     setNickname(member?.nickname ?? '')

@@ -1,14 +1,16 @@
 import api from './axios'
 import { canUseMock, getDataMode } from './dataMode'
+import { expandCategories } from '../data/events'
 import { getMockEvents } from '../data/mockEvents'
 import { createEventParams, EVENT_PAGE_SIZE, isEventDate } from '../utils/eventFilters'
 
 export function filterMockEvents(events, filters) {
   const normalize = value => (value || '').trim().toLowerCase()
   const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const categories = expandCategories(filters.category)
   return events.filter(event => {
     const districtMatches = !filters.district.length || filters.district.some(value => normalize(value) === normalize(event.district))
-    const categoryMatches = !filters.category.length || filters.category.some(value => normalize(event.category).includes(normalize(value)))
+    const categoryMatches = !categories.length || categories.some(value => normalize(event.category).includes(normalize(value)))
     const validPeriod = isEventDate(event.startDate) && isEventDate(event.endDate) && event.startDate <= event.endDate
     const dateMatches = (!filters.from && !filters.to) || (validPeriod
       && (!filters.from || event.endDate >= filters.from)
@@ -35,6 +37,9 @@ export async function getEvents(filters, signal) {
   try {
     const params = createEventParams(filters)
     params.delete('includePast')
+    const categories = expandCategories(params.getAll('category'))
+    params.delete('category')
+    categories.forEach(category => params.append('category', category))
     if (!filters.includePast && (!filters.from || filters.from < today)) params.set('from', today)
     const response = await api.get('/events', { params, signal })
     data = response.data

@@ -114,7 +114,7 @@ describe('로그인 성공 후 프로필 완성 여부 확인', () => {
     )
   })
 
-  test('interestCategories가 비어 있으면 /profile로 이동한다', async () => {
+  test('interestCategories가 비어 있어도 /로 이동한다', async () => {
     getCurrentMember.mockResolvedValue({
       memberId: 1,
       nickname: '테스트유저',
@@ -126,12 +126,13 @@ describe('로그인 성공 후 프로필 완성 여부 확인', () => {
     render(<App />)
 
     expect(
-      await screen.findByText('PROFILE_PAGE')
+      await screen.findByText('HOME_PAGE')
     ).toBeInTheDocument()
 
-    expect(window.location.pathname).toBe(
-      '/profile'
-    )
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/')
+      expect(window.location.search).toBe('')
+    })
   })
 
   test('프로필이 모두 완성되어 있으면 /로 이동한다', async () => {
