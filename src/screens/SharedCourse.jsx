@@ -30,11 +30,11 @@ function SharedStop({ stop, index }) {
   )
 }
 
-async function loadPlaceDetails(course, signal) {
+async function loadPlaceDetails(course) {
   const stops = await Promise.all((course?.stops || []).map(async stop => {
     if (stop.stopType === 'EVENT') return stop
     try {
-      const place = await getPlaceDetails(stop.placeId, stop.placeType, signal)
+      const place = await getPlaceDetails(stop.placeId, stop.placeType)
       return place ? { ...stop, ...place, stopType: 'PLACE', placeType: stop.placeType } : stop
     } catch {
       return stop
@@ -52,7 +52,7 @@ export default function SharedCourse() {
     getSharedCourse(shareId, controller.signal)
       .then(course => {
         if (!course) throw Object.assign(new Error('not found'), { response: { status: 404 } })
-        return loadPlaceDetails(course, controller.signal)
+        return loadPlaceDetails(course)
       })
       .then(course => {
         if (!controller.signal.aborted) setRequest({ loading: false, course, error: '', loginRequired: false })

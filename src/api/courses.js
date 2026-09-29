@@ -139,12 +139,8 @@ export function normalizeCourse(course) {
 export async function createCourse(course, signal) {
   const payload = { title: course.title ?? course.name, stops: serializeCourseStops(course.stops) }
   if (getDataMode() === 'mock') return saveLocally({ ...course, ...payload, stops: course.stops })
-  try {
-    const { data } = await api.post('/courses', payload, { signal })
-    return normalizeCourse(data)
-  } catch (error) {
-    throw error
-  }
+  const { data } = await api.post('/courses', payload, { signal })
+  return normalizeCourse(data)
 }
 
 export async function getCourses(signal) {
@@ -174,22 +170,14 @@ export async function getCourseDetail(courseId, signal) {
 export async function updateCourse(courseId, course, signal) {
   const payload = { title: course.title ?? course.name, version: Number(course.version), stops: serializeCourseStops(course.stops) }
   if (getDataMode() === 'mock') return updateLocally(courseId, { ...course, ...payload, stops: course.stops, version: payload.version + 1 })
-  try {
-    const { data } = await api.put(`/courses/${courseId}`, payload, { signal })
-    return normalizeCourse(data)
-  } catch (error) {
-    throw error
-  }
+  const { data } = await api.put(`/courses/${courseId}`, payload, { signal })
+  return normalizeCourse(data)
 }
 
 export async function updateCourseFavorite(courseId, favorited, signal) {
   if (getDataMode() === 'mock') return updateLocally(courseId, { favorited, favorite: favorited })
-  try {
-    const { data } = await api.put(`/courses/${courseId}/favorite`, { favorited }, { signal })
-    return normalizeCourse(data)
-  } catch (error) {
-    throw error
-  }
+  const { data } = await api.put(`/courses/${courseId}/favorite`, { favorited }, { signal })
+  return normalizeCourse(data)
 }
 
 export async function deleteCourse(courseId, signal) {
@@ -197,11 +185,7 @@ export async function deleteCourse(courseId, signal) {
     writeLocalCourses(readLocalCourses().filter(course => String(course.courseId) !== String(courseId)))
     return
   }
-  try {
-    await api.delete(`/courses/${courseId}`, { signal })
-  } catch (error) {
-    throw error
-  }
+  await api.delete(`/courses/${courseId}`, { signal })
 }
 
 export async function shareCourse(courseId, signal) {
@@ -210,21 +194,13 @@ export async function shareCourse(courseId, signal) {
     updateLocally(courseId, { shareId, shared: true })
     return { shareId }
   }
-  try {
-    const { data } = await api.post(`/courses/${courseId}/share`, null, { signal })
-    return data
-  } catch (error) {
-    throw error
-  }
+  const { data } = await api.post(`/courses/${courseId}/share`, null, { signal })
+  return data
 }
 
 export async function unshareCourse(courseId, signal) {
   if (getDataMode() === 'mock') return updateLocally(courseId, { shareId: null, shared: false })
-  try {
-    await api.delete(`/courses/${courseId}/share`, { signal })
-  } catch (error) {
-    throw error
-  }
+  await api.delete(`/courses/${courseId}/share`, { signal })
 }
 
 export async function getSharedCourse(shareId, signal) {
