@@ -30,7 +30,6 @@ function renderEvents(initial = '/events') {
 
 beforeEach(() => {
   localStorage.clear()
-  sessionStorage.clear()
   process.env.REACT_APP_DATA_MODE = 'api'
   getCurrentMember.mockReset()
   getCurrentMember.mockResolvedValue(null)

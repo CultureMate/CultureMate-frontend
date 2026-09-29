@@ -67,7 +67,7 @@ export function writeCourseBuilder(builder) {
 
 export function readCourseEditSession() {
   try {
-    const value = JSON.parse(sessionStorage.getItem(COURSE_EDIT_SESSION_KEY) || 'null')
+    const value = JSON.parse(localStorage.getItem(COURSE_EDIT_SESSION_KEY) || 'null')
     const courseId = value?.courseId
     const version = Number(value?.version)
     const validCourseId = (typeof courseId === 'string' && courseId.trim()) || Number.isFinite(courseId)
@@ -83,16 +83,16 @@ export function writeCourseEditSession(course) {
   const version = Number(course?.version)
   const validCourseId = (typeof courseId === 'string' && courseId.trim()) || Number.isFinite(courseId)
   if (!validCourseId || !Number.isInteger(version) || version < 0) {
-    sessionStorage.removeItem(COURSE_EDIT_SESSION_KEY)
+    localStorage.removeItem(COURSE_EDIT_SESSION_KEY)
     return null
   }
   const value = { courseId, version }
-  sessionStorage.setItem(COURSE_EDIT_SESSION_KEY, JSON.stringify(value))
+  localStorage.setItem(COURSE_EDIT_SESSION_KEY, JSON.stringify(value))
   return value
 }
 
 export function clearCourseEditSession() {
-  sessionStorage.removeItem(COURSE_EDIT_SESSION_KEY)
+  localStorage.removeItem(COURSE_EDIT_SESSION_KEY)
 }
 
 export function readActiveCourseEditSession() {

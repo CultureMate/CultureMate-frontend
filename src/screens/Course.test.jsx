@@ -37,7 +37,6 @@ const restaurant = { ...cafe, placeId: 'p2', name: '문화 식당', placeType: '
 
 beforeEach(() => {
   localStorage.clear()
-  sessionStorage.clear()
   jest.clearAllMocks()
   getNearbyPlaces.mockImplementation(({ types }) => Promise.resolve({
     places: [types[0] === 'restaurant' ? restaurant : cafe],
@@ -454,7 +453,7 @@ test('코스 수정 중 행사 목록을 다녀와도 기존 코스를 version�
 
   await waitFor(() => expect(updateCourse).toHaveBeenCalledWith(1, expect.objectContaining({ title: '행사를 더 담은 코스', version: 3 })))
   expect(createCourse).not.toHaveBeenCalled()
-  expect(sessionStorage.getItem('culturemate.course-edit.v1')).toBeNull()
+  expect(localStorage.getItem('culturemate.course-edit.v1')).toBeNull()
 })
 
 test('수정 중인 코스를 삭제하면 작성 내용은 두고 수정 상태만 해제한다', async () => {
@@ -480,18 +479,28 @@ test('수정 중인 코스를 삭제하면 작성 내용은 두고 수정 상태
   fireEvent.click(within(screen.getByRole('dialog', { name: '코스 삭제' })).getByRole('button', { name: '삭제' }))
   await waitFor(() => expect(deleteCourse).toHaveBeenCalledWith(1))
 
-  expect(sessionStorage.getItem('culturemate.course-edit.v1')).toBeNull()
+  expect(localStorage.getItem('culturemate.course-edit.v1')).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: /🗺️ 코스 만들기/ }))
   expect(screen.queryByText('수정 중')).not.toBeInTheDocument()
   expect(screen.getByLabelText('코스 이름')).toHaveValue('서울 문화 산책')
 })
 
+test('새 탭에서 코스 화면을 열어도 작성 중이던 수정 상태를 이어간다', () => {
+  localStorage.setItem('culturemate.course-draft.v1', JSON.stringify([{ eventId: 'e1', title: '서울 전시', place: '서울광장' }]))
+  localStorage.setItem('culturemate.course-builder.v1', JSON.stringify({ title: '서울 문화 산책', stops: [] }))
+  localStorage.setItem('culturemate.course-edit.v1', JSON.stringify({ courseId: 1, version: 3 }))
+  renderCourse()
+
+  expect(screen.getByText('수정 중')).toBeInTheDocument()
+  expect(screen.getByLabelText('코스 이름')).toHaveValue('서울 문화 산책')
+})
+
 test('작성 내용이 모두 비어 있으면 남은 수정 상태를 복원하지 않고 지운다', () => {
-  sessionStorage.setItem('culturemate.course-edit.v1', JSON.stringify({ courseId: 1, version: 3 }))
+  localStorage.setItem('culturemate.course-edit.v1', JSON.stringify({ courseId: 1, version: 3 }))
   renderCourse()
 
   expect(screen.queryByText('수정 중')).not.toBeInTheDocument()
-  expect(sessionStorage.getItem('culturemate.course-edit.v1')).toBeNull()
+  expect(localStorage.getItem('culturemate.course-edit.v1')).toBeNull()
 })
 
 test('코스 공유 링크를 만들고 삭제할 수 있다', async () => {
