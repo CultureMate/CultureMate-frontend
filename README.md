@@ -118,7 +118,7 @@ GET /api/events?district=강남구&district=마포구&category=전시&category=�
 | 기능 | 요청 |
 | --- | --- |
 | 행사 주변 장소 | `GET /api/places/nearby?latitude=...&longitude=...&types=cafe&radius=1500&maxResults=20` |
-| 두 행사 사이 장소 | `GET /api/places/between?eventId1=...&eventId2=...&type=restaurant` |
+| 두 행사 연계 장소 | `GET /api/places/between?eventId1=...&eventId2=...&type=restaurant` (응답의 `nearEventId`로 "○○ 근처" 표시) |
 | 장소 상세 | `GET /api/places/details?placeId=...` |
 | 장소 사진 | `GET /api/places/photo?name=...&maxWidthPx=640` |
 | 코스 저장 | `POST /api/courses` |

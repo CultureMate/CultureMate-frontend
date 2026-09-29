@@ -77,6 +77,25 @@ test('빈 초안에서는 행사 목록으로 안내한다', () => {
   expect(getNearbyPlaces).not.toHaveBeenCalled()
 })
 
+test('두 행사 연계 장소에는 어느 행사 근처인지 표시한다', async () => {
+  writeCourseDraft(events)
+  getPlacesBetween.mockResolvedValue([
+    { ...cafe, placeId: 'near-first', name: '첫 행사 옆 카페', nearEventId: 'e1' },
+    { ...cafe, placeId: 'near-second', name: '둘째 행사 옆 카페', nearEventId: 'e2' },
+    { ...cafe, placeId: 'unknown', name: '표시 없는 카페', nearEventId: '' },
+  ])
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
+
+  const first = (await screen.findByRole('heading', { name: '첫 행사 옆 카페' })).closest('article')
+  const second = screen.getByRole('heading', { name: '둘째 행사 옆 카페' }).closest('article')
+  const unknown = screen.getByRole('heading', { name: '표시 없는 카페' }).closest('article')
+  expect(within(first).getByText(`📍 ${events[0].title} 근처`)).toBeInTheDocument()
+  expect(within(second).getByText(`📍 ${events[1].title} 근처`)).toBeInTheDocument()
+  expect(within(unknown).queryByText(/근처$/)).not.toBeInTheDocument()
+})
+
 test('주변 카페를 추가하고 행사와 함께 순서를 변경해 저장한다', async () => {
   writeCourseDraft(events)
   renderCourse()

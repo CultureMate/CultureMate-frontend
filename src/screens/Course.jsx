@@ -76,7 +76,7 @@ function StopCard({ stop, index, total, onMove, onRemove, onDragStart, onDrop })
   )
 }
 
-function PlaceCard({ place, added, onAdd }) {
+function PlaceCard({ place, added, onAdd, nearEventTitle }) {
   const restaurant = place.placeType === 'restaurant'
   return (
     <article className="min-w-0 max-w-full rounded-2xl border border-[#E5E7EB] bg-white">
@@ -84,7 +84,10 @@ function PlaceCard({ place, added, onAdd }) {
       <div className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${restaurant ? 'bg-[#FEF3C7] text-[#B45309]' : 'bg-[#E6FAF7] text-[#008F75]'}`}>{restaurant ? '음식점' : '카페'}</span>
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${restaurant ? 'bg-[#FEF3C7] text-[#B45309]' : 'bg-[#E6FAF7] text-[#008F75]'}`}>{restaurant ? '음식점' : '카페'}</span>
+            {nearEventTitle && <span className="min-w-0 max-w-full truncate rounded-full bg-[#F3EEFF] px-2 py-0.5 text-[10px] font-bold text-[#6D28D9]">📍 {nearEventTitle} 근처</span>}
+          </div>
           <h3 className="mt-2 truncate text-sm font-bold text-[#1A1A2E]">{place.name}</h3>
           <p className="mt-1 line-clamp-2 text-xs text-[#6B7280]">{place.address || '주소 정보 없음'}</p>
         </div>
@@ -720,7 +723,7 @@ export default function Course() {
                     구간 {segment.index + 1} · {segment.index + 1}순위 {segment.from.title} → {segment.index + 2}순위 {segment.to.title}
                   </option>)}
                 </select>
-                <p className="mt-2 text-[11px] text-[#9CA3AF]">선택한 두 행사 사이의 중점과 구간 거리를 기준으로 검색합니다.</p>
+                <p className="mt-2 text-[11px] text-[#9CA3AF]">두 행사를 이어 가기 좋은 장소를 찾습니다. 가까운 행사는 두 행사 사이에서, 먼 행사는 각 행사 근처에서 골고루 찾아요.</p>
               </div>}
               <div className="mb-4 grid grid-cols-2 rounded-xl bg-[#F3F4F6] p-1">
                 <button type="button" aria-pressed={placeType === 'cafe'} onClick={() => selectPlaceType('cafe')} className={`rounded-lg py-2 text-sm font-bold ${placeType === 'cafe' ? 'bg-white text-[#1A1A2E] shadow-sm' : 'text-[#9CA3AF]'}`}>☕ 카페</button>
@@ -730,7 +733,7 @@ export default function Course() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-[#1A1A2E]">검색 기준</p>
-                    <p className="mt-1 text-xs text-[#6B7280]">{events.length === 1 ? '선택 행사 주변 · 반경 1.5km' : `구간 ${segmentIndex + 1}의 두 행사 사이`}</p>
+                    <p className="mt-1 text-xs text-[#6B7280]">{events.length === 1 ? '선택 행사 주변 · 반경 1.5km' : `구간 ${segmentIndex + 1}의 두 행사 연계`}</p>
                   </div>
                   <button type="button" onClick={searchPlaces} disabled={!canSearchPlaces || coordinateLoading || placeRequest.loading}
                     className="w-full flex-shrink-0 rounded-xl bg-[#FF6B47] px-4 py-2.5 text-xs font-bold text-white disabled:bg-[#D1D5DB] sm:w-auto">
@@ -738,7 +741,7 @@ export default function Course() {
                   </button>
                 </div>
                 {events.length === 1 && singleEventCenter && <p className="mt-2 text-[11px] text-[#9CA3AF]">행사 위치를 기준으로 검색합니다.</p>}
-                {events.length > 1 && selectedSegment && <p className="mt-2 text-[11px] text-[#9CA3AF]">{selectedSegment.from.title}과(와) {selectedSegment.to.title}의 중점과 구간 거리를 기준으로 검색합니다.</p>}
+                {events.length > 1 && selectedSegment && <p className="mt-2 text-[11px] text-[#9CA3AF]">{selectedSegment.from.title}에서 {selectedSegment.to.title}(으)로 가는 길에 들르기 좋은 장소를 찾습니다.</p>}
               </div>
 
               {coordinateLoading && <p role="status" className="rounded-xl bg-[#F3F4F6] p-4 text-sm text-[#6B7280]">행사 위치를 확인하고 있어요.</p>}
@@ -750,6 +753,7 @@ export default function Course() {
               {!placeRequest.loading && placeRequest.searched && visiblePlaces.length === 0 && <p className="mt-4 rounded-xl bg-[#F3F4F6] p-4 text-sm text-[#6B7280]">선택한 구간에서 {placeType === 'cafe' ? '카페' : '음식점'}을 찾지 못했어요.</p>}
               <div className="min-w-0 max-w-full space-y-3">
                 {visiblePlaces.slice(0, visibleCount).map(place => <PlaceCard key={place.placeId} place={place}
+                  nearEventTitle={place.nearEventId ? events.find(event => String(event.eventId) === place.nearEventId)?.title : ''}
                   added={stops.some(stop => stop.stopId === `place:${place.placeId}`)} onAdd={addPlace} />)}
               </div>
               {visibleCount < visiblePlaces.length && <button type="button" onClick={() => setVisibleCount(count => count + 5)} className="mt-3 w-full rounded-xl bg-[#F3F4F6] py-3 text-sm font-bold text-[#374151]">장소 더 보기</button>}

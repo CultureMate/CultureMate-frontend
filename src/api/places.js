@@ -34,6 +34,7 @@ function normalizePlace(place, fallbackType) {
     openingHours: Array.isArray(weekdayDescriptions) ? weekdayDescriptions : [],
     todayHours: place.todayHours || place.openingHoursText || '',
     placeType: placeType(place.placeType || fallbackType),
+    nearEventId: place.nearEventId == null ? '' : String(place.nearEventId),
   }
 }
 
