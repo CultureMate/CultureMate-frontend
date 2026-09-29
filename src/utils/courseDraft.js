@@ -1,5 +1,6 @@
 export const COURSE_DRAFT_KEY = 'culturemate.course-draft.v1'
 export const COURSE_BUILDER_KEY = 'culturemate.course-builder.v1'
+export const COURSE_EDIT_SESSION_KEY = 'culturemate.course-edit.v1'
 export const COURSE_DRAFT_CHANGED = 'culturemate:course-draft-changed'
 
 const eventId = event => String(event?.eventId ?? '').trim()
@@ -62,6 +63,36 @@ export function writeCourseBuilder(builder) {
   }
   localStorage.setItem(COURSE_BUILDER_KEY, JSON.stringify(value))
   return value
+}
+
+export function readCourseEditSession() {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(COURSE_EDIT_SESSION_KEY) || 'null')
+    const courseId = value?.courseId
+    const version = Number(value?.version)
+    const validCourseId = (typeof courseId === 'string' && courseId.trim()) || Number.isFinite(courseId)
+    if (!validCourseId || !Number.isInteger(version) || version < 0) return null
+    return { courseId, version }
+  } catch {
+    return null
+  }
+}
+
+export function writeCourseEditSession(course) {
+  const courseId = course?.courseId
+  const version = Number(course?.version)
+  const validCourseId = (typeof courseId === 'string' && courseId.trim()) || Number.isFinite(courseId)
+  if (!validCourseId || !Number.isInteger(version) || version < 0) {
+    sessionStorage.removeItem(COURSE_EDIT_SESSION_KEY)
+    return null
+  }
+  const value = { courseId, version }
+  sessionStorage.setItem(COURSE_EDIT_SESSION_KEY, JSON.stringify(value))
+  return value
+}
+
+export function clearCourseEditSession() {
+  sessionStorage.removeItem(COURSE_EDIT_SESSION_KEY)
 }
 
 function toCourseBuilderStop(stop) {

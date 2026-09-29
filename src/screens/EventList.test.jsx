@@ -5,7 +5,7 @@ import EventList from './EventList'
 import Search from './Search'
 import EventDetail from './EventDetail'
 import { getCurrentMember } from '../api/auth'
-import { writeCourseBuilder, writeCourseDraft } from '../utils/courseDraft'
+import { writeCourseBuilder, writeCourseDraft, writeCourseEditSession } from '../utils/courseDraft'
 
 jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn(), delete: jest.fn() } }))
 jest.mock('../api/comments', () => ({ getComments: () => Promise.resolve([]), createComment: jest.fn(), updateComment: jest.fn(), deleteComment: jest.fn(), getCommentError: () => '댓글 오류' }))
@@ -30,6 +30,7 @@ function renderEvents(initial = '/events') {
 
 beforeEach(() => {
   localStorage.clear()
+  sessionStorage.clear()
   process.env.REACT_APP_DATA_MODE = 'api'
   getCurrentMember.mockReset()
   getCurrentMember.mockResolvedValue(null)
@@ -98,6 +99,16 @@ test('코스 현황 배너는 행사와 주변 장소 수를 표시하고 헤더
   expect(summary.closest('p')).toHaveTextContent('행사 3개 · 카페 1개 · 음식점 1개를 코스에 담았어요.')
   expect(summary.closest('div')).toHaveClass('sticky', 'top-[8.75rem]')
   expect(screen.getByRole('heading', { name: '행사 목록' }).closest('header')).toHaveClass('sticky', 'top-0')
+})
+
+test('코스 수정 중 행사 목록에서는 수정 계속하기로 안내한다', async () => {
+  getCurrentMember.mockResolvedValue({ memberId: 1 })
+  writeCourseDraft([{ eventId: 'e1', title: '첫 행사' }])
+  writeCourseEditSession({ courseId: 7, version: 2 })
+  renderEvents()
+
+  expect(await screen.findByRole('link', { name: '코스 수정 계속하기 →' })).toHaveAttribute('href', '/course')
+  expect(screen.queryByRole('link', { name: '코스 만들기 →' })).not.toBeInTheDocument()
 })
 
 test('a saved favorite can be cancelled from the card, and failures are shown', async () => {
