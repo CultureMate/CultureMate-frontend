@@ -363,9 +363,9 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
           {/* 왼쪽 */}
           <div className="flex flex-col gap-4">
             {/* 회원정보 */}
-            <div className="w-full bg-white rounded-2xl overflow-hidden shadow-card">
+            <section aria-labelledby="member-info-title" className="w-full bg-white rounded-2xl overflow-hidden shadow-card">
               <div className="px-5 pt-5 pb-1 flex items-center justify-between">
-                <p className="flex items-center gap-1.5 font-bold text-ink text-base">
+                <p id="member-info-title" className="flex items-center gap-1.5 font-bold text-ink text-base">
                   <Icon name="user" size={18} className="text-ink-muted" />
                   회원 정보
                 </p>
@@ -401,7 +401,7 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
                     거주 구 선택
                   </p>
 
-                  <div className="flex flex-wrap gap-2 mb-4 max-h-40 overflow-y-auto hide-scrollbar">
+                  <div className="mb-5 grid grid-cols-4 gap-2 sm:grid-cols-5">
                     {DISTRICTS.map(d => (
                       <button
                         key={d}
@@ -409,7 +409,8 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
                         onClick={() =>
                           setResidence(d)
                         }
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                        aria-pressed={d === residence}
+                        className={`h-9 rounded-full border px-1 text-xs font-semibold whitespace-nowrap transition-colors ${
                           d === residence
                             ? 'bg-ink text-white border-ink'
                             : 'bg-white text-ink-soft border-black/10 hover:border-black/20'
@@ -420,7 +421,7 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
                     ))}
                   </div>
 
-                                  <div
+                  <div
                     ref={interestSectionRef}
                     className="scroll-mt-6"
                   >
@@ -493,61 +494,57 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
                   </div>
                 </div>
               ) : (
-                <div className="px-5 py-4 grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-ink-muted text-xs font-medium">
-                      닉네임
-                    </p>
-                    <p className="text-ink font-semibold text-base mt-1">
-                      {member.nickname || '-'}
-                    </p>
+                <div className="px-5 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-ink-muted text-xs font-medium">
+                        닉네임
+                      </p>
+                      <p className="text-ink font-semibold text-base mt-1">
+                        {member.nickname || '-'}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-ink-muted text-xs font-medium">
+                        거주 구
+                      </p>
+                      <p className="text-ink font-semibold text-base mt-1">
+                        {member.residence || '-'}
+                      </p>
+                    </div>
                   </div>
 
-                  <div>
+                  <div className="mt-4 border-t border-black/[0.06] pt-4">
                     <p className="text-ink-muted text-xs font-medium">
-                      거주 구
+                      관심 카테고리
                     </p>
-                    <p className="text-ink font-semibold text-base mt-1">
-                      {member.residence || '-'}
-                    </p>
+
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {interests.size === 0 ? (
+                        <p className="text-[#9CA3AF] text-sm">
+                          선택한 관심 카테고리가
+                          없습니다.
+                        </p>
+                      ) : (
+                        [...interests].map(cat => (
+                          <span
+                            key={cat}
+                            className="px-3.5 py-2 rounded-full text-sm font-semibold flex items-center gap-1.5 bg-coral-light text-coral-dark"
+                          >
+                            <span>
+                              {CAT_ICONS[cat] ??
+                                '🎪'}
+                            </span>
+                            {cat}
+                          </span>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* 관심 카테고리 - 조회 모드 */}
-            {!editMode && (
-              <div className="w-full bg-white rounded-2xl overflow-hidden shadow-card">
-                <div className="px-5 pt-5 pb-1">
-                  <p className="flex items-center gap-1.5 font-bold text-ink text-base">
-                    <Icon name="star" size={18} className="text-ink-muted" />
-                    관심 카테고리
-                  </p>
-                </div>
-
-                <div className="px-5 py-4 flex flex-wrap gap-2">
-                  {interests.size === 0 ? (
-                    <p className="text-[#9CA3AF] text-sm">
-                      선택한 관심 카테고리가
-                      없습니다.
-                    </p>
-                  ) : (
-                    [...interests].map(cat => (
-                      <span
-                        key={cat}
-                        className="px-3.5 py-2 rounded-full text-sm font-semibold flex items-center gap-1.5 bg-coral-light text-coral-dark"
-                      >
-                        <span>
-                          {CAT_ICONS[cat] ??
-                            '🎪'}
-                        </span>
-                        {cat}
-                      </span>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
+            </section>
           </div>
 
           {/* 오른쪽 */}
