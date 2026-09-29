@@ -153,6 +153,7 @@ export default function MyPage() {
       console.error('회원정보 수정 실패:', err)
 
       if (err.response?.status === 401) {
+        setCurrentMemberCache(null)
         navigate('/login', { replace: true })
         return
       }

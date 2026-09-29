@@ -1,10 +1,10 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import EventComments from './EventComments'
-import { getCurrentMember } from '../api/auth'
+import { getCurrentMember, setCurrentMemberCache } from '../api/auth'
 import { createComment, deleteComment, getComments, updateComment } from '../api/comments'
 
-jest.mock('../api/auth', () => ({ getCurrentMember: jest.fn() }))
+jest.mock('../api/auth', () => ({ getCurrentMember: jest.fn(), setCurrentMemberCache: jest.fn() }))
 jest.mock('../api/comments', () => ({
   getComments: jest.fn(), createComment: jest.fn(), updateComment: jest.fn(), deleteComment: jest.fn(),
   getCommentError: error => error.message || `HTTP ${error.response?.status}`,
@@ -113,6 +113,7 @@ test('a 401 mutation switches the composer to login guidance', async () => {
   fireEvent.submit(form)
   expect(await screen.findByRole('alert')).toHaveTextContent('로그인 필요')
   expect(screen.getByRole('link', { name: '로그인하기' })).toBeInTheDocument()
+  expect(setCurrentMemberCache).toHaveBeenCalledWith(null)
 })
 
 test('load failure can be retried and old event results are ignored', async () => {

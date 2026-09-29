@@ -12,7 +12,7 @@ import {
 } from 'react-router-dom'
 
 import api from '../api/axios'
-import { getCurrentMember } from '../api/auth'
+import { getCurrentMember, setCurrentMemberCache } from '../api/auth'
 import ProfileSetup from './ProfileSetup'
 
 jest.mock('../api/axios', () => ({
@@ -25,6 +25,7 @@ jest.mock('../api/axios', () => ({
 jest.mock('../api/auth', () => ({
   getCurrentMember: jest.fn(),
   resetCurrentMemberCache: jest.fn(),
+  setCurrentMemberCache: jest.fn(),
 }))
 
 function LocationDisplay() {
@@ -336,6 +337,10 @@ test(
     expect(
       screen.getByTestId('location')
     ).toHaveTextContent('/login')
+
+    expect(
+      setCurrentMemberCache
+    ).toHaveBeenCalledWith(null)
   }
 )
 
