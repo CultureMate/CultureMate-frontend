@@ -26,15 +26,20 @@ import { getCurrentMember } from './api/auth'
 import api from './api/axios'
 import useCurrentMember from './hooks/useCurrentMember'
 import EventDialog from './components/EventDialog'
+import Icon from './components/Icon'
+import BrandMark, { BrandWordmark } from './components/BrandMark'
+import ScrollManager from './components/ScrollManager'
+import SplashScreen, { showSplash } from './components/SplashScreen'
 import { clearCourseEditSession } from './utils/courseDraft'
 
 const NAV_ITEMS = [
-  { icon: '🏠', label: '홈', path: '/' },
-  { icon: '📋', label: '목록', path: '/events' },
-  { icon: '🗺️', label: '코스', path: '/course' },
-  { icon: '❤️', label: '관심', path: '/favorites' },
-  { icon: '👤', label: '마이', path: '/my' },
+  { icon: 'home', label: '홈', path: '/' },
+  { icon: 'grid', label: '목록', path: '/events' },
+  { icon: 'route', label: '코스', path: '/course' },
+  { icon: 'heart', label: '관심', path: '/favorites' },
+  { icon: 'user', label: '마이', path: '/my' },
 ]
+const AUTH_PATHS = ['/course', '/favorites', '/my']
 
 /**
  * 카카오 로그인 처리
@@ -95,12 +100,14 @@ function LoginResultHandler() {
           !member.residence?.trim()
 
         if (profileIncomplete) {
+          showSplash('CultureMate에 오신 걸 환영해요')
           navigate('/profile', {
             replace: true,
           })
           return
         }
 
+        showSplash(`${member.nickname.trim()}님, 다시 만나 반가워요`)
         navigate('/', {
           replace: true,
         })
@@ -129,8 +136,10 @@ function LoginResultHandler() {
 }
 
 function AppLayout() {
-  const { pathname } = useLocation()
+  const { pathname, search, state } = useLocation()
   const navigate = useNavigate()
+  const onLoginPrompt = pathname === '/login-prompt'
+  const activePath = onLoginPrompt ? state?.from ?? '' : pathname
   const { member, clearMember } = useCurrentMember()
   const [logoutOpen, setLogoutOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
@@ -138,8 +147,14 @@ function AppLayout() {
 
   const isActive = path =>
     path === '/'
-      ? pathname === '/'
-      : pathname.startsWith(path)
+      ? activePath === '/'
+      : activePath.startsWith(path)
+
+  const scrollTopOnSameTab = (event, path) => {
+    if (pathname !== path || search) return
+    event.preventDefault()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const handleLogout = async () => {
     if (loggingOut) return
@@ -167,101 +182,75 @@ function AppLayout() {
   }
 
   return (
-    <div className="flex min-h-dvh w-full max-w-full overflow-x-clip bg-[#FAFAF8]">
+    <div className="flex min-h-dvh w-full max-w-full overflow-x-clip bg-canvas">
       <nav
         aria-label="주 메뉴"
-        className="sticky top-0 z-20 hidden h-dvh flex-shrink-0 self-start flex-col bg-[#1A1A2E] md:flex md:w-16 lg:w-[220px]"
+        className="sticky top-0 z-20 hidden h-dvh flex-shrink-0 self-start flex-col border-r border-black/[0.06] bg-white md:flex md:w-[72px] lg:w-[232px]"
       >
-        <div className="px-3 lg:px-5 py-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF6B47] to-[#8B5CF6] flex items-center justify-center flex-shrink-0">
-              <span className="text-xl">
-                🎪
-              </span>
-            </div>
+        <Link to="/" aria-label="CultureMate 홈" className="flex items-center gap-3 px-4 py-5 lg:px-5">
+          <BrandMark size={40} />
+          <BrandWordmark className="hidden lg:flex" />
+        </Link>
 
-            <span className="hidden lg:block font-display text-white font-bold text-lg leading-tight">
-              서울문화
+        <div className="flex flex-1 flex-col gap-1 px-3 pt-2">
+          {NAV_ITEMS.map(item => {
+            const active = isActive(item.path)
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={event => scrollTopOnSameTab(event, item.path)}
+                replace={onLoginPrompt}
+                aria-label={item.label}
+                aria-current={active ? 'page' : undefined}
+                className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors md:justify-center lg:justify-start ${
+                  active ? 'bg-coral-light text-coral' : 'text-ink-soft hover:bg-[#F2F4F6] hover:text-ink'
+                }`}
+              >
+                <Icon name={item.icon} size={22} filled={active && item.icon !== 'grid' && item.icon !== 'route'} strokeWidth={active ? 2 : 1.8} />
+                <span className={`hidden text-[15px] lg:block ${active ? 'font-bold' : 'font-medium'}`}>{item.label}</span>
+                {AUTH_PATHS.includes(item.path) && !member && (
+                  <Icon name="lock" size={14} className="ml-auto hidden text-ink-muted/70 lg:block" />
+                )}
+              </Link>
+            )
+          })}
+        </div>
+
+        <div className="border-t border-black/[0.06] p-3">
+          {member === undefined ? <div
+            aria-label="로그인 상태 확인 중"
+            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-ink-muted md:justify-center lg:justify-start"
+          >
+            <span className="h-8 w-8 flex-shrink-0 animate-pulse rounded-full bg-[#F2F4F6]" />
+            <span className="hidden text-sm lg:block">확인 중...</span>
+          </div> : member ? <button
+            type="button"
+            onClick={() => { setLogoutError(''); setLogoutOpen(true) }}
+            aria-label="로그아웃"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-[#F2F4F6] md:justify-center lg:justify-start"
+          >
+            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-coral-light text-sm font-bold text-coral">
+              {member.nickname?.trim()?.[0] ?? <Icon name="user" size={16} />}
             </span>
-          </div>
+            <span className="hidden min-w-0 flex-1 lg:block">
+              <span className="block truncate text-sm font-semibold text-ink">{member.nickname || '회원'}</span>
+              <span className="block text-xs text-ink-muted">로그아웃</span>
+            </span>
+            <Icon name="logout" size={18} className="hidden text-ink-muted lg:block" />
+          </button> : <Link
+            to="/login"
+            aria-label="로그인"
+            className="flex items-center gap-3 rounded-xl bg-ink px-3 py-2.5 text-white transition-colors hover:bg-black md:justify-center lg:justify-start"
+          >
+            <Icon name="login" size={20} />
+            <span className="hidden text-sm font-semibold lg:block">로그인</span>
+          </Link>}
         </div>
-
-        <div className="flex flex-col gap-1 p-2 lg:p-3 flex-1">
-          {NAV_ITEMS.map(item => (
-            <Link
-              key={item.path}
-              to={item.path}
-              aria-label={item.label}
-              aria-current={
-                isActive(item.path)
-                  ? 'page'
-                  : undefined
-              }
-              className={`flex items-center gap-3 px-3 py-3 rounded-xl ${
-                isActive(item.path)
-                  ? 'bg-[#FF6B47] text-white'
-                  : 'text-white/50'
-              }`}
-            >
-              <span className="text-xl flex-shrink-0">
-                {item.icon}
-              </span>
-
-              <span className="hidden lg:block text-sm font-semibold">
-                {item.label}
-              </span>
-
-              {[
-                '/course',
-                '/favorites',
-                '/my',
-              ].includes(item.path) && !member && (
-                <span className="hidden lg:block text-[10px] text-white/30">
-                  🔒
-                </span>
-              )}
-            </Link>
-          ))}
-        </div>
-
-        {member === undefined ? <div
-          aria-label="로그인 상태 확인 중"
-          className="p-3 border-t border-white/10 flex items-center gap-3 text-white/30"
-        >
-          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 text-sm">
-            👤
-          </div>
-          <span className="hidden lg:block text-xs font-medium">확인 중...</span>
-        </div> : member ? <button
-          type="button"
-          onClick={() => { setLogoutError(''); setLogoutOpen(true) }}
-          aria-label="로그아웃"
-          className="p-3 border-t border-white/10 flex items-center gap-3 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-white transition-colors"
-        >
-          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 text-sm">
-            🚪
-          </div>
-
-          <span className="hidden lg:block text-white/40 text-xs font-medium">
-            로그아웃
-          </span>
-        </button> : <Link
-          to="/login"
-          aria-label="로그인"
-          className="p-3 border-t border-white/10 flex items-center gap-3 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-white transition-colors"
-        >
-          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 text-sm">
-            👤
-          </div>
-
-          <span className="hidden lg:block text-white/40 text-xs font-medium">
-            로그인
-          </span>
-        </Link>}
       </nav>
 
       <div className="flex-1 flex flex-col min-w-0 relative">
-        <main className="flex-1 min-w-0 pb-16 md:pb-0">
+        <main className="flex-1 min-w-0 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
           <Outlet />
         </main>
 
@@ -272,59 +261,45 @@ function AppLayout() {
         ].includes(pathname) ? null : (
           <nav
             aria-label="모바일 주 메뉴"
-            className="fixed bottom-0 left-0 right-0 z-20 flex w-full max-w-full overflow-hidden border-t border-[#F3F4F6] bg-white md:hidden"
+            className="fixed bottom-0 left-0 right-0 z-20 flex w-full max-w-full overflow-hidden border-t border-black/[0.06] bg-white/95 backdrop-blur-md md:hidden"
             style={{
               paddingBottom:
                 'env(safe-area-inset-bottom)',
             }}
           >
-            {NAV_ITEMS.map(item => (
-              <Link
-                key={item.path}
-                to={item.path}
-                aria-label={item.label}
-                aria-current={
-                  isActive(item.path)
-                    ? 'page'
-                    : undefined
-                }
-                className="flex min-w-0 flex-1 flex-col items-center gap-0.5 py-3"
-              >
-                <span
-                  className={`w-10 h-8 flex items-center justify-center rounded-xl text-xl ${
-                    isActive(item.path)
-                      ? 'bg-[#FFF0EC]'
-                      : ''
+            {NAV_ITEMS.map(item => {
+              const active = isActive(item.path)
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={event => scrollTopOnSameTab(event, item.path)}
+                  replace={onLoginPrompt}
+                  aria-label={item.label}
+                  aria-current={active ? 'page' : undefined}
+                  className={`flex h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 transition-colors active:bg-black/[0.03] ${
+                    active ? 'text-ink' : 'text-[#B0B8C1]'
                   }`}
                 >
-                  {item.icon}
-                </span>
-
-                <span
-                  className={`text-[10px] font-semibold ${
-                    isActive(item.path)
-                      ? 'text-[#FF6B47]'
-                      : 'text-[#9CA3AF]'
-                  }`}
-                >
-                  {item.label}
-                </span>
-              </Link>
-            ))}
+                  <Icon name={item.icon} size={24} filled={active && item.icon !== 'grid' && item.icon !== 'route'} strokeWidth={active ? 2.1 : 1.8} className={active ? 'text-coral' : ''} />
+                  <span className={`text-[11px] ${active ? 'font-bold' : 'font-medium'}`}>{item.label}</span>
+                </Link>
+              )
+            })}
           </nav>
         )}
       </div>
 
-      {logoutOpen && <EventDialog title="로그아웃" id="logout-confirm-title" onClose={() => !loggingOut && setLogoutOpen(false)}>
-        <p className="text-sm text-[#6B7280]">로그아웃 하시겠어요?</p>
+      {logoutOpen && <EventDialog size="sm" title="로그아웃" id="logout-confirm-title" onClose={() => !loggingOut && setLogoutOpen(false)}>
+        <p className="text-[15px] text-ink-soft">로그아웃 하시겠어요?</p>
         {logoutError && <p role="alert" className="mt-3 text-sm text-[#B93820]">{logoutError}</p>}
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="mt-6 grid grid-cols-2 gap-2">
           <button type="button" disabled={loggingOut} onClick={() => setLogoutOpen(false)}
-            className="rounded-xl border border-[#E5E7EB] px-5 py-3 text-sm font-semibold disabled:opacity-50">
+            className="rounded-2xl bg-[#F2F4F6] py-3.5 text-[15px] font-semibold text-ink-soft disabled:opacity-50">
             취소
           </button>
           <button type="button" disabled={loggingOut} onClick={handleLogout}
-            className="rounded-xl bg-[#FF6B47] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">
+            className="rounded-2xl bg-coral py-3.5 text-[15px] font-bold text-white disabled:opacity-50">
             {loggingOut ? '로그아웃 중...' : '로그아웃'}
           </button>
         </div>
@@ -361,7 +336,9 @@ function RequireAuth({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <SplashScreen />
       <LoginResultHandler />
+      <ScrollManager />
 
       <Routes>
         <Route element={<AppLayout />}>

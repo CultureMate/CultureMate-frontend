@@ -302,7 +302,7 @@ test('내 코스에서 전체와 관심 코스를 나누어 본다', async () =>
   ])
   renderCourse()
 
-  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  fireEvent.click(screen.getByRole('button', { name: '내 코스' }))
   expect(await screen.findByText('서울 문화 산책')).toBeInTheDocument()
   expect(screen.getByText('주말 전시 코스')).toBeInTheDocument()
   expect(screen.getByRole('img', { name: '서울 전시' })).toHaveAttribute('src', 'https://image.example/preview.jpg')
@@ -328,7 +328,7 @@ test('내 코스 미리보기는 네 곳까지 표시하고 나머지 장소 수
   }])
   renderCourse()
 
-  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  fireEvent.click(screen.getByRole('button', { name: '내 코스' }))
   await screen.findByText('여섯 곳 코스')
 
   expect(screen.getByRole('img', { name: '첫 행사' })).toHaveAttribute('src', 'https://image.example/event.jpg')
@@ -355,7 +355,7 @@ test('내 코스의 상세 동선을 확인하고 목록으로 돌아간다', as
   })
   renderCourse()
 
-  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  fireEvent.click(screen.getByRole('button', { name: '내 코스' }))
   await screen.findByText('서울 문화 산책')
   fireEvent.click(screen.getByRole('button', { name: '상세 보기' }))
 
@@ -368,7 +368,7 @@ test('내 코스의 상세 동선을 확인하고 목록으로 돌아간다', as
   expect(screen.getByRole('link', { name: '서울 전시 상세 보기' })).toHaveAttribute('href', '/events/e1')
   expect(getCourseDetail).toHaveBeenCalledWith(1, expect.any(AbortSignal))
 
-  fireEvent.click(screen.getByRole('button', { name: '내 코스' }))
+  fireEvent.click(screen.getByRole('button', { name: '내 코스 목록' }))
   expect(screen.getByRole('button', { name: '상세 보기' })).toBeInTheDocument()
 })
 
@@ -386,7 +386,7 @@ test('코스 상세에서 관심 상태를 변경해도 상세 동선을 유지�
   updateCourseFavorite.mockResolvedValue({ courseId: 1, favorited: true, stops: [] })
   renderCourse()
 
-  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  fireEvent.click(screen.getByRole('button', { name: '내 코스' }))
   await screen.findByText('서울 문화 산책')
   fireEvent.click(screen.getByRole('button', { name: '상세 보기' }))
   expect(await screen.findByText('서울 전시')).toBeInTheDocument()
@@ -423,10 +423,10 @@ test('상세 로딩 중 목록으로 돌아가면 늦게 도착한 상세가 화
   getPlaceDetails.mockReturnValue(place.promise)
   renderCourse()
 
-  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  fireEvent.click(screen.getByRole('button', { name: '내 코스' }))
   await screen.findByText('코스 1')
   fireEvent.click(screen.getByRole('button', { name: '상세 보기' }))
-  fireEvent.click(await screen.findByRole('button', { name: '내 코스' }))
+  fireEvent.click(await screen.findByRole('button', { name: '내 코스 목록' }))
   await act(async () => { place.resolve({ placeId: 'p1', name: '카페 1', placeType: 'cafe' }) })
 
   expect(screen.getByRole('button', { name: '상세 보기' })).toBeInTheDocument()
@@ -445,10 +445,10 @@ test('다른 코스 상세를 열면 이전 코스의 늦은 응답이 현재 �
     : Promise.resolve({ placeId, name: '카페 2', placeType: 'cafe' }))
   renderCourse()
 
-  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  fireEvent.click(screen.getByRole('button', { name: '내 코스' }))
   await screen.findByText('코스 1')
   fireEvent.click(screen.getAllByRole('button', { name: '상세 보기' })[0])
-  fireEvent.click(await screen.findByRole('button', { name: '내 코스' }))
+  fireEvent.click(await screen.findByRole('button', { name: '내 코스 목록' }))
   fireEvent.click(screen.getAllByRole('button', { name: '상세 보기' })[1])
   await screen.findByText('둘째 코스 행사')
   await act(async () => { firstPlace.resolve({ placeId: 'p1', name: '카페 1', placeType: 'cafe' }) })
@@ -466,7 +466,7 @@ test('코스 상세에서 수정 화면을 열고 version과 함께 저장한다
   })
   renderCourse()
 
-  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  fireEvent.click(screen.getByRole('button', { name: '내 코스' }))
   await screen.findByText('서울 문화 산책')
   fireEvent.click(screen.getByRole('button', { name: '상세 보기' }))
   await screen.findByText('서울 전시')
@@ -493,7 +493,7 @@ test('코스 수정 중 행사 목록을 다녀와도 기존 코스를 version�
   })
   renderCourseWithEventList()
 
-  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  fireEvent.click(screen.getByRole('button', { name: '내 코스' }))
   await screen.findByText('서울 문화 산책')
   fireEvent.click(screen.getByRole('button', { name: '상세 보기' }))
   await screen.findByText('서울 전시')
@@ -522,14 +522,14 @@ test('수정 중인 코스를 삭제하면 작성 내용은 두고 수정 상태
   })
   renderCourse()
 
-  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  fireEvent.click(screen.getByRole('button', { name: '내 코스' }))
   await screen.findByText('서울 문화 산책')
   fireEvent.click(screen.getByRole('button', { name: '상세 보기' }))
   await screen.findByText('서울 전시')
   fireEvent.click(screen.getByRole('button', { name: '수정' }))
   expect(screen.getByText('수정 중')).toBeInTheDocument()
 
-  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  fireEvent.click(screen.getByRole('button', { name: '내 코스' }))
   fireEvent.click(await screen.findByRole('button', { name: '상세 보기' }))
   await screen.findByText('서울 전시')
   fireEvent.click(screen.getByRole('button', { name: '삭제' }))
@@ -537,7 +537,7 @@ test('수정 중인 코스를 삭제하면 작성 내용은 두고 수정 상태
   await waitFor(() => expect(deleteCourse).toHaveBeenCalledWith(1))
 
   expect(localStorage.getItem('culturemate.course-edit.v1')).toBeNull()
-  fireEvent.click(screen.getByRole('button', { name: /🗺️ 코스 만들기/ }))
+  fireEvent.click(screen.getByRole('button', { name: '코스 만들기' }))
   expect(screen.queryByText('수정 중')).not.toBeInTheDocument()
   expect(screen.getByLabelText('코스 이름')).toHaveValue('서울 문화 산책')
 })
@@ -566,7 +566,7 @@ test('코스 공유 링크를 만들고 삭제할 수 있다', async () => {
   getCourseDetail.mockResolvedValue({ ...course, stops: [{ type: 'event', stopType: 'EVENT', stopId: 'event:e1', eventId: 'e1', title: '서울 전시' }] })
   renderCourse()
 
-  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  fireEvent.click(screen.getByRole('button', { name: '내 코스' }))
   await screen.findByText('서울 문화 산책')
   fireEvent.click(screen.getByRole('button', { name: '상세 보기' }))
   await screen.findByText('서울 전시')

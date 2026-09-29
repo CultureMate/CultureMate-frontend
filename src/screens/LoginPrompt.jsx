@@ -1,5 +1,14 @@
 import { useNavigate } from 'react-router-dom'
 import { getKakaoLoginUrl } from '../api/auth'
+import BrandMark from '../components/BrandMark'
+import Icon from '../components/Icon'
+
+const BENEFITS = [
+  { icon: 'heart', text: '관심 행사 저장' },
+  { icon: 'route', text: '나만의 코스 만들기' },
+  { icon: 'sparkle', text: '댓글 확인 및 작성' },
+  { icon: 'user', text: '맞춤 추천 프로필' },
+]
 
 export default function LoginPromptScreen() {
   const navigate = useNavigate()
@@ -10,62 +19,47 @@ export default function LoginPromptScreen() {
   }
 
   return (
-    <div aria-label="로그인 필요 안내" className="relative flex min-h-full w-full min-w-0 max-w-full flex-col overflow-hidden bg-[#1A1A2E]">
-      <div className="absolute top-[-80px] right-[-60px] w-64 h-64 rounded-full bg-[#FF6B47]/10 pointer-events-none" />
-      <div className="absolute bottom-40 left-[-30px] w-48 h-48 rounded-full bg-[#8B5CF6]/10 pointer-events-none" />
-
-      <div className="relative z-10 mx-auto w-full min-w-0 max-w-lg px-5 pb-24 pt-14 sm:px-6 md:pb-10">
+    <div aria-label="로그인 필요 안내" className="relative flex min-h-full w-full min-w-0 max-w-full flex-col overflow-hidden bg-white">
+      <div className="relative z-10 mx-auto flex w-full min-w-0 max-w-lg flex-1 flex-col px-5 pb-24 pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:px-6 md:pb-10 md:pt-8">
         <button type="button" onClick={goBack}
-          className="flex items-center gap-1.5 text-white/50 text-sm font-medium mb-10">
-          ← 돌아가기
+          className="-ml-3 flex h-10 w-fit items-center gap-1 rounded-full px-3 text-sm font-semibold text-ink-soft hover:bg-[#F2F4F6]">
+          <Icon name="arrowLeft" size={18} />
+          돌아가기
         </button>
 
-        <div className="flex flex-col items-center mb-10">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#FF6B47] to-[#8B5CF6] flex items-center justify-center mb-5 shadow-2xl shadow-[#FF6B47]/30">
-            <span className="text-4xl">🎪</span>
-          </div>
-          <h1 className="font-display text-white text-3xl font-bold text-center leading-tight">
-            로그인이<br />
-            <em className="text-[#FF6B47] not-italic">필요한 서비스예요</em>
+        <div className="flex flex-1 flex-col justify-center py-10">
+          <BrandMark size={56} />
+          <h1 className="mt-6 font-display text-[28px] font-bold leading-[1.3] text-ink">
+            로그인하고<br />
+            <span className="text-coral">더 많은 기능을 써보세요</span>
           </h1>
-          <p className="text-white/50 text-sm text-center mt-3 leading-relaxed">
-            로그인 후 이용 가능한 서비스입니다.<br />
-            카카오 계정으로 간편하게 시작해보세요
+          <p className="mt-3 text-[15px] leading-relaxed text-ink-muted">
+            로그인 후 이용 가능한 서비스입니다. 카카오 계정으로 간편하게 시작해보세요.
           </p>
-        </div>
 
-        <div className="flex flex-col gap-2 mb-10 max-w-xs mx-auto">
-          {[
-            { icon: '❤️', text: '관심 행사 저장' },
-            { icon: '🗺️', text: '나만의 코스 만들기' },
-            { icon: '💬', text: '댓글 확인 및 작성' },
-            { icon: '👤', text: '맞춤 추천 프로필' },
-          ].map(f => (
-            <div key={f.text} className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                <span className="text-base">{f.icon}</span>
-              </div>
-              <span className="text-white/70 text-sm font-medium">{f.text}</span>
-            </div>
-          ))}
+          <ul className="mt-8 grid grid-cols-2 gap-2">
+            {BENEFITS.map(benefit => (
+              <li key={benefit.text} className="flex items-center gap-2.5 rounded-2xl bg-[#F7F8FA] px-3 py-3.5">
+                <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-coral-light text-coral">
+                  <Icon name={benefit.icon} size={17} />
+                </span>
+                <span className="text-sm font-semibold text-ink-soft">{benefit.text}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <button
           type="button"
           onClick={() => { window.location.href = getKakaoLoginUrl() }}
-          className="w-full rounded-2xl py-4 flex items-center justify-center gap-3 font-bold text-base"
-          style={{ backgroundColor: '#FFE500', color: '#1A1A2E', boxShadow: '0 8px 24px rgba(255,229,0,0.3)' }}
+          className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#FEE500] text-base font-bold text-[#191919] transition-[filter] hover:brightness-[0.97] active:brightness-95"
         >
-          <div className="w-6 h-6 bg-[#1A1A2E] rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-xs font-black">K</span>
-          </div>
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3.5c-5 0-9 3.2-9 7.1 0 2.5 1.6 4.7 4.1 5.9l-.9 3.4c-.1.3.3.6.6.4l4-2.7c.4 0 .8.1 1.2.1 5 0 9-3.2 9-7.1S17 3.5 12 3.5z" />
+          </svg>
           카카오로 시작하기
         </button>
       </div>
     </div>
   )
 }
-
-// ─── 앱 셸 ───────────────────────────────────────────────────────────────────
-
-

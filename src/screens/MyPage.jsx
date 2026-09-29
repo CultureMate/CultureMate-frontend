@@ -4,6 +4,7 @@ import { getCurrentMember, setCurrentMemberCache } from '../api/auth'
 import api from '../api/axios'
 import { CATEGORIES, DISTRICTS } from '../data/events'
 import { clearCourseEditSession } from '../utils/courseDraft'
+import Icon from '../components/Icon'
 
 const CAT_ICONS = {
   공연: '🎭',
@@ -274,18 +275,27 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
 
   if (loading) {
     return (
-      <div className="min-h-full bg-[#FAFAF8] flex items-center justify-center">
-        <p className="text-[#6B7280] text-sm font-medium">
-          회원정보를 불러오는 중...
-        </p>
+      <div role="status" className="min-h-full bg-canvas px-5 pt-[calc(env(safe-area-inset-top)+1.5rem)] md:px-8 lg:px-10">
+        <span className="sr-only">회원정보를 불러오는 중...</span>
+        <div className="mx-auto max-w-5xl animate-pulse">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-full bg-[#E9ECEF]" />
+            <div className="space-y-2">
+              <div className="h-6 w-32 rounded-lg bg-[#E9ECEF]" />
+              <div className="h-4 w-20 rounded-lg bg-[#E9ECEF]" />
+            </div>
+          </div>
+          <div className="mt-6 h-20 rounded-2xl bg-[#E9ECEF]" />
+          <div className="mt-4 h-40 rounded-2xl bg-[#E9ECEF]" />
+        </div>
       </div>
     )
   }
 
   if (!member) {
     return (
-      <div className="min-h-full bg-[#FAFAF8] flex items-center justify-center px-6">
-        <p className="text-[#6B7280] text-sm font-medium text-center">
+      <div className="min-h-full bg-canvas flex items-center justify-center px-6">
+        <p className="text-ink-muted text-sm font-medium text-center">
           {error ||
             '회원정보를 확인할 수 없습니다.'}
         </p>
@@ -294,58 +304,58 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
   }
 
   return (
-    <div className="flex flex-col min-h-full bg-[#FAFAF8]">
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#1A1A2E] px-5 pb-8 pt-12 md:px-8 md:pt-8 lg:px-10">
+    <div className="flex flex-col min-h-full bg-canvas">
+      <header className="bg-white px-5 pb-6 pt-[calc(env(safe-area-inset-top)+1.5rem)] md:px-8 md:pt-8 lg:px-10">
         <div className="max-w-5xl mx-auto">
+          <p className="mb-4 text-lg font-bold text-ink md:hidden">마이</p>
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FF6B47] to-[#8B5CF6] flex items-center justify-center flex-shrink-0">
-              <span className="text-2xl">🦊</span>
+            <div aria-hidden="true" className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#FF8A5B] to-[#FF5A3C] text-2xl font-bold text-white">
+              {(member.nickname || '사용자').slice(0, 1)}
             </div>
 
-            <div>
-              <h1 className="font-display text-white text-2xl font-bold">
+            <div className="min-w-0">
+              <h1 className="font-display truncate text-2xl font-bold text-ink">
                 {member.nickname || '사용자'}
               </h1>
 
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <div className="w-4 h-4 bg-[#FFE500] rounded-full flex items-center justify-center">
-                  <span className="text-[8px] font-black text-black">
-                    K
-                  </span>
-                </div>
-
-                <span className="text-white/60 text-xs">
+              <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-[#FEE500]/40 py-0.5 pl-1 pr-2">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#FEE500] text-[8px] font-black text-[#191919]">
+                  K
+                </span>
+                <span className="text-xs font-semibold text-ink-soft">
                   카카오 로그인
                 </span>
               </div>
             </div>
           </div>
 
-          {/* 거주지 / 저장 행사 수 */}
-          <div className="grid grid-cols-2 gap-3 mt-6">
-            <div className="bg-white/10 rounded-xl p-3 text-center">
-              <span className="text-xl">📍</span>
-              <p className="text-white font-bold text-sm mt-1">
-                {member.residence || '-'}
-              </p>
-              <p className="text-white/50 text-[10px] mt-0.5">
+          <div className="mt-6 grid grid-cols-2 divide-x divide-black/[0.06] rounded-2xl bg-[#F2F4F6] py-4">
+            <div className="flex flex-col items-center gap-1">
+              <p className="flex items-center gap-1 text-xs font-medium text-ink-muted">
+                <Icon name="pin" size={14} />
                 거주지
+              </p>
+              <p className="text-base font-bold text-ink">
+                {member.residence || '-'}
               </p>
             </div>
 
-            <div className="bg-white/10 rounded-xl p-3 text-center">
-              <span className="text-xl">❤️</span>
-              <p className="text-white font-bold text-sm mt-1">
-                {member.favoriteCount ?? 0}개
-              </p>
-              <p className="text-white/50 text-[10px] mt-0.5">
+            <button
+              type="button"
+              onClick={() => navigate('/favorites')}
+              className="flex flex-col items-center gap-1"
+            >
+              <span className="flex items-center gap-1 text-xs font-medium text-ink-muted">
+                <Icon name="heart" size={14} />
                 저장한 행사
-              </p>
-            </div>
+              </span>
+              <span className="text-base font-bold text-ink">
+                {member.favoriteCount ?? 0}개
+              </span>
+            </button>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto pb-24 hide-scrollbar">
@@ -353,17 +363,18 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
           {/* 왼쪽 */}
           <div className="flex flex-col gap-4">
             {/* 회원정보 */}
-            <div className="w-full bg-white rounded-2xl overflow-hidden shadow-sm">
-              <div className="px-4 py-3 border-b border-[#F3F4F6] flex items-center justify-between">
-                <p className="font-semibold text-[#1A1A2E] text-sm">
-                  👤 회원 정보
+            <section aria-labelledby="member-info-title" className="w-full bg-white rounded-2xl overflow-hidden shadow-card">
+              <div className="px-5 pt-5 pb-1 flex items-center justify-between">
+                <p id="member-info-title" className="flex items-center gap-1.5 font-bold text-ink text-base">
+                  <Icon name="user" size={18} className="text-ink-muted" />
+                  회원 정보
                 </p>
 
                 {!editMode && (
                   <button
                     type="button"
                     onClick={handleEditStart}
-                    className="text-[#FF6B47] text-xs font-semibold border border-[#FF6B47] px-2.5 py-1 rounded-lg"
+                    className="rounded-lg bg-[#F2F4F6] px-3 py-1.5 text-xs font-bold text-ink-soft hover:bg-[#E9ECEF]"
                   >
                     수정
                   </button>
@@ -371,8 +382,8 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
               </div>
 
               {editMode ? (
-                <div className="px-4 py-4">
-                  <p className="text-xs text-[#6B7280] font-medium mb-2">
+                <div className="px-5 py-4">
+                  <p className="text-xs text-ink-soft font-semibold mb-2">
                     닉네임
                   </p>
 
@@ -383,14 +394,14 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
                       setNickname(e.target.value)
                     }
                     maxLength={10}
-                    className="w-full border border-[#E5E7EB] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#FF6B47] mb-4"
+                    className="mb-5 h-12 w-full rounded-xl border border-transparent bg-[#F2F4F6] px-4 text-[15px] text-ink outline-none transition-colors focus:border-coral focus:bg-white"
                   />
 
-                  <p className="text-xs text-[#6B7280] font-medium mb-2">
+                  <p className="text-xs text-ink-soft font-semibold mb-2">
                     거주 구 선택
                   </p>
 
-                  <div className="flex flex-wrap gap-2 mb-4 max-h-40 overflow-y-auto hide-scrollbar">
+                  <div className="mb-5 grid grid-cols-4 gap-2 sm:grid-cols-5">
                     {DISTRICTS.map(d => (
                       <button
                         key={d}
@@ -398,10 +409,11 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
                         onClick={() =>
                           setResidence(d)
                         }
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border ${
+                        aria-pressed={d === residence}
+                        className={`h-9 rounded-full border px-1 text-xs font-semibold whitespace-nowrap transition-colors ${
                           d === residence
-                            ? 'bg-[#FF6B47] text-white border-[#FF6B47]'
-                            : 'bg-white text-[#1A1A2E] border-[#E5E7EB]'
+                            ? 'bg-ink text-white border-ink'
+                            : 'bg-white text-ink-soft border-black/10 hover:border-black/20'
                         }`}
                       >
                         {d}
@@ -409,15 +421,15 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
                     ))}
                   </div>
 
-                                  <div
+                  <div
                     ref={interestSectionRef}
                     className="scroll-mt-6"
                   >
-                    <p className="text-xs text-[#6B7280] font-medium mb-2">
+                    <p className="text-xs text-ink-soft font-semibold mb-1">
                       관심 카테고리
                     </p>
 
-                    <p className="text-[11px] text-[#9CA3AF] mb-2">
+                    <p className="text-[11px] text-ink-muted mb-2">
                       최대 10개까지 선택할 수 있어요.
                     </p>
                   </div>
@@ -438,10 +450,10 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
                             (!selected &&
                               interests.size >= 10)
                           }
-                          className={`px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 border disabled:opacity-40 ${
+                          className={`px-3.5 py-2 rounded-full text-sm font-semibold flex items-center gap-1.5 border transition-colors disabled:opacity-40 ${
                             selected
-                              ? 'bg-[#FF6B47] text-white border-[#FF6B47]'
-                              : 'bg-white text-[#6B7280] border-[#E5E7EB]'
+                              ? 'bg-coral-light text-coral-dark border-coral'
+                              : 'bg-white text-ink-soft border-black/10 hover:border-black/20'
                           }`}
                         >
                           <span>
@@ -459,7 +471,7 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
                       type="button"
                       onClick={handleEditCancel}
                       disabled={saving}
-                      className="flex-1 py-2.5 rounded-xl border border-[#E5E7EB] text-sm font-semibold text-[#6B7280]"
+                      className="flex-1 h-12 rounded-xl bg-[#F2F4F6] text-sm font-bold text-ink-soft"
                     >
                       취소
                     </button>
@@ -473,7 +485,7 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
                           2 ||
                         !residence
                       }
-                      className="flex-1 py-2.5 rounded-xl bg-[#FF6B47] text-white text-sm font-semibold disabled:opacity-40"
+                      className="flex-1 h-12 rounded-xl bg-coral text-white text-sm font-bold hover:bg-coral-dark disabled:opacity-40"
                     >
                       {saving
                         ? '저장 중...'
@@ -482,60 +494,57 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
                   </div>
                 </div>
               ) : (
-                <div className="px-4 py-4 grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-[#9CA3AF] text-xs font-medium">
-                      닉네임
-                    </p>
-                    <p className="text-[#1A1A2E] font-semibold text-base mt-0.5">
-                      {member.nickname || '-'}
-                    </p>
+                <div className="px-5 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-ink-muted text-xs font-medium">
+                        닉네임
+                      </p>
+                      <p className="text-ink font-semibold text-base mt-1">
+                        {member.nickname || '-'}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-ink-muted text-xs font-medium">
+                        거주 구
+                      </p>
+                      <p className="text-ink font-semibold text-base mt-1">
+                        {member.residence || '-'}
+                      </p>
+                    </div>
                   </div>
 
-                  <div>
-                    <p className="text-[#9CA3AF] text-xs font-medium">
-                      거주 구
+                  <div className="mt-4 border-t border-black/[0.06] pt-4">
+                    <p className="text-ink-muted text-xs font-medium">
+                      관심 카테고리
                     </p>
-                    <p className="text-[#1A1A2E] font-semibold text-base mt-0.5">
-                      {member.residence || '-'}
-                    </p>
+
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {interests.size === 0 ? (
+                        <p className="text-[#9CA3AF] text-sm">
+                          선택한 관심 카테고리가
+                          없습니다.
+                        </p>
+                      ) : (
+                        [...interests].map(cat => (
+                          <span
+                            key={cat}
+                            className="px-3.5 py-2 rounded-full text-sm font-semibold flex items-center gap-1.5 bg-coral-light text-coral-dark"
+                          >
+                            <span>
+                              {CAT_ICONS[cat] ??
+                                '🎪'}
+                            </span>
+                            {cat}
+                          </span>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* 관심 카테고리 - 조회 모드 */}
-            {!editMode && (
-              <div className="w-full bg-white rounded-2xl overflow-hidden shadow-sm">
-                <div className="px-4 py-3 border-b border-[#F3F4F6]">
-                  <p className="font-semibold text-[#1A1A2E] text-sm">
-                    ⭐ 관심 카테고리
-                  </p>
-                </div>
-
-                <div className="px-4 py-4 flex flex-wrap gap-2">
-                  {interests.size === 0 ? (
-                    <p className="text-[#9CA3AF] text-sm">
-                      선택한 관심 카테고리가
-                      없습니다.
-                    </p>
-                  ) : (
-                    [...interests].map(cat => (
-                      <span
-                        key={cat}
-                        className="px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 border bg-[#FFF0EC] text-[#FF6B47] border-[#FFD5C9]"
-                      >
-                        <span>
-                          {CAT_ICONS[cat] ??
-                            '🎪'}
-                        </span>
-                        {cat}
-                      </span>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
+            </section>
           </div>
 
           {/* 오른쪽 */}
@@ -551,65 +560,58 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
               </div>
             )}
 
-            <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
-              <button
-                type="button"
-                className="w-full flex items-center gap-3 px-4 py-4 border-b border-[#F3F4F6]"
-              >
-                <span>🔔</span>
-                <span className="text-sm font-medium flex-1 text-left text-[#1A1A2E]">
-                  알림 설정
-                </span>
-                <span className="text-[#9CA3AF]">
-                  ›
-                </span>
-              </button>
-
-              <button
-                type="button"
-                className="w-full flex items-center gap-3 px-4 py-4"
-              >
-                <span>🔒</span>
-                <span className="text-sm font-medium flex-1 text-left text-[#1A1A2E]">
-                  개인정보 처리방침
-                </span>
-                <span className="text-[#9CA3AF]">
-                  ›
-                </span>
-              </button>
+            <div className="bg-white rounded-2xl overflow-hidden shadow-card py-2">
+              {[['bell', '알림 설정'], ['shield', '개인정보 처리방침']].map(([icon, label]) => (
+                <button
+                  key={label}
+                  type="button"
+                  disabled
+                  className="w-full flex items-center gap-3 px-5 py-3.5 text-left"
+                >
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F2F4F6] text-ink-soft">
+                    <Icon name={icon} size={18} />
+                  </span>
+                  <span className="flex-1 text-[15px] font-medium text-ink">
+                    {label}
+                  </span>
+                  <span className="rounded-full bg-[#F2F4F6] px-2 py-0.5 text-[11px] font-semibold text-ink-muted">
+                    준비 중
+                  </span>
+                </button>
+              ))}
             </div>
 
-            <div className="mb-2 bg-white rounded-2xl overflow-hidden shadow-sm">
+            <div className="mb-2 bg-white rounded-2xl overflow-hidden shadow-card py-2">
               <button
                 type="button"
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className="w-full flex items-center gap-3 px-4 py-4 border-b border-[#F3F4F6] active:bg-[#F9FAFB] disabled:opacity-50"
+                className="w-full flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-[#F9FAFB] active:bg-[#F2F4F6] disabled:opacity-50"
               >
-                <span>🚪</span>
-                <span className="text-sm font-medium flex-1 text-left text-[#1A1A2E]">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F2F4F6] text-ink-soft">
+                  <Icon name="logout" size={18} />
+                </span>
+                <span className="text-[15px] font-medium flex-1 text-left text-ink">
                   {loggingOut
                     ? '로그아웃 중...'
                     : '로그아웃'}
                 </span>
-                <span className="text-[#9CA3AF]">
-                  ›
-                </span>
+                <Icon name="chevronRight" size={18} className="text-[#C4CAD1]" />
               </button>
 
               <button
                 type="button"
                 onClick={openDeleteConfirm}
                 disabled={deleting}
-                className="w-full flex items-center gap-3 px-4 py-4 active:bg-[#FFF0EC] disabled:opacity-50"
+                className="w-full flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-[#FFF5F5] active:bg-[#FFECEC] disabled:opacity-50"
               >
-                <span>🗑️</span>
-                <span className="text-sm font-medium flex-1 text-left text-[#EF4444]">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FFF0F0] text-[#E5484D]">
+                  <Icon name="trash" size={18} />
+                </span>
+                <span className="text-[15px] font-medium flex-1 text-left text-[#E5484D]">
                   회원탈퇴
                 </span>
-                <span className="text-[#9CA3AF]">
-                  ›
-                </span>
+                <Icon name="chevronRight" size={18} className="text-[#C4CAD1]" />
               </button>
             </div>
           </div>
@@ -620,7 +622,7 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
       {showDeleteConfirm && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-40"
             onClick={closeDeleteConfirm}
           />
 
@@ -628,7 +630,7 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-member-title"
-            className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-50 bg-white rounded-2xl p-6 shadow-2xl"
+            className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-50 bg-white rounded-3xl p-6 shadow-lift"
             style={{
               maxWidth: 380,
               margin: '0 auto',
@@ -663,7 +665,7 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
                 type="button"
                 onClick={closeDeleteConfirm}
                 disabled={deleting}
-                className="flex-1 py-3 rounded-xl border border-[#E5E7EB] text-sm font-semibold text-[#6B7280]"
+                className="flex-1 h-12 rounded-xl bg-[#F2F4F6] text-sm font-bold text-ink-soft"
               >
                 취소
               </button>
@@ -672,7 +674,7 @@ if (typeof interestSectionRef.current?.scrollIntoView === 'function') {
                 type="button"
                 onClick={handleDeleteMember}
                 disabled={deleting}
-                className="flex-1 py-3 rounded-xl bg-[#EF4444] text-white text-sm font-semibold disabled:opacity-50"
+                className="flex-1 h-12 rounded-xl bg-[#E5484D] text-white text-sm font-bold disabled:opacity-50"
               >
                 {deleting
                   ? '처리 중...'

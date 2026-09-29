@@ -11,6 +11,7 @@ import {
   CATEGORIES,
   DISTRICTS,
 } from '../data/events'
+import { showSplash } from '../components/SplashScreen'
 
 const CAT_ICONS = {
   공연: '🎭',
@@ -174,6 +175,7 @@ export default function ProfileSetup() {
 
       resetCurrentMemberCache()
 
+      showSplash(`${nickname.trim()}님, 가입을 환영해요`)
       navigate('/', {
         replace: true,
       })
@@ -212,10 +214,10 @@ export default function ProfileSetup() {
    */
   if (authChecking) {
     return (
-      <div className="min-h-dvh bg-[#FAFAF8] flex items-center justify-center">
+      <div className="min-h-dvh bg-white flex items-center justify-center">
         <p
           role="status"
-          className="text-[#6B7280] text-sm font-medium"
+          className="text-ink-muted text-sm font-medium"
         >
           로그인 상태를 확인하고 있습니다.
         </p>
@@ -224,48 +226,29 @@ export default function ProfileSetup() {
   }
 
   return (
-    <div className="min-h-dvh bg-[#FAFAF8] flex flex-col">
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#1A1A2E] px-6 pb-8 pt-14 md:px-10">
-        {/* Progress */}
-        <div className="flex items-center gap-2 mb-6">
-          {STEPS.map((s, i) => (
-            <div
-              key={s}
-              className="flex items-center gap-2"
-            >
-              <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                  i < stepIdx
-                    ? 'bg-[#FF6B47] text-white'
-                    : i === stepIdx
-                      ? 'bg-white text-[#1A1A2E]'
-                      : 'bg-white/20 text-white/40'
-                }`}
-              >
-                {i < stepIdx
-                  ? '✓'
-                  : i + 1}
-              </div>
-
-              {i < STEPS.length - 1 && (
-                <div
-                  className={`h-0.5 w-8 rounded-full ${
-                    i < stepIdx
-                      ? 'bg-[#FF6B47]'
-                      : 'bg-white/20'
-                  }`}
-                />
-              )}
-            </div>
-          ))}
+    <div className="min-h-dvh bg-white flex flex-col">
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md">
+        <div
+          role="progressbar"
+          aria-label="프로필 설정 진행률"
+          aria-valuemin={1}
+          aria-valuemax={STEPS.length}
+          aria-valuenow={stepIdx + 1}
+          className="h-1 w-full bg-[#F2F4F6]"
+        >
+          <div
+            className="h-full rounded-r-full bg-coral transition-[width] duration-300"
+            style={{ width: `${((stepIdx + 1) / STEPS.length) * 100}%` }}
+          />
         </div>
+      </div>
 
-        <p className="text-white/50 text-sm font-medium mb-1">
+      <div className="mx-auto w-full max-w-lg px-6 pt-[calc(env(safe-area-inset-top)+2.5rem)] md:px-10 md:pt-16">
+        <p className="text-coral text-sm font-bold mb-2">
           {stepIdx + 1} / {STEPS.length}
         </p>
 
-        <h1 className="font-display text-white text-2xl md:text-3xl font-bold">
+        <h1 className="font-display text-ink text-[26px] md:text-3xl font-bold leading-tight">
           {step === 'nickname' &&
             '어떻게 불러드릴까요?'}
 
@@ -276,7 +259,7 @@ export default function ProfileSetup() {
             '무엇에 관심 있으세요?'}
         </h1>
 
-        <p className="text-white/50 text-sm mt-1">
+        <p className="text-ink-muted text-[15px] mt-2">
           {step === 'nickname' &&
             '2자 이상의 닉네임을 입력해주세요'}
 
@@ -306,10 +289,10 @@ export default function ProfileSetup() {
                 placeholder="닉네임 입력"
                 maxLength={10}
                 autoFocus
-                className="w-full bg-white border-2 border-[#E5E7EB] rounded-2xl px-5 py-4 pr-16 text-lg font-semibold text-[#1A1A2E] placeholder-[#D1D5DB] outline-none focus:border-[#FF6B47]"
+                className="w-full border-0 border-b-2 border-[#E5E8EB] bg-transparent px-0 py-3 pr-14 text-2xl font-bold text-ink placeholder-[#C4CAD1] outline-none transition-colors focus:border-coral"
               />
 
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#9CA3AF]">
+              <span className="absolute right-0 top-1/2 -translate-y-1/2 text-xs font-medium text-ink-muted">
                 {nickname.length}/10
               </span>
             </div>
@@ -334,10 +317,10 @@ export default function ProfileSetup() {
                   setResidence(d)
                   setError('')
                 }}
-                className={`px-3.5 py-2 rounded-xl text-sm font-semibold border transition-colors ${
+                className={`px-4 py-2.5 rounded-full text-sm font-semibold border transition-colors ${
                   residence === d
-                    ? 'bg-[#FF6B47] text-white border-[#FF6B47]'
-                    : 'bg-white text-[#374151] border-[#E5E7EB]'
+                    ? 'bg-ink text-white border-ink'
+                    : 'bg-white text-ink-soft border-black/10 hover:border-black/20'
                 }`}
               >
                 {d}
@@ -361,10 +344,11 @@ export default function ProfileSetup() {
                     onClick={() =>
                       toggleInterest(cat)
                     }
+                    aria-pressed={selected}
                     className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-colors ${
                       selected
-                        ? 'bg-[#FF6B47] border-[#FF6B47]'
-                        : 'bg-white border-[#E5E7EB]'
+                        ? 'bg-coral-light border-coral'
+                        : 'bg-[#F7F8FA] border-transparent hover:bg-[#F2F4F6]'
                     }`}
                   >
                     <span className="text-2xl">
@@ -373,10 +357,10 @@ export default function ProfileSetup() {
                     </span>
 
                     <span
-                      className={`text-xs font-semibold text-center leading-tight ${
+                      className={`text-[13px] font-semibold text-center leading-tight ${
                         selected
-                          ? 'text-white'
-                          : 'text-[#374151]'
+                          ? 'text-coral-dark'
+                          : 'text-ink-soft'
                       }`}
                     >
                       {cat}
@@ -387,13 +371,13 @@ export default function ProfileSetup() {
             </div>
 
             {interests.size === 0 && (
-              <p className="text-[#9CA3AF] text-xs mt-3 text-center">
+              <p className="text-ink-muted text-xs mt-3 text-center">
                 관심 카테고리는 나중에 마이페이지에서도 설정할 수 있어요.
               </p>
             )}
 
             {/* 개인정보 동의 */}
-            <label className="flex items-start gap-3 mt-8 p-4 bg-white border border-[#E5E7EB] rounded-2xl cursor-pointer">
+            <label className="flex items-start gap-3 mt-8 p-4 bg-[#F7F8FA] rounded-2xl cursor-pointer">
               <input
                 type="checkbox"
                 checked={privacyAgreed}
@@ -403,15 +387,15 @@ export default function ProfileSetup() {
                   )
                   setError('')
                 }}
-                className="mt-0.5 w-4 h-4 accent-[#FF6B47]"
+                className="mt-0.5 w-5 h-5 accent-[#FF6B47]"
               />
 
               <div>
-                <p className="text-sm font-semibold text-[#1A1A2E]">
+                <p className="text-sm font-bold text-ink">
                   개인정보 수집 및 이용에 동의합니다.
                 </p>
 
-                <p className="text-xs text-[#9CA3AF] mt-1">
+                <p className="text-xs text-ink-muted mt-1">
                   맞춤 문화행사 추천을 위한 프로필 정보를 저장합니다.
                 </p>
               </div>
@@ -431,14 +415,14 @@ export default function ProfileSetup() {
       </div>
 
       {/* 하단 버튼 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#F3F4F6] px-6 py-4 pb-8">
-        <div className="max-w-lg mx-auto flex gap-3">
+      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-white/0 px-6 pt-6 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
+        <div className="max-w-lg mx-auto flex gap-2">
           {stepIdx > 0 && (
             <button
               type="button"
               onClick={handleBack}
               disabled={loading}
-              className="w-24 py-3.5 rounded-xl font-bold text-base bg-[#F3F4F6] text-[#6B7280] disabled:opacity-50"
+              className="w-24 h-14 rounded-2xl font-bold text-base bg-[#F2F4F6] text-ink-soft disabled:opacity-50"
             >
               이전
             </button>
@@ -451,10 +435,10 @@ export default function ProfileSetup() {
               !canProceed() ||
               loading
             }
-            className={`flex-1 py-3.5 rounded-xl font-bold text-base transition-colors ${
+            className={`flex-1 h-14 rounded-2xl font-bold text-base transition-colors ${
               canProceed() && !loading
-                ? 'bg-[#FF6B47] text-white'
-                : 'bg-[#F3F4F6] text-[#D1D5DB] cursor-not-allowed'
+                ? 'bg-coral text-white hover:bg-coral-dark'
+                : 'bg-[#F2F4F6] text-[#C4CAD1] cursor-not-allowed'
             }`}
           >
             {loading

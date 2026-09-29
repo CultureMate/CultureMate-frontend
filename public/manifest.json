@@ -1,10 +1,17 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "CultureMate",
+  "name": "CultureMate · 서울 문화생활 코스",
+  "description": "서울의 전시·공연·축제를 찾고 주변 카페와 맛집까지 이어 나만의 문화 코스를 만들어 보세요.",
+  "lang": "ko",
   "icons": [
     {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
       "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
+      "sizes": "48x48",
       "type": "image/x-icon"
     },
     {
@@ -20,6 +27,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#FFFFFF",
+  "background_color": "#F7F7F5"
 }

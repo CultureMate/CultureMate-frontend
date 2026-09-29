@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { loadKakaoMaps } from '../api/kakaoMaps'
 import { getEventCoordinates, getKakaoMapLink } from '../utils/eventLocation'
+import Icon from './Icon'
 
 const messages = {
   MAP_KEY_MISSING: '지도 서비스를 준비 중입니다. 카카오맵에서 장소를 확인해 주세요.',
@@ -65,9 +66,9 @@ export default function EventMap({ event }) {
   if (!hasCoordinates) {
     const searchLink = getKakaoMapLink(event)
     return (
-      <section aria-label="행사 위치" className="rounded-2xl border border-[#E5E7EB] mb-4 bg-white p-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-[#6B7280]">위치 정보 없음</p>
-        {searchLink && <a href={searchLink} target="_blank" rel="noreferrer" className="shrink-0 rounded-full bg-[#FFE500] px-4 py-2 text-xs font-bold text-[#1A1A2E]">카카오맵에서 보기 →</a>}
+      <section aria-label="행사 위치" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-card">
+        <p className="flex items-center gap-2 text-sm text-ink-muted"><Icon name="pin" size={16} />위치 정보 없음</p>
+        {searchLink && <a href={searchLink} target="_blank" rel="noreferrer" className="shrink-0 rounded-full bg-[#FEE500] px-4 py-2 text-xs font-bold text-[#191919]">카카오맵에서 보기 →</a>}
       </section>
     )
   }
@@ -75,11 +76,11 @@ export default function EventMap({ event }) {
   const mapLink = getKakaoMapLink(event, state.location)
   const canRetry = state.error && state.error !== 'MAP_KEY_MISSING'
   return (
-    <section aria-label="행사 위치" className="rounded-2xl overflow-hidden border border-[#E5E7EB] mb-4 bg-white">
-      <div className="bg-[#F9FAFB] px-4 py-3 flex items-center gap-2 border-b border-[#E5E7EB]">
-        <span aria-hidden="true">📍</span>
-        <h2 className="text-sm font-bold text-[#1A1A2E]">지도</h2>
-        <span className="text-xs text-[#6B7280]">{place}</span>
+    <section aria-label="행사 위치" className="mb-4 overflow-hidden rounded-2xl bg-white shadow-card">
+      <div className="flex min-w-0 items-center gap-2 px-4 py-3">
+        <Icon name="pin" size={18} className="text-coral" />
+        <h2 className="text-sm font-bold text-ink">지도</h2>
+        <span className="truncate text-xs text-ink-muted">{place}</span>
       </div>
       <div className="relative h-[260px] md:h-[320px] bg-[#E8F0E8]">
         <div ref={containerRef} aria-label="행사 위치 지도" aria-busy={state.loading} className="w-full h-full" />
@@ -96,7 +97,7 @@ export default function EventMap({ event }) {
             <p className="mt-1">장소명으로 찾은 위치입니다. 방문 전 행사 장소와 일치하는지 확인해 주세요.</p>
           </> : <p>{state.location ? '행사에서 제공한 위치입니다.' : district || '행사 위치 안내'}</p>}
         </div>
-        {mapLink && <a href={mapLink} target="_blank" rel="noreferrer" className="shrink-0 rounded-full bg-[#FFE500] px-4 py-2 text-xs font-bold text-[#1A1A2E]">카카오맵에서 보기 →</a>}
+        {mapLink && <a href={mapLink} target="_blank" rel="noreferrer" className="shrink-0 rounded-full bg-[#FEE500] px-4 py-2 text-xs font-bold text-[#191919]">카카오맵에서 보기 →</a>}
       </div>
     </section>
   )

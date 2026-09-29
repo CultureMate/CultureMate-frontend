@@ -4,29 +4,34 @@ import { getSharedCourse } from '../api/courses'
 import { getPlaceDetails } from '../api/places'
 import GooglePlacePhoto, { GoogleMapsAttribution } from '../components/GooglePlacePhoto'
 import OpeningHours from '../components/OpeningHours'
+import BrandMark from '../components/BrandMark'
+import Icon from '../components/Icon'
 
-function SharedStop({ stop, index }) {
+function SharedStop({ stop, index, last }) {
   const event = stop.stopType === 'EVENT'
   const label = event ? '행사' : stop.placeType === 'restaurant' ? '음식점' : '카페'
   const title = event ? stop.title : stop.name
   return (
-    <li className="flex gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
-      <div className="w-20 flex-shrink-0">
-        {event ? <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-[#F3F4F6]">
-          {stop.imageUrl || stop.img ? <img src={stop.imageUrl || stop.img} alt={title} loading="lazy" className="h-full w-full object-cover" />
-            : <div role="img" aria-label={`${title} 이미지 없음`} className="flex h-full items-center justify-center text-2xl">🗺️</div>}
-          <span className="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#FF6B47] text-[11px] font-black text-white">{index + 1}</span>
-        </div> : <GooglePlacePhoto place={stop} alt={title} imageClassName="h-20 w-20 rounded-xl" autoLoad>
-          <span className="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#FF6B47] text-[11px] font-black text-white">{index + 1}</span>
-        </GooglePlacePhoto>}
+    <li className="relative flex gap-3 pb-4 last:pb-0">
+      <div className="flex w-7 flex-shrink-0 flex-col items-center">
+        <span className={`z-10 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white ${event ? 'bg-coral' : 'bg-[#00A884]'}`}>{index + 1}</span>
+        {!last && <span aria-hidden="true" className="mt-1 w-px flex-1 bg-black/10" />}
       </div>
-      <div className="min-w-0">
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${event ? 'bg-[#FFF0EC] text-[#FF6B47]' : 'bg-[#E6FAF7] text-[#008F75]'}`}>{label}</span>
-        <h2 className="mt-2 font-bold text-[#1A1A2E]">{title}</h2>
-        {(stop.place || stop.address) && <p className="mt-1 text-xs text-[#6B7280]">📍 {stop.place || stop.address}</p>}
-        {!event && stop.openNow != null && <p className="mt-1 text-xs text-[#6B7280]">{stop.openNow ? '현재 영업 중' : '현재 영업 종료'}</p>}
-        {!event && <OpeningHours spot={stop} className="mt-1" />}
-        {!event && <GoogleMapsAttribution place={stop} className="mt-2" />}
+      <div className="flex min-w-0 flex-1 gap-4 rounded-2xl bg-white p-4 shadow-card">
+        <div className="w-20 flex-shrink-0">
+          {event ? <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-[#F2F4F6]">
+            {stop.imageUrl || stop.img ? <img src={stop.imageUrl || stop.img} alt={title} loading="lazy" className="h-full w-full object-cover" />
+              : <div role="img" aria-label={`${title} 이미지 없음`} className="flex h-full items-center justify-center text-ink-muted"><Icon name="ticket" size={24} /></div>}
+          </div> : <GooglePlacePhoto place={stop} alt={title} imageClassName="h-20 w-20 rounded-xl" autoLoad />}
+        </div>
+        <div className="min-w-0">
+          <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${event ? 'bg-coral-light text-coral-dark' : 'bg-[#E6FAF7] text-[#008F75]'}`}>{label}</span>
+          <h2 className="mt-2 font-bold leading-snug text-ink">{title}</h2>
+          {(stop.place || stop.address) && <p className="mt-1 flex items-center gap-1 text-xs text-ink-muted"><Icon name="pin" size={13} /><span className="truncate">{stop.place || stop.address}</span></p>}
+          {!event && stop.openNow != null && <p className={`mt-1 text-xs font-semibold ${stop.openNow ? 'text-[#00A884]' : 'text-ink-muted'}`}>{stop.openNow ? '현재 영업 중' : '현재 영업 종료'}</p>}
+          {!event && <OpeningHours spot={stop} className="mt-1" />}
+          {!event && <GoogleMapsAttribution place={stop} className="mt-2" />}
+        </div>
       </div>
     </li>
   )
@@ -69,29 +74,44 @@ export default function SharedCourse() {
   }, [shareId])
 
   return (
-    <div className="min-h-full bg-[#FAFAF8] pb-12">
-      <header className="sticky top-0 z-30 bg-[#1A1A2E] px-5 pb-8 pt-12 text-white md:px-8">
-        <div className="mx-auto max-w-3xl">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#FF8A70]">Shared course</p>
-          <h1 className="mt-2 font-display text-3xl font-bold">공유 코스</h1>
-          <p className="mt-2 text-sm text-white/60">공유받은 코스를 읽기 전용으로 확인합니다.</p>
+    <div className="min-h-full bg-canvas pb-12">
+      <header className="sticky top-0 z-30 border-b border-black/[0.06] bg-white/90 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur-md md:px-8">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+          <Link to="/" aria-label="CultureMate 홈" className="flex items-center gap-2 md:hidden">
+            <BrandMark size={32} />
+            <span className="text-[15px] font-bold text-ink">CultureMate</span>
+          </Link>
+          <p aria-hidden="true" className="hidden text-lg font-bold text-ink md:block">공유 코스</p>
+          <Link to="/course" className="rounded-full bg-ink px-4 py-2 text-xs font-bold text-white">나도 코스 만들기</Link>
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-5 py-6 md:px-8">
-        {request.loading ? <p role="status" className="rounded-2xl bg-white px-6 py-16 text-center text-sm text-[#6B7280] shadow-sm">공유 코스를 불러오고 있어요.</p>
-          : request.error ? <section className="rounded-2xl bg-white px-6 py-14 text-center shadow-sm">
-            <span className="text-4xl" aria-hidden="true">🔗</span>
-            <p role="alert" className="mt-4 text-sm text-[#6B7280]">{request.error}</p>
-            {request.loginRequired && <Link to="/login" className="mt-5 inline-block rounded-xl bg-[#FF6B47] px-5 py-3 text-sm font-bold text-white">로그인하기</Link>}
+        <h1 className="sr-only">공유 코스</h1>
+        {request.loading ? <div role="status" className="animate-pulse space-y-3">
+            <span className="sr-only">공유 코스를 불러오고 있어요.</span>
+            <div className="h-28 rounded-3xl bg-[#E9ECEF]" />
+            <div className="h-28 rounded-2xl bg-[#E9ECEF]" />
+            <div className="h-28 rounded-2xl bg-[#E9ECEF]" />
+          </div>
+          : request.error ? <section className="flex flex-col items-center rounded-3xl bg-white px-6 py-14 text-center shadow-card">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F2F4F6] text-ink-muted"><Icon name="route" size={26} /></span>
+            <p role="alert" className="mt-4 text-sm leading-relaxed text-ink-soft">{request.error}</p>
+            {request.loginRequired && <Link to="/login" className="mt-5 inline-block rounded-xl bg-coral px-5 py-3 text-sm font-bold text-white">로그인하기</Link>}
           </section>
           : <>
-            <section className="mb-5 rounded-2xl bg-white p-5 shadow-sm">
-              <p className="text-xs font-bold text-[#FF6B47]">읽기 전용</p>
-              <h2 className="mt-2 font-display text-2xl font-bold text-[#1A1A2E]">{request.course.title}</h2>
-              <p className="mt-2 text-sm text-[#6B7280]">장소 {request.course.stops?.length || 0}곳</p>
+            <section className="mb-6 overflow-hidden rounded-3xl bg-white shadow-card">
+              <div className="bg-gradient-to-br from-[#FFF0EC] via-white to-white px-5 pb-5 pt-6">
+                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-coral shadow-sm"><Icon name="share" size={12} strokeWidth={2.2} />공유받은 코스</span>
+                <h2 className="mt-3 font-display text-2xl font-bold leading-tight text-ink">{request.course.title}</h2>
+                <div className="mt-3 flex items-center gap-2 text-sm text-ink-muted">
+                  <span className="flex items-center gap-1"><Icon name="pin" size={14} />장소 {request.course.stops?.length || 0}곳</span>
+                  <span aria-hidden="true">·</span>
+                  <span className="flex items-center gap-1"><Icon name="eye" size={14} />읽기 전용</span>
+                </div>
+              </div>
             </section>
-            <ol className="space-y-3">
-              {request.course.stops.map((stop, index) => <SharedStop key={stop.stopId} stop={stop} index={index} />)}
+            <ol>
+              {request.course.stops.map((stop, index) => <SharedStop key={stop.stopId} stop={stop} index={index} last={index === request.course.stops.length - 1} />)}
             </ol>
           </>}
       </main>

@@ -10,3 +10,6 @@ delete process.env.REACT_APP_KAKAO_MAP_KEY
 // jsdom에는 native dialog 동작이 없어 테스트에서 open 상태만 재현합니다.
 HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
 HTMLDialogElement.prototype.close = function () { this.removeAttribute('open') }
+
+// jsdom은 스크롤 이동을 구현하지 않아 호출될 때마다 경고를 남긴다.
+window.scrollTo = () => {}

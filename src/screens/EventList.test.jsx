@@ -72,10 +72,10 @@ test('추가 버튼은 로그인 사용자에게만 표시한다', async () => {
   renderEvents()
   expect(await screen.findByRole('button', { name: /관심행사 추가/ })).toBeInTheDocument()
   const courseButton = screen.getByRole('button', { name: /코스에 추가/ })
-  expect(courseButton).toHaveClass('bg-[#F3EEFF]', 'text-[#8B5CF6]')
+  expect(courseButton).toHaveClass('bg-ink', 'text-white')
   fireEvent.click(courseButton)
   expect(courseButton).toHaveAttribute('aria-pressed', 'true')
-  expect(courseButton).toHaveClass('bg-[#008F75]', 'text-white')
+  expect(courseButton).toHaveClass('bg-[#E6FAF7]', 'text-[#008F75]')
 })
 
 test('코스 현황 배너는 행사와 주변 장소 수를 표시하고 헤더 아래에 고정된다', async () => {
@@ -96,7 +96,7 @@ test('코스 현황 배너는 행사와 주변 장소 수를 표시하고 헤더
 
   const summary = await screen.findByText(/행사 3개 · 카페 1개 · 음식점 1개/)
   expect(summary.closest('p')).toHaveTextContent('행사 3개 · 카페 1개 · 음식점 1개를 코스에 담았어요.')
-  expect(summary.closest('div')).toHaveClass('sticky', 'top-[8.75rem]')
+  expect(summary.closest('div')).toHaveClass('fixed', 'bottom-[calc(4.75rem+env(safe-area-inset-bottom))]', 'md:bottom-6')
   expect(screen.getByRole('heading', { name: '행사 목록' }).closest('header')).toHaveClass('sticky', 'top-0')
 })
 
@@ -106,8 +106,8 @@ test('코스 수정 중 행사 목록에서는 수정 계속하기로 안내한�
   writeCourseEditSession({ courseId: 7, version: 2 })
   renderEvents()
 
-  expect(await screen.findByRole('link', { name: '코스 수정 계속하기 →' })).toHaveAttribute('href', '/course')
-  expect(screen.queryByRole('link', { name: '코스 만들기 →' })).not.toBeInTheDocument()
+  expect(await screen.findByRole('link', { name: '코스 수정 계속하기' })).toHaveAttribute('href', '/course')
+  expect(screen.queryByRole('link', { name: '코스 만들기' })).not.toBeInTheDocument()
 })
 
 test('a saved favorite can be cancelled from the card, and failures are shown', async () => {
@@ -117,12 +117,12 @@ test('a saved favorite can be cancelled from the card, and failures are shown', 
   renderEvents()
 
   const add = await screen.findByRole('button', { name: /관심행사 추가/ })
-  expect(add).toHaveTextContent('♡ 관심행사')
-  expect(add).toHaveClass('bg-[#FFF0EC]', 'text-[#B93820]')
+  expect(add).toHaveTextContent('관심행사')
+  expect(add).toHaveClass('bg-[#F2F4F6]', 'text-ink-soft')
   fireEvent.click(add)
   const cancel = await screen.findByRole('button', { name: /관심행사 취소/ })
-  expect(cancel).toHaveTextContent('❤️ 저장됨')
-  expect(cancel).toHaveClass('bg-[#FF6B47]', 'text-white')
+  expect(cancel).toHaveTextContent('저장됨')
+  expect(cancel).toHaveClass('bg-coral-light', 'text-coral')
   expect(cancel).toBeEnabled()
   expect(api.post).toHaveBeenCalledWith('/favorites', { eventId })
 
