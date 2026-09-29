@@ -26,24 +26,22 @@ test('guests see blurred threaded comments and a login link', async () => {
   renderComments()
   expect(await screen.findByText('첫 댓글')).toBeInTheDocument()
   expect(screen.getByText('첫 답글')).toBeInTheDocument()
-  expect(screen.getByText('회원 7')).toBeInTheDocument()
-  expect(screen.getByText('회원 8')).toBeInTheDocument()
+  expect(screen.getAllByText('탈퇴한 회원')).toHaveLength(2)
   expect(screen.getByRole('link', { name: '로그인하기' })).toHaveAttribute('href', '/login')
   expect(screen.getByText('로그인하시면 댓글 작성 및 확인이 가능합니다.')).toBeInTheDocument()
   expect(screen.queryByRole('form', { name: '댓글 작성' })).not.toBeInTheDocument()
   expect(screen.getByText('첫 댓글').closest('[aria-hidden="true"]')).toHaveClass('blur-sm')
 })
 
-test('other members are identified by nickname with a member id fallback', async () => {
+test('other members are identified by nickname and withdrawn authors without a member number', async () => {
   getComments.mockResolvedValue([
     { ...root, nickname: '한일' },
-    { ...reply, nickname: '문화메이트' },
+    { ...reply, nickname: null },
   ])
   renderComments()
   expect(await screen.findByText('한일')).toBeInTheDocument()
-  expect(screen.getByText('문화메이트')).toBeInTheDocument()
-  expect(screen.queryByText('회원 7')).not.toBeInTheDocument()
-  expect(screen.queryByText('회원 8')).not.toBeInTheDocument()
+  expect(screen.getByText('탈퇴한 회원')).toBeInTheDocument()
+  expect(screen.queryByText(/회원 \d/)).not.toBeInTheDocument()
 })
 
 test('members create a comment and reply with immediate list updates', async () => {
