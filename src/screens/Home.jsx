@@ -749,13 +749,15 @@ export default function Home({ showAllHot = false }) {
                     행사를 추천해 드려요.
                   </p>
 
-                  <Link
-                    to="/login"
-                    className="inline-block mt-4 px-4 py-2.5 rounded-xl bg-[#FF6B47] text-white text-sm font-semibold"
-                  >
-                    로그인하기
-                  </Link>
-                </div>
+                  <div className="flex justify-center mt-4">
+                    <Link
+                      to="/login"
+                      className="inline-block px-4 py-2.5 rounded-xl bg-[#FF6B47] text-white text-sm font-semibold active:scale-[0.98] transition-transform"
+                    >
+                       로그인하기
+                    </Link>
+                  </div>
+                  </div>
               )}
 
             {!memberLoading &&
