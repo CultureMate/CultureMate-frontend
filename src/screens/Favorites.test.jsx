@@ -8,6 +8,7 @@ import {
   MemoryRouter,
   Route,
   Routes,
+  useLocation,
 } from 'react-router-dom'
 
 import Favorites from './Favorites'
@@ -40,6 +41,11 @@ const FAVORITES = [
   },
 ]
 
+function EventDetailTarget() {
+  const location = useLocation()
+  return <><div>행사 상세 화면</div><output data-testid="detail-return-to">{location.state?.returnTo}</output></>
+}
+
 function renderFavorites({
   view = 'list',
   path = '/favorites',
@@ -60,6 +66,11 @@ function renderFavorites({
         <Route
           path="/login"
           element={<div>로그인 화면</div>}
+        />
+
+        <Route
+          path="/events/:id"
+          element={<EventDetailTarget />}
         />
       </Routes>
     </MemoryRouter>
@@ -87,6 +98,21 @@ test('서버에서 받은 관심행사 목록을 표시한다', async () => {
   expect(
     screen.getByText('행사 2개 저장됨')
   ).toBeInTheDocument()
+
+  expect(screen.getByRole('link', { name: /서울 전시회/ })).toHaveAttribute(
+    'href',
+    `/events/${encodeURIComponent(FAVORITES[0].eventId)}`
+  )
+})
+
+test('관심 목록 행사 카드를 누르면 상세 화면으로 이동하고 목록 복귀 경로를 전달한다', async () => {
+  getFavorites.mockResolvedValue(FAVORITES)
+  renderFavorites()
+
+  fireEvent.click(await screen.findByRole('link', { name: /서울 전시회/ }))
+
+  expect(await screen.findByText('행사 상세 화면')).toBeInTheDocument()
+  expect(screen.getByTestId('detail-return-to')).toHaveTextContent('/favorites')
 })
 
 test('관심행사가 없으면 빈 목록 안내를 표시한다', async () => {
@@ -303,4 +329,11 @@ test('달력에서 날짜를 선택하면 해당 날짜의 행사를 표시한�
       '선택 날짜 행사'
     )
   ).toBeInTheDocument()
+
+  const calendarCard = screen.getByRole('link', { name: /선택 날짜 행사/ }).closest('article')
+  expect(calendarCard).toHaveClass('w-full', 'min-w-0', 'max-w-full')
+  expect(calendarCard.parentElement.parentElement).toHaveClass('min-w-0', 'max-w-full')
+  fireEvent.click(screen.getByRole('link', { name: /선택 날짜 행사/ }))
+  expect(await screen.findByText('행사 상세 화면')).toBeInTheDocument()
+  expect(screen.getByTestId('detail-return-to')).toHaveTextContent('/favorites/calendar')
 })

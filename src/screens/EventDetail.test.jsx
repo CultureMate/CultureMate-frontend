@@ -81,11 +81,11 @@ const EVENT = {
   viewCount: 10,
 }
 
-function renderEventDetail() {
+function renderEventDetail(state) {
   return render(
     <MemoryRouter
       initialEntries={[
-        `/events/${encodeURIComponent(EVENT_ID)}`,
+        { pathname: `/events/${encodeURIComponent(EVENT_ID)}`, state },
       ]}
     >
       <Routes>
@@ -97,6 +97,11 @@ function renderEventDetail() {
         <Route
           path="/login"
           element={<div>로그인 화면</div>}
+        />
+
+        <Route
+          path="/favorites/calendar"
+          element={<div>관심행사 캘린더</div>}
         />
       </Routes>
     </MemoryRouter>
@@ -161,6 +166,15 @@ test('행사 상세 정보를 표시한다', async () => {
       name: '관심행사 저장',
     })
   ).toBeInTheDocument()
+})
+
+test('관심행사 캘린더에서 연 상세는 목록 버튼으로 캘린더에 돌아간다', async () => {
+  renderEventDetail({ returnTo: '/favorites/calendar' })
+
+  await screen.findByText('서울 문화행사')
+  fireEvent.click(screen.getAllByRole('button', { name: '목록으로' })[0])
+
+  expect(await screen.findByText('관심행사 캘린더')).toBeInTheDocument()
 })
 
 test('미저장 행사에서는 저장 가능한 상태로 표시한다', async () => {
