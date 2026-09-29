@@ -18,7 +18,11 @@ function renderPage() {
 
 beforeEach(() => {
   jest.clearAllMocks()
-  getPlaceDetails.mockResolvedValue({ placeId: 'p1', name: '공유 카페', address: '서울 중구', placeType: 'cafe' })
+  getPlaceDetails.mockResolvedValue({
+    placeId: 'p1', name: '공유 카페', address: '서울 중구', placeType: 'cafe', openNow: true,
+    todayHours: '화요일 10:00~22:00',
+    openingHours: ['월요일 10:00~22:00', '화요일 10:00~22:00'],
+  })
 })
 
 test('공유 코스를 읽기 전용으로 표시한다', async () => {
@@ -34,6 +38,10 @@ test('공유 코스를 읽기 전용으로 표시한다', async () => {
   expect(await screen.findByText('서울 문화 산책')).toBeInTheDocument()
   expect(screen.getByText('서울 전시')).toBeInTheDocument()
   expect(await screen.findByText('공유 카페')).toBeInTheDocument()
+  const hours = screen.getByText('🕒 화요일 10:00~22:00')
+  fireEvent.mouseEnter(hours)
+  expect(screen.getByRole('tooltip')).toHaveTextContent('월요일 10:00~22:00')
+  expect(screen.getByRole('tooltip')).toHaveTextContent('화요일 10:00~22:00')
   expect(screen.getByText('읽기 전용')).toBeInTheDocument()
   expect(getSharedCourse).toHaveBeenCalledWith('share-1', expect.any(AbortSignal))
 })

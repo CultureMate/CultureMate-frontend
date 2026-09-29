@@ -119,8 +119,9 @@ test('카페와 음식점을 각각 조회해 유형별 탭에 표시한다', as
 
   fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
   expect(await screen.findByText('문화 카페')).toBeInTheDocument()
-  expect(screen.getByRole('tooltip', { hidden: true })).toHaveTextContent('전체 영업시간')
-  expect(screen.getByRole('tooltip', { hidden: true })).toHaveTextContent('월요일 10:00~22:00')
+  fireEvent.mouseEnter(screen.getByText('🕒 오늘 10:00~22:00'))
+  expect(screen.getByRole('tooltip')).toHaveTextContent('전체 영업시간')
+  expect(screen.getByRole('tooltip')).toHaveTextContent('월요일 10:00~22:00')
   expect(screen.queryByText('문화 식당')).not.toBeInTheDocument()
 
   fireEvent.click(screen.getByRole('button', { name: /음식점/ }))
@@ -130,7 +131,8 @@ test('카페와 음식점을 각각 조회해 유형별 탭에 표시한다', as
 
   fireEvent.click(screen.getByRole('button', { name: '음식점 검색' }))
   expect(await screen.findByText('문화 식당')).toBeInTheDocument()
-  expect(screen.getByRole('tooltip', { hidden: true })).toHaveTextContent('월요일 10:00~22:00')
+  fireEvent.mouseEnter(screen.getByText('🕒 오늘 10:00~22:00'))
+  expect(screen.getByRole('tooltip')).toHaveTextContent('월요일 10:00~22:00')
   expect(screen.queryByText('문화 카페')).not.toBeInTheDocument()
   expect(getPlacesBetween).toHaveBeenLastCalledWith({ eventId1: 'e1', eventId2: 'e2', type: 'restaurant' }, expect.any(AbortSignal))
 })
@@ -233,6 +235,11 @@ test('내 코스의 상세 동선을 확인하고 목록으로 돌아간다', as
       { type: 'PLACE', placeId: 'p1', placeType: 'CAFE', name: '문화 카페', address: '서울 중구', order: 1 },
     ],
   })
+  getPlaceDetails.mockResolvedValue({
+    placeId: 'p1', name: '문화 카페', address: '서울 중구', placeType: 'cafe',
+    todayHours: '화요일 10:00~22:00',
+    openingHours: ['월요일 10:00~22:00', '화요일 10:00~22:00'],
+  })
   renderCourse()
 
   fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
@@ -241,6 +248,10 @@ test('내 코스의 상세 동선을 확인하고 목록으로 돌아간다', as
 
   expect(await screen.findByText('서울 전시')).toBeInTheDocument()
   expect(screen.getByText('문화 카페')).toBeInTheDocument()
+  const hours = screen.getByText('🕒 화요일 10:00~22:00')
+  fireEvent.mouseEnter(hours)
+  expect(screen.getByRole('tooltip')).toHaveTextContent('월요일 10:00~22:00')
+  expect(screen.getByRole('tooltip')).toHaveTextContent('화요일 10:00~22:00')
   expect(screen.getByRole('link', { name: '서울 전시 상세 보기' })).toHaveAttribute('href', '/events/e1')
   expect(getCourseDetail).toHaveBeenCalledWith(1, expect.any(AbortSignal))
 
