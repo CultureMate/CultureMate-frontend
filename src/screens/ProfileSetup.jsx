@@ -11,6 +11,7 @@ import {
   CATEGORIES,
   DISTRICTS,
 } from '../data/events'
+import { showSplash } from '../components/SplashScreen'
 
 const CAT_ICONS = {
   공연: '🎭',
@@ -174,6 +175,7 @@ export default function ProfileSetup() {
 
       resetCurrentMemberCache()
 
+      showSplash(`${nickname.trim()}님, 가입을 환영해요`)
       navigate('/', {
         replace: true,
       })

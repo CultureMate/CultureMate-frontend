@@ -176,6 +176,24 @@ describe('로그인 필요 탭 보호', () => {
     }
   )
 
+  test('비로그인 상태에서 보호된 탭을 여러 번 눌러도 로그인 안내가 기록에 쌓이지 않는다', async () => {
+    getCurrentMember.mockResolvedValue(null)
+    window.history.replaceState({}, '', '/')
+
+    render(<App />)
+    await screen.findByText('HOME_PAGE')
+    const startLength = window.history.length
+    const mobileNav = screen.getByRole('navigation', { name: '모바일 주 메뉴' })
+
+    for (const tab of ['관심', '마이', '코스']) {
+      fireEvent.click(within(mobileNav).getByRole('link', { name: tab }))
+      expect(await screen.findByText('LOGIN_PROMPT_PAGE')).toBeInTheDocument()
+    }
+
+    expect(window.history.length).toBe(startLength + 1)
+    expect(within(mobileNav).getByRole('link', { name: '코스' })).toHaveAttribute('aria-current', 'page')
+  })
+
   test('로그인 상태에서는 코스 탭에 진입한다', async () => {
     getCurrentMember.mockResolvedValue({ memberId: 1 })
     window.history.replaceState({}, '', '/course')

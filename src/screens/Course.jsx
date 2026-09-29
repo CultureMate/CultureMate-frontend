@@ -261,7 +261,7 @@ function CourseDetail({ course, loading, error, action, onBack, onToggleFavorite
                 <h3 className="font-bold text-[#1A1A2E]">코스 동선</h3>
                 <p className="mt-1 text-xs text-[#6B7280]">저장한 순서대로 표시됩니다.</p>
               </div>
-              <span className="rounded-full bg-[#F3F4F6] px-3 py-1 text-xs font-bold text-[#6B7280]">{stops.length}곳</span>
+              <span className="flex-shrink-0 whitespace-nowrap rounded-full bg-[#F3F4F6] px-3 py-1 text-xs font-bold text-[#6B7280]">{stops.length}곳</span>
             </div>
 
             {stops.length > 0 ? (
@@ -784,9 +784,9 @@ export default function Course() {
 
           <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
             <section aria-labelledby="route-title" className="min-w-0 max-w-full rounded-2xl bg-white p-4 shadow-sm md:p-5">
-              <div className="mb-4 flex items-start justify-between gap-4">
-                <div><h2 id="route-title" className="font-bold text-[#1A1A2E]">코스 순서</h2><p className="mt-1 text-xs text-[#6B7280]">카드를 끌거나 화살표로 행사와 장소 순서를 바꿀 수 있어요.</p></div>
-                <span className="rounded-full bg-[#F3F4F6] px-3 py-1 text-xs font-bold text-[#6B7280]">{stops.length}곳</span>
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div className="min-w-0"><h2 id="route-title" className="font-bold text-[#1A1A2E]">코스 순서</h2><p className="mt-1 text-xs text-[#6B7280]">카드를 끌거나 화살표로 순서를 바꿀 수 있어요.</p></div>
+                <span className="flex-shrink-0 whitespace-nowrap rounded-full bg-[#F3F4F6] px-3 py-1 text-xs font-bold text-[#6B7280]">{stops.length}곳</span>
               </div>
               <ol className="space-y-3">
                 {stops.map((stop, index) => <StopCard key={stop.stopId} stop={stop} index={index} total={stops.length}

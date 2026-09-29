@@ -351,7 +351,7 @@ function EventDetailView({ event }) {
   return (
     <div className="flex flex-col min-h-full bg-canvas">
       <div
-        className={`sticky top-0 z-30 -mb-[calc(4rem+env(safe-area-inset-top))] border-b pt-[env(safe-area-inset-top)] transition-colors duration-200 lg:mb-0 ${
+        className={`sticky top-0 z-30 -mb-[calc(4rem+1px+env(safe-area-inset-top))] border-b pt-[env(safe-area-inset-top)] transition-colors duration-200 lg:mb-0 ${
           barSolid
             ? 'border-black/[0.06] bg-white/95 backdrop-blur-md'
             : 'border-transparent bg-transparent'

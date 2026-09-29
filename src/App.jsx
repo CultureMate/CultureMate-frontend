@@ -29,6 +29,7 @@ import EventDialog from './components/EventDialog'
 import Icon from './components/Icon'
 import BrandMark, { BrandWordmark } from './components/BrandMark'
 import ScrollManager from './components/ScrollManager'
+import SplashScreen, { showSplash } from './components/SplashScreen'
 import { clearCourseEditSession } from './utils/courseDraft'
 
 const NAV_ITEMS = [
@@ -99,12 +100,14 @@ function LoginResultHandler() {
           !member.residence?.trim()
 
         if (profileIncomplete) {
+          showSplash('CultureMate에 오신 걸 환영해요')
           navigate('/profile', {
             replace: true,
           })
           return
         }
 
+        showSplash(`${member.nickname.trim()}님, 다시 만나 반가워요`)
         navigate('/', {
           replace: true,
         })
@@ -133,8 +136,10 @@ function LoginResultHandler() {
 }
 
 function AppLayout() {
-  const { pathname, search } = useLocation()
+  const { pathname, search, state } = useLocation()
   const navigate = useNavigate()
+  const onLoginPrompt = pathname === '/login-prompt'
+  const activePath = onLoginPrompt ? state?.from ?? '' : pathname
   const { member, clearMember } = useCurrentMember()
   const [logoutOpen, setLogoutOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
@@ -142,8 +147,8 @@ function AppLayout() {
 
   const isActive = path =>
     path === '/'
-      ? pathname === '/'
-      : pathname.startsWith(path)
+      ? activePath === '/'
+      : activePath.startsWith(path)
 
   const scrollTopOnSameTab = (event, path) => {
     if (pathname !== path || search) return
@@ -195,6 +200,7 @@ function AppLayout() {
                 key={item.path}
                 to={item.path}
                 onClick={event => scrollTopOnSameTab(event, item.path)}
+                replace={onLoginPrompt}
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
                 className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors md:justify-center lg:justify-start ${
@@ -268,6 +274,7 @@ function AppLayout() {
                   key={item.path}
                   to={item.path}
                   onClick={event => scrollTopOnSameTab(event, item.path)}
+                  replace={onLoginPrompt}
                   aria-label={item.label}
                   aria-current={active ? 'page' : undefined}
                   className={`flex h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 transition-colors active:bg-black/[0.03] ${
@@ -329,6 +336,7 @@ function RequireAuth({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <SplashScreen />
       <LoginResultHandler />
       <ScrollManager />
 
