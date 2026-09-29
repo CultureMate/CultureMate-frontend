@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import api from '../api/axios'
-import { getCurrentMember } from '../api/auth'
+import {
+  getCurrentMember,
+  resetCurrentMemberCache,
+  setCurrentMemberCache,
+} from '../api/auth'
 import {
   CATEGORIES,
   DISTRICTS,
@@ -168,6 +172,8 @@ export default function ProfileSetup() {
         ],
       })
 
+      resetCurrentMemberCache()
+
       navigate('/', {
         replace: true,
       })
@@ -178,6 +184,7 @@ export default function ProfileSetup() {
       )
 
       if (err.response?.status === 401) {
+        setCurrentMemberCache(null)
         navigate('/login', {
           replace: true,
         })

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getCurrentMember } from '../api/auth'
+import { getCurrentMember, setCurrentMemberCache } from '../api/auth'
 
 export default function useCurrentMember() {
   const [state, setState] = useState({
@@ -26,6 +26,7 @@ export default function useCurrentMember() {
   }, [])
 
   const clearMember = () => {
+    setCurrentMemberCache(null)
     setState({ member: null, error: null })
   }
 

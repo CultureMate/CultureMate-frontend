@@ -13,11 +13,12 @@ import {
 } from 'react-router-dom'
 
 import MyPage from './MyPage'
-import { getCurrentMember } from '../api/auth'
+import { getCurrentMember, setCurrentMemberCache } from '../api/auth'
 import api from '../api/axios'
 
 jest.mock('../api/auth', () => ({
   getCurrentMember: jest.fn(),
+  setCurrentMemberCache: jest.fn(),
 }))
 
 jest.mock('../api/axios', () => ({
@@ -303,6 +304,10 @@ test('회원정보 저장 중 401이 발생하면 로그인 화면으로 이동�
       '로그인 화면'
     )
   ).toBeInTheDocument()
+
+  expect(
+    setCurrentMemberCache
+  ).toHaveBeenCalledWith(null)
 })
 
 test('로그아웃 API 호출 후 로그인 화면으로 이동한다', async () => {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getCurrentMember } from '../api/auth'
+import { getCurrentMember, setCurrentMemberCache } from '../api/auth'
 import { createComment, deleteComment, getCommentError, getComments, updateComment } from '../api/comments'
 
 // 백엔드는 탈퇴한 회원의 댓글에만 nickname을 null로 준다.
@@ -131,7 +131,10 @@ export default function EventComments({ event }) {
       return true
     } catch (requestError) {
       setActionError(requestError)
-      if (requestError.response?.status === 401) setMember(null)
+      if (requestError.response?.status === 401) {
+        setCurrentMemberCache(null)
+        setMember(null)
+      }
       return false
     } finally { setSubmitting(false) }
   }

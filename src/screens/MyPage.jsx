@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { getCurrentMember } from '../api/auth'
+import { getCurrentMember, setCurrentMemberCache } from '../api/auth'
 import api from '../api/axios'
 import { CATEGORIES, DISTRICTS } from '../data/events'
 
@@ -139,6 +139,7 @@ export default function MyPage() {
       }
 
       setMember(updatedMember)
+      setCurrentMemberCache(updatedMember)
       setNickname(updatedMember.nickname ?? '')
       setResidence(updatedMember.residence ?? '')
       setInterests(
@@ -152,6 +153,7 @@ export default function MyPage() {
       console.error('회원정보 수정 실패:', err)
 
       if (err.response?.status === 401) {
+        setCurrentMemberCache(null)
         navigate('/login', { replace: true })
         return
       }
@@ -191,11 +193,13 @@ export default function MyPage() {
 
       await api.post('/auth/logout')
 
+      setCurrentMemberCache(null)
       navigate('/login', { replace: true })
     } catch (err) {
       console.error('로그아웃 실패:', err)
 
       if (err.response?.status === 401) {
+        setCurrentMemberCache(null)
         navigate('/login', { replace: true })
         return
       }
@@ -229,12 +233,14 @@ export default function MyPage() {
 
       await api.delete('/auth/me')
 
+      setCurrentMemberCache(null)
       setShowDeleteConfirm(false)
       navigate('/login', { replace: true })
     } catch (err) {
       console.error('회원탈퇴 실패:', err)
 
       if (err.response?.status === 401) {
+        setCurrentMemberCache(null)
         navigate('/login', { replace: true })
         return
       }
