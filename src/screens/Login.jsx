@@ -76,8 +76,8 @@ export default function Login() {
           </Link>
         </div>
 
-        <div className="flex flex-1 flex-col justify-center px-6 pb-6 lg:px-10">
-          <div className="mb-10 lg:hidden">
+        <div className="flex flex-1 flex-col px-6 pb-4 lg:justify-center lg:px-10 lg:pb-6">
+          <div className="flex flex-1 flex-col justify-center pb-8 lg:hidden">
             <BrandMark size={56} />
             <h1 className="mt-6 font-display text-[32px] font-bold leading-[1.25] text-ink">
               서울 문화생활,<br />
@@ -140,7 +140,7 @@ export default function Login() {
           </button>
         </div>
 
-        <p className="px-8 pb-[calc(env(safe-area-inset-bottom)+2rem)] text-center text-xs leading-relaxed text-ink-muted">
+        <p className="px-8 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] text-center text-xs leading-relaxed text-ink-muted lg:pb-8">
           로그인 시{' '}
           <span className="underline">
             이용약관

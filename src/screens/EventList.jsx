@@ -38,20 +38,21 @@ function EventCard({ event, returnTo, selected, favoriteSaved, favoriteLoading, 
   return (
     <article className="group flex w-full flex-col overflow-hidden rounded-2xl bg-white text-left shadow-card transition duration-200 md:hover:-translate-y-0.5 md:hover:shadow-lift">
       <Link to={`/events/${encodeURIComponent(event.eventId)}`} state={{ returnTo }}
-        className="block flex-1 transition-transform active:scale-[0.99]">
-      <div className="relative aspect-video w-full overflow-hidden bg-[#F2F4F6]">
+        className="flex flex-1 gap-3.5 p-3.5 transition-transform active:scale-[0.99] sm:block sm:p-0">
+      <div className="relative aspect-video w-full overflow-hidden bg-[#F2F4F6] max-sm:aspect-square max-sm:w-[104px] max-sm:flex-shrink-0 max-sm:self-start max-sm:rounded-xl">
         {event.imageUrl && !imageFailed
           ? <img src={event.imageUrl} alt="" loading="lazy" onError={() => setImageFailed(true)} className="w-full h-full object-cover transition-transform duration-300 md:group-hover:scale-[1.03]" />
-          : <div className="h-full flex items-center justify-center text-sm text-ink-muted bg-[#F3EEFF]">이미지 없음</div>}
-        {event.category && <span className="absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold shadow-sm" style={{ color: color.text }}>{event.category}</span>}
+          : <div className="h-full flex items-center justify-center text-xs sm:text-sm text-ink-muted bg-[#F3EEFF]">이미지 없음</div>}
+        {event.category && <span className="absolute left-3 top-3 hidden rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold shadow-sm sm:block" style={{ color: color.text }}>{event.category}</span>}
       </div>
-      <div className="p-4">
-        <h2 className="line-clamp-2 text-base font-bold leading-snug text-ink">{event.title || '제목 없음'}</h2>
-        <div className="mt-2.5 space-y-1.5 text-[13px] text-ink-muted">
+      <div className="min-w-0 flex-1 sm:p-4">
+        {event.category && <p className="mb-1 text-[11px] font-bold sm:hidden" style={{ color: color.text }}>{event.category}</p>}
+        <h2 className="line-clamp-2 text-[15px] font-bold leading-snug text-ink sm:text-base">{event.title || '제목 없음'}</h2>
+        <div className="mt-1.5 space-y-1 text-[13px] text-ink-muted sm:mt-2.5 sm:space-y-1.5">
           <p className="flex items-center gap-1.5"><Icon name="calendar" size={15} /><span>{formatShortDate(event)}</span></p>
           <p className="flex items-center gap-1.5"><Icon name="pin" size={15} /><span className="truncate">{[event.district, event.place || '장소 확인 필요'].filter(Boolean).join(' · ')}</span></p>
         </div>
-        <div className="mt-3 flex items-center justify-between gap-3">
+        <div className="mt-2 flex items-center justify-between gap-3 sm:mt-3">
           {event.fee ? <p className="truncate rounded-md bg-[#E6FAF7] px-2 py-0.5 text-xs font-bold text-[#008F75]">{event.fee}</p> : <span />}
           <p aria-label={`조회수 ${Number.isFinite(event.viewCount) ? event.viewCount.toLocaleString('ko-KR') : '-'}`}
             className="flex flex-shrink-0 items-center gap-1 text-xs text-ink-muted">
@@ -61,7 +62,7 @@ function EventCard({ event, returnTo, selected, favoriteSaved, favoriteLoading, 
         </div>
       </div>
       </Link>
-      {onToggleFavorite && <div className="grid grid-cols-2 gap-2 px-4 pb-4">
+      {onToggleFavorite && <div className="grid grid-cols-2 gap-2 px-3.5 pb-3.5 sm:px-4 sm:pb-4">
         <button type="button" onClick={() => onToggleFavorite(event)} disabled={favoriteLoading} aria-pressed={favoriteSaved}
           aria-label={`${event.title} ${favoriteSaved ? '관심행사 취소' : '관심행사 추가'}`}
           className={`flex items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-[13px] font-bold transition-colors disabled:opacity-60 ${favoriteSaved ? 'bg-coral-light text-coral' : 'bg-[#F2F4F6] text-ink-soft hover:bg-[#E9ECEF]'}`}>
@@ -294,11 +295,11 @@ export default function EventList({ initialFilterOpen = false }) {
             <p className="min-w-0 text-sm"><strong>{courseSummary}</strong>를 코스에 담았어요.</p>
             <Link to="/course" className="flex flex-shrink-0 items-center gap-1 rounded-xl bg-coral px-4 py-2.5 text-sm font-bold">{courseEditSession ? '코스 수정 계속하기' : '코스 만들기'}<Icon name="chevronRight" size={16} strokeWidth={2.4} /></Link>
           </div>}
-          {loading && <div role="status" className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {loading && <div role="status" className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
             <span className="sr-only">행사를 불러오는 중입니다.</span>
-            {[0, 1, 2].map(key => <div key={key} aria-hidden="true" className={`overflow-hidden rounded-2xl bg-white shadow-card ${key > 0 ? 'hidden md:block' : ''}`}>
-              <div className="aspect-video animate-pulse bg-[#F2F4F6]" />
-              <div className="space-y-2.5 p-4">
+            {[0, 1, 2].map(key => <div key={key} aria-hidden="true" className={`flex gap-3.5 overflow-hidden rounded-2xl bg-white p-3.5 shadow-card sm:block sm:p-0 ${key > 1 ? 'hidden md:block' : ''}`}>
+              <div className="aspect-video animate-pulse bg-[#F2F4F6] max-sm:aspect-square max-sm:w-[104px] max-sm:flex-shrink-0 max-sm:rounded-xl" />
+              <div className="flex-1 space-y-2.5 sm:p-4">
                 <div className="h-4 w-4/5 animate-pulse rounded bg-[#F2F4F6]" />
                 <div className="h-3 w-1/2 animate-pulse rounded bg-[#F2F4F6]" />
                 <div className="h-3 w-2/3 animate-pulse rounded bg-[#F2F4F6]" />
@@ -316,7 +317,7 @@ export default function EventList({ initialFilterOpen = false }) {
             {data.isMock && <DemoNotice onRetry={getDataMode() === 'auto' ? () => setRetry(value => value + 1) : undefined} />}
             <p className="text-[13px] text-ink-muted mb-3">시작일이 빠른 순으로 표시됩니다.</p>
             {favoriteError && <p role="alert" className="mb-3 rounded-xl bg-[#FFF0EC] px-3 py-2 text-sm text-[#B93820]">{favoriteError}</p>}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {data.events.map(event => member ? <EventCard key={event.eventId} event={event} returnTo={`/events?${query}`}
                 selected={courseEvents.some(item => String(item.eventId) === String(event.eventId))}
                 favoriteSaved={favoriteIds.has(String(event.eventId))}

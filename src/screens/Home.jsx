@@ -46,7 +46,7 @@ function HotCard({ event, rank }) {
   return (
     <Link
       to={eventPath(event)}
-      className="group snap-start flex-shrink-0 w-[240px] md:w-auto overflow-hidden rounded-2xl bg-white shadow-card transition duration-200 active:scale-[0.98] md:hover:-translate-y-0.5 md:hover:shadow-lift"
+      className="group snap-start flex-shrink-0 w-[74vw] max-w-[300px] md:w-auto md:max-w-none overflow-hidden rounded-2xl bg-white shadow-card transition duration-200 active:scale-[0.98] md:hover:-translate-y-0.5 md:hover:shadow-lift"
     >
       <div className="relative aspect-video w-full overflow-hidden bg-[#F2F4F6]">
         {event.imageUrl && !imageFailed ? (
@@ -175,7 +175,7 @@ function ScrollButton({ direction, onClick }) {
         previous ? '이전 HOT 행사' : '다음 HOT 행사'
       }
       onClick={onClick}
-      className={`md:hidden absolute top-[68px] -translate-y-1/2 ${
+      className={`md:hidden [@media(pointer:coarse)]:hidden absolute top-[68px] -translate-y-1/2 ${
         previous ? 'left-0' : 'right-0'
       } z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-ink shadow-lift`}
     >
@@ -565,7 +565,7 @@ export default function Home({ showAllHot = false }) {
 
   return (
     <div className="flex flex-col min-h-full bg-canvas">
-      <header className="border-b border-black/[0.06] bg-white px-5 pb-6 pt-[calc(env(safe-area-inset-top)+1rem)] md:px-8 md:pb-8 md:pt-8 lg:px-10">
+      <header className="border-b border-black/[0.06] bg-white px-5 pb-5 pt-[calc(env(safe-area-inset-top)+0.875rem)] md:px-8 md:pb-8 md:pt-8 lg:px-10">
         <div className="max-w-5xl">
           {showAllHot ? (
             <Link
@@ -582,7 +582,7 @@ export default function Home({ showAllHot = false }) {
             </div>
           )}
 
-          <h1 className="font-display mt-5 text-[28px] font-bold leading-[1.25] text-ink md:mt-0 md:text-[40px]">
+          <h1 className="font-display mt-4 text-[26px] font-bold leading-[1.3] text-ink md:mt-0 md:text-[40px] md:leading-[1.25]">
             {showAllHot ? (
               'HOT한 행사'
             ) : (
@@ -600,19 +600,19 @@ export default function Home({ showAllHot = false }) {
             <>
               <Link
                 to="/search"
-                className="mt-5 flex h-14 items-center gap-3 rounded-2xl bg-[#F2F4F6] px-4 text-[15px] text-ink-muted transition-colors hover:bg-[#E9ECEF] md:max-w-2xl"
+                className="mt-4 flex h-[52px] items-center gap-3 rounded-2xl bg-[#F2F4F6] px-4 text-[15px] text-ink-muted transition-colors hover:bg-[#E9ECEF] md:mt-5 md:h-14 md:max-w-2xl"
               >
                 <Icon name="search" size={20} strokeWidth={2} className="text-ink-soft" />
                 어떤 문화행사를 찾으세요?
                 <Icon name="arrowRight" size={18} className="ml-auto text-ink-muted" />
               </Link>
 
-              <nav aria-label="카테고리 바로가기" className="-mx-5 mt-4 flex gap-2 overflow-x-auto px-5 hide-scrollbar md:mx-0 md:px-0">
+              <nav aria-label="카테고리 바로가기" className="-mx-5 mt-3 flex snap-x gap-2 overflow-x-auto scroll-px-5 px-5 hide-scrollbar md:mx-0 md:mt-4 md:px-0">
                 {CATEGORIES.map(category => (
                   <Link
                     key={category}
                     to={`/events?category=${encodeURIComponent(category)}`}
-                    className="flex-shrink-0 rounded-full border border-black/[0.08] bg-white px-3.5 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-coral hover:text-coral"
+                    className="flex-shrink-0 snap-start rounded-full border border-black/[0.08] bg-white px-3.5 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-coral hover:text-coral active:bg-[#F2F4F6]"
                   >
                     {category}
                   </Link>
@@ -675,7 +675,7 @@ export default function Home({ showAllHot = false }) {
           {!hotLoading &&
             !hotError &&
             (showAllHot ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 [&>a]:w-full">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 [&>a]:w-full [&>a]:max-w-none">
                 {hotEvents.map((event, index) => (
                   <HotCard
                     key={event.eventId}
@@ -705,7 +705,7 @@ export default function Home({ showAllHot = false }) {
             <p className="-mt-1 text-[13px] text-ink-muted mb-4">
               {upcomingMock
                 ? '서울 전체 샘플 행사를 시작일 순으로 보여드려요.'
-                : '회원 거주지 기준이며, 비로그인 또는 거주지 미설정 시 서울 전체 행사를 보여드려요.'}
+                : '내 거주지 기준이에요. 로그인 전에는 서울 전체를 보여드려요.'}
             </p>
 
             {upcomingMock && (

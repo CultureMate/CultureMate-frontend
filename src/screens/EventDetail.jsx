@@ -100,7 +100,7 @@ export default function EventDetail() {
     return (
       <div role="status" className="mx-auto w-full max-w-5xl lg:px-10 lg:pt-6">
         <span className="sr-only">행사 정보를 불러오는 중입니다.</span>
-        <div aria-hidden="true" className="aspect-video w-full animate-pulse bg-[#E9ECEF] lg:rounded-3xl" />
+        <div aria-hidden="true" className="aspect-video w-full animate-pulse bg-[#E9ECEF] max-sm:aspect-[4/3] lg:rounded-3xl" />
         <div aria-hidden="true" className="space-y-3 px-5 py-6 lg:px-0">
           <div className="h-5 w-20 animate-pulse rounded-full bg-[#E9ECEF]" />
           <div className="h-7 w-4/5 animate-pulse rounded-lg bg-[#E9ECEF]" />
@@ -335,7 +335,7 @@ function EventDetailView({ event }) {
       )}
 
       {/* 히어로 이미지 */}
-      <div className="relative mx-auto aspect-video w-full max-w-5xl overflow-hidden bg-[#E9ECEF] lg:mt-6 lg:rounded-3xl">
+      <div className="relative mx-auto aspect-video w-full max-w-5xl overflow-hidden bg-[#E9ECEF] max-sm:aspect-[4/3] lg:mt-6 lg:rounded-3xl">
         {event.img && (
           <img
             src={event.img}
