@@ -7,7 +7,6 @@ const SAMPLE_NAMES = {
 }
 
 const placeDetailRequests = new Map()
-const placePhotoRequests = new Map()
 
 const placeType = value => value === 'restaurant' ? 'restaurant' : 'cafe'
 
@@ -81,10 +80,11 @@ export async function getPlacesBetween({ eventId1, eventId2, type = 'cafe' }, si
   return parsePlaces(data, [type])
 }
 
-export async function getPlaceDetails(placeId, type = 'cafe', signal) {
+export async function getPlaceDetails(placeId, type = 'cafe') {
   const key = `${placeType(type)}:${placeId}`
   if (!placeDetailRequests.has(key)) {
-    const request = api.get('/places/details', { params: { placeId }, signal })
+    // 공유 Promise가 특정 화면의 AbortSignal에 함께 취소되지 않도록 요청 자체에는 signal을 연결하지 않습니다.
+    const request = api.get('/places/details', { params: { placeId } })
       .then(({ data }) => normalizePlace(data, type))
       .catch(error => {
         placeDetailRequests.delete(key)
@@ -100,26 +100,10 @@ export function getPlacePhotoUrl(name, maxWidthPx = 640) {
   return `/api/places/photo?${params}`
 }
 
-export async function loadPlacePhoto(name, maxWidthPx = 640) {
-  if (!name) return ''
-  const key = `${name}:${maxWidthPx}`
-  if (!placePhotoRequests.has(key)) {
-    const request = api.get('/places/photo', {
-      params: { name, maxWidthPx },
-      responseType: 'blob',
-    }).then(({ data }) => URL.createObjectURL(data)).catch(error => {
-      placePhotoRequests.delete(key)
-      throw error
-    })
-    placePhotoRequests.set(key, request)
-  }
-  return placePhotoRequests.get(key)
-}
-
 export function getPlacesError(error) {
   const code = error.response?.data?.code
-  if (error.response?.status === 429 && code === 'PLACES_MEMBER_DAILY_LIMITED') return '오늘 사용할 수 있는 장소 사진 횟수를 모두 사용했어요.'
-  if (error.response?.status === 429 && code === 'PLACES_RATE_LIMITED') return '장소 사진 요청이 많아요. 잠시 후 다시 시도해 주세요.'
+  if (error.response?.status === 429 && code === 'PLACES_MEMBER_DAILY_LIMITED') return '오늘 사용할 수 있는 장소 정보 조회 횟수를 모두 사용했어요.'
+  if (error.response?.status === 429 && code === 'PLACES_RATE_LIMITED') return '장소 정보 요청이 많아요. 잠시 후 다시 시도해 주세요.'
   if (error.response?.status === 400) return '행사 위치나 검색 조건을 확인해 주세요.'
   if (error.response?.status === 503) return '주변 장소 검색 서비스가 잠시 지연되고 있어요.'
   return '주변 장소를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'

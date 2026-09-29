@@ -1,5 +1,5 @@
 import api from './axios'
-import { getNearbyPlaces, getPlaceDetails, getPlacePhotoUrl, getPlacesBetween, getPlacesError, loadPlacePhoto } from './places'
+import { getNearbyPlaces, getPlaceDetails, getPlacePhotoUrl, getPlacesBetween, getPlacesError } from './places'
 
 jest.mock('./axios', () => ({ __esModule: true, default: { get: jest.fn() } }))
 
@@ -35,35 +35,29 @@ test('행사 사이와 사진 API 경로를 계약대로 만든다', async () =>
 test('저장된 장소 ID로 최신 상세 정보를 다시 조회한다', async () => {
   api.get.mockResolvedValue({ data: { placeId: 'p1', name: '문화 카페', address: '서울 중구', openNow: true } })
   const place = await getPlaceDetails('p1', 'cafe')
-  expect(api.get).toHaveBeenCalledWith('/places/details', { params: { placeId: 'p1' }, signal: undefined })
+  expect(api.get).toHaveBeenCalledWith('/places/details', { params: { placeId: 'p1' } })
   expect(place).toEqual(expect.objectContaining({ placeId: 'p1', name: '문화 카페', placeType: 'cafe', openNow: true }))
 })
 
-test('동일 장소 상세와 사진 요청을 메모리에서 중복 제거한다', async () => {
-  const createObjectURL = jest.fn(() => 'blob:place-photo')
-  Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURL })
-  api.get.mockImplementation(path => path === '/places/details'
-    ? Promise.resolve({ data: { placeId: 'dedupe-place', name: '중복 방지 카페' } })
-    : Promise.resolve({ data: new Blob(['photo']) }))
+test('동일 장소 상세 요청을 호출자 signal과 무관한 Promise로 중복 제거한다', async () => {
+  api.get.mockResolvedValue({ data: { placeId: 'dedupe-place', name: '중복 방지 카페' } })
+  const firstController = new AbortController()
+  const first = getPlaceDetails('dedupe-place', 'cafe', firstController.signal)
+  firstController.abort()
 
   const details = await Promise.all([
+    first,
     getPlaceDetails('dedupe-place', 'cafe'),
-    getPlaceDetails('dedupe-place', 'cafe'),
-  ])
-  const photos = await Promise.all([
-    loadPlacePhoto('places/dedupe/photos/one'),
-    loadPlacePhoto('places/dedupe/photos/one'),
   ])
 
   expect(details[0]).toBe(details[1])
-  expect(photos).toEqual(['blob:place-photo', 'blob:place-photo'])
   expect(api.get.mock.calls.filter(([path]) => path === '/places/details')).toHaveLength(1)
-  expect(api.get.mock.calls.filter(([path]) => path === '/places/photo')).toHaveLength(1)
+  expect(api.get).toHaveBeenCalledWith('/places/details', { params: { placeId: 'dedupe-place' } })
 })
 
 test('장소 사진 429 오류 코드를 구분해 안내한다', () => {
-  expect(getPlacesError({ response: { status: 429, data: { code: 'PLACES_MEMBER_DAILY_LIMITED' } } })).toContain('오늘 사용할 수 있는')
-  expect(getPlacesError({ response: { status: 429, data: { code: 'PLACES_RATE_LIMITED' } } })).toContain('잠시 후')
+  expect(getPlacesError({ response: { status: 429, data: { code: 'PLACES_MEMBER_DAILY_LIMITED' } } })).toBe('오늘 사용할 수 있는 장소 정보 조회 횟수를 모두 사용했어요.')
+  expect(getPlacesError({ response: { status: 429, data: { code: 'PLACES_RATE_LIMITED' } } })).toBe('장소 정보 요청이 많아요. 잠시 후 다시 시도해 주세요.')
 })
 
 test('실행 중인 장소 서버의 명시적 오류를 샘플 데이터로 숨기지 않는다', async () => {

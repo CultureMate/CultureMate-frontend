@@ -54,7 +54,9 @@ export default function SharedCourse() {
         if (!course) throw Object.assign(new Error('not found'), { response: { status: 404 } })
         return loadPlaceDetails(course, controller.signal)
       })
-      .then(course => setRequest({ loading: false, course, error: '', loginRequired: false }))
+      .then(course => {
+        if (!controller.signal.aborted) setRequest({ loading: false, course, error: '', loginRequired: false })
+      })
       .catch(error => {
         if (controller.signal.aborted) return
         const loginRequired = error.response?.status === 401

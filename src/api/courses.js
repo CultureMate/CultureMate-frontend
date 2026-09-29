@@ -21,9 +21,9 @@ function writeLocalCourses(courses) {
   localStorage.setItem(SAVED_COURSES_KEY, JSON.stringify(courses))
 }
 
-function canUseCourseMock(error) {
+function canUseCourseReadMock(error) {
   if (getDataMode() !== 'auto' || error?.code === 'ERR_CANCELED') return false
-  if (['ERR_NETWORK', 'ECONNREFUSED', 'ECONNABORTED', 'ETIMEDOUT'].includes(error?.code)) return true
+  if (['ERR_NETWORK', 'ECONNREFUSED'].includes(error?.code)) return true
   const body = typeof error?.response?.data === 'string' ? error.response.data : ''
   return error?.response?.status === 500
     && body.startsWith('Proxy error: Could not proxy request')
@@ -143,7 +143,6 @@ export async function createCourse(course, signal) {
     const { data } = await api.post('/courses', payload, { signal })
     return normalizeCourse(data)
   } catch (error) {
-    if (canUseCourseMock(error)) return saveLocally({ ...course, ...payload, stops: course.stops })
     throw error
   }
 }
@@ -155,7 +154,7 @@ export async function getCourses(signal) {
     const courses = Array.isArray(data) ? data : data?.courses || []
     return courses.map(normalizeCourse)
   } catch (error) {
-    if (canUseCourseMock(error)) return readLocalCourses().map(normalizeCourse)
+    if (canUseCourseReadMock(error)) return readLocalCourses().map(normalizeCourse)
     throw error
   }
 }
@@ -167,7 +166,7 @@ export async function getCourseDetail(courseId, signal) {
     const { data } = await api.get(`/courses/${courseId}`, { signal })
     return normalizeCourse(data)
   } catch (error) {
-    if (canUseCourseMock(error)) return localDetail()
+    if (canUseCourseReadMock(error)) return localDetail()
     throw error
   }
 }
@@ -179,7 +178,6 @@ export async function updateCourse(courseId, course, signal) {
     const { data } = await api.put(`/courses/${courseId}`, payload, { signal })
     return normalizeCourse(data)
   } catch (error) {
-    if (canUseCourseMock(error)) return updateLocally(courseId, { ...course, ...payload, stops: course.stops, version: payload.version + 1 })
     throw error
   }
 }
@@ -190,7 +188,6 @@ export async function updateCourseFavorite(courseId, favorited, signal) {
     const { data } = await api.put(`/courses/${courseId}/favorite`, { favorited }, { signal })
     return normalizeCourse(data)
   } catch (error) {
-    if (canUseCourseMock(error)) return updateLocally(courseId, { favorited, favorite: favorited })
     throw error
   }
 }
@@ -203,10 +200,6 @@ export async function deleteCourse(courseId, signal) {
   try {
     await api.delete(`/courses/${courseId}`, { signal })
   } catch (error) {
-    if (canUseCourseMock(error)) {
-      writeLocalCourses(readLocalCourses().filter(course => String(course.courseId) !== String(courseId)))
-      return
-    }
     throw error
   }
 }
@@ -221,11 +214,6 @@ export async function shareCourse(courseId, signal) {
     const { data } = await api.post(`/courses/${courseId}/share`, null, { signal })
     return data
   } catch (error) {
-    if (canUseCourseMock(error)) {
-      const shareId = `local-${Date.now()}`
-      updateLocally(courseId, { shareId, shared: true })
-      return { shareId }
-    }
     throw error
   }
 }
@@ -235,7 +223,6 @@ export async function unshareCourse(courseId, signal) {
   try {
     await api.delete(`/courses/${courseId}/share`, { signal })
   } catch (error) {
-    if (canUseCourseMock(error)) return updateLocally(courseId, { shareId: null, shared: false })
     throw error
   }
 }
@@ -247,7 +234,7 @@ export async function getSharedCourse(shareId, signal) {
     const { data } = await api.get(`/courses/shared/${shareId}`, { signal })
     return normalizeCourse(data)
   } catch (error) {
-    if (canUseCourseMock(error)) return localShared()
+    if (canUseCourseReadMock(error)) return localShared()
     throw error
   }
 }

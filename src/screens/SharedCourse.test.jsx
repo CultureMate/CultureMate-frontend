@@ -1,11 +1,14 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { getSharedCourse } from '../api/courses'
-import { getPlaceDetails, loadPlacePhoto } from '../api/places'
+import { getPlaceDetails } from '../api/places'
 import SharedCourse from './SharedCourse'
 
 jest.mock('../api/courses', () => ({ getSharedCourse: jest.fn() }))
-jest.mock('../api/places', () => ({ getPlaceDetails: jest.fn(), loadPlacePhoto: jest.fn(), getPlacesError: () => '사진 오류' }))
+jest.mock('../api/places', () => ({
+  getPlaceDetails: jest.fn(),
+  getPlacePhotoUrl: (name, maxWidthPx = 640) => `/api/places/photo?name=${encodeURIComponent(name)}&maxWidthPx=${maxWidthPx}`,
+}))
 
 function renderPage() {
   return render(<MemoryRouter initialEntries={['/shared/courses/share-1']}>
@@ -16,7 +19,6 @@ function renderPage() {
 beforeEach(() => {
   jest.clearAllMocks()
   getPlaceDetails.mockResolvedValue({ placeId: 'p1', name: '공유 카페', address: '서울 중구', placeType: 'cafe' })
-  loadPlacePhoto.mockResolvedValue('blob:shared-photo')
 })
 
 test('공유 코스를 읽기 전용으로 표시한다', async () => {
@@ -55,7 +57,9 @@ test('공유 코스의 Google 사진 저작자와 Maps 출처를 표시한다', 
   })
   renderPage()
 
-  await waitFor(() => expect(screen.getByRole('img', { name: '사진 카페' })).toHaveAttribute('src', 'blob:shared-photo'))
+  const image = await screen.findByRole('img', { name: '사진 카페' })
+  await waitFor(() => expect(image).toHaveAttribute('src', '/api/places/photo?name=places%2Fp2%2Fphotos%2Fone&maxWidthPx=640'))
+  fireEvent.load(image)
   expect(screen.getByRole('link', { name: '촬영자 A' })).toHaveAttribute('href', 'https://example.com/a')
   expect(screen.getByText(/촬영자 B/)).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Google Maps' })).toHaveAttribute('href', 'https://maps.google.com/p2')

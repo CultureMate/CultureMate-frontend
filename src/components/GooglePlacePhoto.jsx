@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { getPlacesError, loadPlacePhoto } from '../api/places'
+import { getPlacePhotoUrl } from '../api/places'
 import cafeDefaultImage from '../assets/course-cafe-default.svg'
 import restaurantDefaultImage from '../assets/course-restaurant-default.svg'
 
@@ -31,8 +31,9 @@ export function GoogleMapsAttribution({ place, className = '' }) {
 
 export default function GooglePlacePhoto({ place, alt, imageClassName = '', autoLoad = false, manualLoad = false, children }) {
   const [visible, setVisible] = useState(!autoLoad)
-  const [requestCount, setRequestCount] = useState(0)
-  const [photo, setPhoto] = useState({ url: '', loading: false, error: '' })
+  const [requested, setRequested] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+  const [failed, setFailed] = useState(false)
   const rootRef = useRef(null)
   const restaurant = place?.placeType === 'restaurant'
   const fallback = restaurant ? restaurantDefaultImage : cafeDefaultImage
@@ -54,27 +55,27 @@ export default function GooglePlacePhoto({ place, alt, imageClassName = '', auto
   }, [autoLoad, place?.photoName])
 
   useEffect(() => {
-    if (!place?.photoName || (!requestCount && !(autoLoad && visible))) return
-    let active = true
-    setPhoto(current => ({ ...current, loading: true, error: '' }))
-    loadPlacePhoto(place.photoName)
-      .then(url => { if (active) setPhoto({ url, loading: false, error: '' }) })
-      .catch(error => { if (active) setPhoto({ url: '', loading: false, error: getPlacesError(error) }) })
-    return () => { active = false }
-  }, [autoLoad, place?.photoName, requestCount, visible])
+    setRequested(false)
+    setLoaded(false)
+    setFailed(false)
+  }, [place?.photoName])
+
+  const shouldLoad = Boolean(place?.photoName && !failed && (requested || (autoLoad && visible)))
+  const imageUrl = shouldLoad ? getPlacePhotoUrl(place.photoName) : fallback
 
   return (
     <div>
       <div ref={rootRef} className={`relative overflow-hidden bg-[#F3F4F6] ${imageClassName}`}>
-        <img src={photo.url || fallback} alt={alt} loading="lazy" className="h-full w-full object-cover" />
+        <img src={imageUrl} alt={alt} loading="lazy" onLoad={() => { if (shouldLoad) setLoaded(true) }}
+          onError={() => { if (shouldLoad) { setLoaded(false); setFailed(true) } }} className="h-full w-full object-cover" />
         {children}
-        {manualLoad && place?.photoName && !photo.url && <button type="button" onClick={() => setRequestCount(count => count + 1)} disabled={photo.loading}
-          className="absolute bottom-2 right-2 rounded-lg bg-black/70 px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-60">
-          {photo.loading ? '사진 불러오는 중' : '사진 보기'}
+        {manualLoad && place?.photoName && !requested && !failed && <button type="button" onClick={() => setRequested(true)}
+          className="absolute bottom-2 right-2 rounded-lg bg-black/70 px-3 py-1.5 text-[11px] font-bold text-white">
+          사진 보기
         </button>}
       </div>
-      {photo.url && <PhotoAttributions attributions={place.authorAttributions} className="mt-1 px-1" />}
-      {manualLoad && photo.error && <p role="alert" className="mt-1 px-1 text-[10px] text-[#B42318]">{photo.error}</p>}
+      {loaded && <PhotoAttributions attributions={place.authorAttributions} className="mt-1 px-1" />}
+      {manualLoad && failed && <p role="alert" className="mt-1 px-1 text-[10px] text-[#B42318]">장소 사진을 불러오지 못했어요.</p>}
     </div>
   )
 }

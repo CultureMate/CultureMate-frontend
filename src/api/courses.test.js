@@ -96,11 +96,21 @@ test('auto 모드에서 코스 조회 404도 로컬 데이터로 대체하지 �
   await expect(getCourses()).rejects.toBe(error)
 })
 
-test('auto 모드에서 CRA 프록시 연결 거부만 로컬 코스로 대체한다', async () => {
+test('auto 모드에서 조회 요청의 CRA 프록시 연결 거부만 로컬 데이터로 대체한다', async () => {
   process.env.REACT_APP_DATA_MODE = 'auto'
-  api.post.mockRejectedValue({ response: { status: 500, data: 'Proxy error: Could not proxy request /api/courses (ECONNREFUSED)' } })
+  api.get.mockRejectedValue({ response: { status: 500, data: 'Proxy error: Could not proxy request /api/courses (ECONNREFUSED)' } })
 
-  const course = await createCourse({ title: '오프라인 코스', stops })
+  await expect(getCourses()).resolves.toEqual([])
+})
 
-  expect(course).toEqual(expect.objectContaining({ title: '오프라인 코스', isLocal: true }))
+test('auto 모드의 변경 요청은 연결 실패나 타임아웃도 로컬 성공으로 대체하지 않는다', async () => {
+  process.env.REACT_APP_DATA_MODE = 'auto'
+  const networkError = { code: 'ERR_NETWORK' }
+  const timeoutError = { code: 'ECONNABORTED' }
+  api.post.mockRejectedValueOnce(networkError)
+  api.put.mockRejectedValueOnce(timeoutError)
+
+  await expect(createCourse({ title: '오프라인 코스', stops })).rejects.toBe(networkError)
+  await expect(updateCourse(1, { title: '느린 수정', version: 1, stops })).rejects.toBe(timeoutError)
+  expect(localStorage.getItem('culturemate.saved-courses.v1')).toBeNull()
 })

@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom'
 import Course from './Course'
 import { createCourse, deleteCourse, getCourseDetail, getCourses, shareCourse, unshareCourse, updateCourse, updateCourseFavorite } from '../api/courses'
-import { getNearbyPlaces, getPlaceDetails, getPlacesBetween, loadPlacePhoto } from '../api/places'
+import { getNearbyPlaces, getPlaceDetails, getPlacesBetween } from '../api/places'
 import { writeCourseDraft } from '../utils/courseDraft'
 import { getEventDetail } from '../api/events'
 
@@ -20,9 +20,9 @@ jest.mock('../api/courses', () => ({
 jest.mock('../api/places', () => ({
   getNearbyPlaces: jest.fn(),
   getPlaceDetails: jest.fn(),
+  getPlacePhotoUrl: (name, maxWidthPx = 640) => `/api/places/photo?name=${encodeURIComponent(name)}&maxWidthPx=${maxWidthPx}`,
   getPlacesBetween: jest.fn(),
   getPlacesError: () => '장소 조회 실패',
-  loadPlacePhoto: jest.fn(),
 }))
 jest.mock('../api/events', () => ({ getEventDetail: jest.fn() }))
 
@@ -44,7 +44,6 @@ beforeEach(() => {
   }))
   getPlacesBetween.mockImplementation(({ type }) => Promise.resolve([type === 'restaurant' ? restaurant : cafe]))
   getPlaceDetails.mockImplementation((placeId, type) => Promise.resolve({ placeId, name: type === 'restaurant' ? '문화 식당' : '문화 카페', placeType: type }))
-  loadPlacePhoto.mockResolvedValue('blob:place-photo')
   createCourse.mockResolvedValue({ courseId: 1 })
   getCourses.mockResolvedValue([])
   getCourseDetail.mockResolvedValue(null)
@@ -149,12 +148,11 @@ test('장소 후보 사진은 사용자가 요청한 뒤 불러오고 저작자�
   fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
   const image = await screen.findByRole('img', { name: '문화 카페' })
   expect(image.getAttribute('src')).toContain('course-cafe-default.svg')
-  expect(loadPlacePhoto).not.toHaveBeenCalled()
 
   fireEvent.click(screen.getByRole('button', { name: '사진 보기' }))
 
-  await waitFor(() => expect(image).toHaveAttribute('src', 'blob:place-photo'))
-  expect(loadPlacePhoto).toHaveBeenCalledWith('places/p1/photos/one')
+  expect(image).toHaveAttribute('src', '/api/places/photo?name=places%2Fp1%2Fphotos%2Fone&maxWidthPx=640')
+  fireEvent.load(image)
   expect(screen.getByRole('link', { name: '카페 촬영자' })).toHaveAttribute('href', 'https://example.com/photographer')
   expect(screen.getByRole('link', { name: 'Google Maps' })).toHaveAttribute('href', 'https://maps.google.com/p1')
 })

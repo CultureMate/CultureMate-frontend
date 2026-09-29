@@ -513,10 +513,13 @@ export default function Course() {
     Promise.all(pending.map(stop => getPlaceDetails(stop.placeId, stop.placeType, controller.signal)
       .then(place => ({ stopId: stop.stopId, place }))
       .catch(() => null)))
-      .then(results => setStops(items => items.map(stop => {
-        const result = results.find(item => item?.stopId === stop.stopId)
-        return result?.place ? { ...stop, ...result.place, stopId: stop.stopId, stopType: 'PLACE' } : stop
-      })))
+      .then(results => {
+        if (controller.signal.aborted) return
+        setStops(items => items.map(stop => {
+          const result = results.find(item => item?.stopId === stop.stopId)
+          return result?.place ? { ...stop, ...result.place, stopId: stop.stopId, stopType: 'PLACE' } : stop
+        }))
+      })
     return () => controller.abort()
   // 저장된 장소 참조가 화면 상태로 복원됐을 때 한 번만 상세를 보완합니다.
   // eslint-disable-next-line react-hooks/exhaustive-deps
