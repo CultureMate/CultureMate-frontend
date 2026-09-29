@@ -33,6 +33,14 @@ REACT_APP_DATA_MODE=mock
 
 Git Bash에서는 파일 수정 없이 `REACT_APP_DATA_MODE=mock npm start`로도 실행할 수 있습니다. 환경변수 변경은 재시작 후 적용됩니다.
 
+### Docker로 전체 실행
+
+백엔드 저장소의 `compose.yaml`이 이 폴더의 `Dockerfile`로 화면 이미지를 만듭니다. 실행 방법과 `.env` 준비는 [백엔드 README](https://github.com/CultureMate/CultureMate-backend#readme)의 "전체 Docker 실행"을 따릅니다.
+
+- 이미지 빌드 중 `npm test`와 `npm run build`가 돌고, 실패하면 이미지가 만들어지지 않습니다.
+- Nginx가 화면 파일을 내보내고 `/api` 요청은 백엔드 컨테이너로 넘깁니다. 화면 주소는 `http://localhost`입니다.
+- `REACT_APP_API_BASE_URL`·`REACT_APP_AUTH_BASE_URL`은 `/api`, `REACT_APP_DATA_MODE`는 `api`로 빌드됩니다. 카카오맵 키는 백엔드 `.env`의 `KAKAO_MAP_KEY`로 넘깁니다.
+
 ## 화면
 
 Figma에서 가져온 화면을 URL로 각각 미리 볼 수 있습니다. 홈은 API 조회와 이동을 구현했으며, 나머지 기능의 구현 범위는 아래를 참고하세요.
