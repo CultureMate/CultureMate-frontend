@@ -39,17 +39,19 @@ export function getCurrentMember() {
   // StrictMode can clean up one consumer while another still needs the result.
   const requestVersion = currentMemberCacheVersion
   const request = api.get('/auth/me')
-    .then(({ data }) => {
-      if (!data || !Number.isInteger(data.memberId) || data.memberId <= 0) {
+    .then(({ status, data }) => {
+      // 비로그인은 204(본문 없음)로 온다. 아래 catch의 401 처리는 204 이전 백엔드와의 호환용이다.
+      const member = status === 204 ? null : data
+      if (member !== null && (!member || !Number.isInteger(member.memberId) || member.memberId <= 0)) {
         throw new Error('회원 응답 형식을 확인해 주세요.')
       }
       if (requestVersion !== currentMemberCacheVersion) {
-        return hasCurrentMemberCache ? currentMemberCache : data
+        return hasCurrentMemberCache ? currentMemberCache : member
       }
-      currentMemberCache = data
+      currentMemberCache = member
       hasCurrentMemberCache = true
       currentMemberRequest = null
-      return data
+      return member
     })
     .catch(error => {
       if (requestVersion !== currentMemberCacheVersion) {
