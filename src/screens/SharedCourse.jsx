@@ -70,7 +70,7 @@ export default function SharedCourse() {
 
   return (
     <div className="min-h-full bg-[#FAFAF8] pb-12">
-      <header className="bg-[#1A1A2E] px-5 pb-8 pt-12 text-white md:px-8">
+      <header className="sticky top-0 z-30 bg-[#1A1A2E] px-5 pb-8 pt-12 text-white md:px-8">
         <div className="mx-auto max-w-3xl">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#FF8A70]">Shared course</p>
           <h1 className="mt-2 font-display text-3xl font-bold">공유 코스</h1>

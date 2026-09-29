@@ -10,7 +10,7 @@ import EventDialog from '../components/EventDialog'
 import EventFilterFields from '../components/EventFilterFields'
 import { addFavorite, getFavorites, removeFavorite } from '../api/favorites'
 import useCurrentMember from '../hooks/useCurrentMember'
-import { COURSE_DRAFT_CHANGED, readCourseDraft, toggleCourseEvent } from '../utils/courseDraft'
+import { COURSE_DRAFT_CHANGED, readCourseBuilder, readCourseDraft, toggleCourseEvent } from '../utils/courseDraft'
 
 function FilterSheet({ filters, onClose, onApply }) {
   const [draft, setDraft] = useState(filters)
@@ -37,7 +37,7 @@ function EventCard({ event, returnTo, selected, favoriteSaved, favoriteLoading, 
     <article className="bg-white rounded-2xl overflow-hidden shadow-sm text-left w-full">
       <Link to={`/events/${encodeURIComponent(event.eventId)}`} state={{ returnTo }}
         className="block active:scale-[0.98] transition-transform focus-visible:outline focus-visible:outline-[#FF6B47]">
-      <div className="relative h-[180px] bg-gray-100">
+      <div className="relative aspect-video w-full bg-gray-100">
         {event.imageUrl && !imageFailed
           ? <img src={event.imageUrl} alt="" loading="lazy" onError={() => setImageFailed(true)} className="w-full h-full object-cover" />
           : <div className="h-full flex items-center justify-center text-sm text-[#6B7280] bg-[#F3EEFF]">이미지 없음</div>}
@@ -128,6 +128,7 @@ export default function EventList({ initialFilterOpen = false }) {
   const [request, setRequest] = useState({ query, loading: true, data: null, error: null })
   const [emptyNotice, setEmptyNotice] = useState(false)
   const [courseEvents, setCourseEvents] = useState(() => readCourseDraft())
+  const [coursePlaces, setCoursePlaces] = useState(() => readCourseBuilder().stops.filter(stop => stop.stopType === 'PLACE'))
   const [favoriteIds, setFavoriteIds] = useState(new Set())
   const [favoriteLoadingId, setFavoriteLoadingId] = useState(null)
   const [favoriteError, setFavoriteError] = useState('')
@@ -137,11 +138,21 @@ export default function EventList({ initialFilterOpen = false }) {
   const tags = ['district', 'category'].flatMap(key => filters[key].map(value => ({ key, value })))
   if (filters.from) tags.push({ key: 'range', value: `${filters.from} ~ ${filters.to}` })
   const totalPages = data ? Math.max(1, Math.ceil(data.totalCount / EVENT_PAGE_SIZE)) : 1
+  const cafeCount = coursePlaces.filter(place => place.placeType === 'cafe').length
+  const restaurantCount = coursePlaces.filter(place => place.placeType === 'restaurant').length
+  const courseSummary = [
+    `행사 ${courseEvents.length}개`,
+    ...(cafeCount ? [`카페 ${cafeCount}개`] : []),
+    ...(restaurantCount ? [`음식점 ${restaurantCount}개`] : []),
+  ].join(' · ')
 
   useEffect(() => { setKeyword(readEventFilters(query).keyword) }, [query])
 
   useEffect(() => {
-    const sync = event => setCourseEvents(event.detail || readCourseDraft())
+    const sync = event => {
+      setCourseEvents(event.detail || readCourseDraft())
+      setCoursePlaces(readCourseBuilder().stops.filter(stop => stop.stopType === 'PLACE'))
+    }
     window.addEventListener(COURSE_DRAFT_CHANGED, sync)
     window.addEventListener('storage', sync)
     return () => {
@@ -233,7 +244,7 @@ export default function EventList({ initialFilterOpen = false }) {
 
   return (
     <div className="flex flex-col min-h-full bg-[#FAFAF8]">
-      <header className="px-5 md:px-8 lg:px-10 pt-12 pb-4 bg-[#1A1A2E]">
+      <header className="sticky top-0 z-30 bg-[#1A1A2E] px-5 pb-4 pt-12 md:px-8 lg:px-10">
         <h1 className="font-display text-white text-3xl font-bold">행사 목록</h1>
         <p aria-live="polite" className="text-white/60 text-sm mt-2">{loading ? '행사를 찾고 있어요' : error ? '조회 실패' : `${data?.totalCount ?? 0}개의 행사`}</p>
       </header>
@@ -271,8 +282,8 @@ export default function EventList({ initialFilterOpen = false }) {
 
       <section aria-label="행사 검색 결과" aria-busy={loading} className="px-5 md:px-8 lg:px-10 pt-4 pb-8">
         <div className="max-w-5xl">
-          {member && courseEvents.length > 0 && <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-[#1A1A2E] px-4 py-3 text-white">
-            <p className="text-sm"><strong>{courseEvents.length}개 행사</strong>를 코스에 담았어요.</p>
+          {member && courseEvents.length > 0 && <div className="sticky top-[8.75rem] z-20 mb-4 flex items-center justify-between gap-3 rounded-2xl bg-[#1A1A2E] px-4 py-3 text-white shadow-lg">
+            <p className="text-sm"><strong>{courseSummary}</strong>를 코스에 담았어요.</p>
             <Link to="/course" className="flex-shrink-0 rounded-xl bg-[#FF6B47] px-4 py-2 text-sm font-bold">코스 만들기 →</Link>
           </div>}
           {loading && <p role="status" className="p-6 rounded-2xl bg-white text-sm text-[#6B7280]">행사를 불러오는 중입니다.</p>}

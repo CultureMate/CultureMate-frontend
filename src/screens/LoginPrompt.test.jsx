@@ -16,6 +16,9 @@ test('돌아가기 returns to the screen before the protected tab instead of loo
   await screen.findByText('SEARCH_PAGE')
 
   fireEvent.click(screen.getAllByRole('link', { name: /코스/ })[0])
+  const prompt = await screen.findByLabelText('로그인 필요 안내')
+  expect(prompt).toHaveClass('w-full', 'min-w-0', 'max-w-full', 'overflow-hidden')
+  expect(screen.getByRole('button', { name: /돌아가기/ }).parentElement).toHaveClass('pb-24', 'md:pb-10')
   fireEvent.click(await screen.findByRole('button', { name: /돌아가기/ }))
 
   expect(await screen.findByText('SEARCH_PAGE')).toBeInTheDocument()

@@ -277,7 +277,7 @@ export default function MyPage() {
   return (
     <div className="flex flex-col min-h-full bg-[#FAFAF8]">
       {/* Header */}
-      <div className="px-5 md:px-8 lg:px-10 pt-12 md:pt-8 pb-8 bg-[#1A1A2E]">
+      <div className="sticky top-0 z-30 bg-[#1A1A2E] px-5 pb-8 pt-12 md:px-8 md:pt-8 lg:px-10">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FF6B47] to-[#8B5CF6] flex items-center justify-center flex-shrink-0">
@@ -334,7 +334,7 @@ export default function MyPage() {
           {/* 왼쪽 */}
           <div className="flex flex-col gap-4">
             {/* 회원정보 */}
-            <div className="max-w-2xl bg-white rounded-2xl overflow-hidden shadow-sm">
+            <div className="w-full bg-white rounded-2xl overflow-hidden shadow-sm">
               <div className="px-4 py-3 border-b border-[#F3F4F6] flex items-center justify-between">
                 <p className="font-semibold text-[#1A1A2E] text-sm">
                   👤 회원 정보
@@ -483,7 +483,7 @@ export default function MyPage() {
 
             {/* 관심 카테고리 - 조회 모드 */}
             {!editMode && (
-              <div className="max-w-2xl bg-white rounded-2xl overflow-hidden shadow-sm">
+              <div className="w-full bg-white rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 py-3 border-b border-[#F3F4F6]">
                   <p className="font-semibold text-[#1A1A2E] text-sm">
                     ⭐ 관심 카테고리

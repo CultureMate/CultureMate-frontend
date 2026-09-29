@@ -10,11 +10,11 @@ export default function LoginPromptScreen() {
   }
 
   return (
-    <div className="flex flex-col min-h-full bg-[#1A1A2E]">
+    <div aria-label="로그인 필요 안내" className="relative flex min-h-full w-full min-w-0 max-w-full flex-col overflow-hidden bg-[#1A1A2E]">
       <div className="absolute top-[-80px] right-[-60px] w-64 h-64 rounded-full bg-[#FF6B47]/10 pointer-events-none" />
       <div className="absolute bottom-40 left-[-30px] w-48 h-48 rounded-full bg-[#8B5CF6]/10 pointer-events-none" />
 
-      <div className="relative z-10 px-6 pt-14">
+      <div className="relative z-10 mx-auto w-full min-w-0 max-w-lg px-5 pb-24 pt-14 sm:px-6 md:pb-10">
         <button type="button" onClick={goBack}
           className="flex items-center gap-1.5 text-white/50 text-sm font-medium mb-10">
           ← 돌아가기

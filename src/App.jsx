@@ -164,10 +164,10 @@ function AppLayout() {
   }
 
   return (
-    <div className="flex min-h-dvh bg-[#FAFAF8]">
+    <div className="flex min-h-dvh w-full max-w-full overflow-x-clip bg-[#FAFAF8]">
       <nav
         aria-label="주 메뉴"
-        className="hidden md:flex flex-col bg-[#1A1A2E] md:w-16 lg:w-[220px] flex-shrink-0 sticky top-0 h-screen z-20"
+        className="sticky top-0 z-20 hidden h-dvh flex-shrink-0 self-start flex-col bg-[#1A1A2E] md:flex md:w-16 lg:w-[220px]"
       >
         <div className="px-3 lg:px-5 py-6 border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -269,7 +269,7 @@ function AppLayout() {
         ].includes(pathname) ? null : (
           <nav
             aria-label="모바일 주 메뉴"
-            className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#F3F4F6] flex z-20"
+            className="fixed bottom-0 left-0 right-0 z-20 flex w-full max-w-full overflow-hidden border-t border-[#F3F4F6] bg-white md:hidden"
             style={{
               paddingBottom:
                 'env(safe-area-inset-bottom)',
@@ -285,7 +285,7 @@ function AppLayout() {
                     ? 'page'
                     : undefined
                 }
-                className="flex-1 flex flex-col items-center gap-0.5 py-3"
+                className="flex min-w-0 flex-1 flex-col items-center gap-0.5 py-3"
               >
                 <span
                   className={`w-10 h-8 flex items-center justify-center rounded-xl text-xl ${

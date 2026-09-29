@@ -343,7 +343,7 @@ function EventDetailView({ event }) {
       </div>
 
       {/* 히어로 이미지 */}
-      <div className="relative h-56 md:h-72 lg:h-80 bg-gray-100">
+      <div className="relative mx-auto aspect-video w-full max-w-5xl bg-gray-100">
         {event.img && (
           <img
             src={event.img}

@@ -45,7 +45,7 @@ const hot = {
   eventId,
   title: '인기 전시',
   viewCount: 1234,
-  imageUrl: null,
+  imageUrl: '/hot-event.jpg',
 }
 
 const upcoming = {
@@ -148,6 +148,7 @@ test('loads the two API sections, keeps server order and links URL-shaped IDs', 
     'href',
     `/events/${encodeURIComponent(eventId)}`
   )
+  expect(card.querySelector('img').parentElement).toHaveClass('aspect-video', 'w-full')
 
   expect(
     screen.getByLabelText('조회수 1,234')

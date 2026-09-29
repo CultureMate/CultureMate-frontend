@@ -72,12 +72,17 @@ test('주변 카페를 추가하고 행사와 함께 순서를 변경해 저장�
   expect(getNearbyPlaces).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
   expect(await screen.findByText('문화 카페')).toBeInTheDocument()
+  const places = screen.getByRole('heading', { name: '코스 주변 장소' }).closest('section')
+  expect(places).toHaveClass('min-w-0', 'max-w-full')
+  expect(screen.getByRole('img', { name: '문화 카페' }).parentElement).toHaveClass('aspect-video', 'w-full')
   expect(getNearbyPlaces).not.toHaveBeenCalled()
   expect(getPlacesBetween).toHaveBeenCalledTimes(1)
   expect(getPlacesBetween).toHaveBeenCalledWith({ eventId1: 'e1', eventId2: 'e2', type: 'cafe' }, expect.any(AbortSignal))
   fireEvent.click(screen.getByRole('button', { name: '+ 추가' }))
   const route = screen.getByRole('heading', { name: '코스 순서' }).closest('section')
+  expect(route).toHaveClass('min-w-0', 'max-w-full')
   expect(within(route).getByText('문화 카페')).toBeInTheDocument()
+  expect(within(route).getAllByRole('listitem')[0]).toHaveClass('grid-cols-[4rem_minmax(0,1fr)]', 'md:flex')
   const downButtons = within(route).getAllByRole('button', { name: '아래로 이동' })
   fireEvent.click(downButtons[0])
   fireEvent.change(screen.getByLabelText('코스 이름'), { target: { value: '서울 문화 산책' } })
@@ -87,8 +92,8 @@ test('주변 카페를 추가하고 행사와 함께 순서를 변경해 저장�
     title: '서울 문화 산책',
     stops: [expect.objectContaining({ eventId: 'e2', stopType: 'EVENT' }), expect.objectContaining({ eventId: 'e1', stopType: 'EVENT' }), expect.objectContaining({ placeId: 'p1', placeType: 'cafe' })],
   })
-  expect(await screen.findByText('코스를 저장했어요.')).toBeInTheDocument()
-  expect(screen.getByText('코스에 담긴 행사가 없어요')).toBeInTheDocument()
+  expect(await screen.findByRole('heading', { name: '내 코스' })).toBeInTheDocument()
+  expect(screen.queryByText('코스를 저장했어요.')).not.toBeInTheDocument()
   expect(screen.queryByLabelText('코스 이름')).not.toBeInTheDocument()
   await waitFor(() => {
     expect(JSON.parse(localStorage.getItem('culturemate.course-draft.v1'))).toEqual([])
@@ -137,7 +142,7 @@ test('카페와 음식점을 각각 조회해 유형별 탭에 표시한다', as
   expect(getPlacesBetween).toHaveBeenLastCalledWith({ eventId1: 'e1', eventId2: 'e2', type: 'restaurant' }, expect.any(AbortSignal))
 })
 
-test('장소 후보 사진은 사용자가 요청한 뒤 불러오고 저작자와 Google Maps 출처를 표시한다', async () => {
+test('장소 후보 사진은 검색 결과가 보이면 불러오고 저작자와 Google Maps 출처를 표시한다', async () => {
   writeCourseDraft(events)
   getPlacesBetween.mockResolvedValue([{
     ...cafe,
@@ -149,14 +154,54 @@ test('장소 후보 사진은 사용자가 요청한 뒤 불러오고 저작자�
 
   fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
   const image = await screen.findByRole('img', { name: '문화 카페' })
-  expect(image.getAttribute('src')).toContain('course-cafe-default.svg')
-
-  fireEvent.click(screen.getByRole('button', { name: '사진 보기' }))
-
-  expect(image).toHaveAttribute('src', '/api/places/photo?name=places%2Fp1%2Fphotos%2Fone&maxWidthPx=640')
+  await waitFor(() => expect(image).toHaveAttribute('src', '/api/places/photo?name=places%2Fp1%2Fphotos%2Fone&maxWidthPx=640'))
+  expect(screen.queryByRole('button', { name: '사진 보기' })).not.toBeInTheDocument()
   fireEvent.load(image)
   expect(screen.getByRole('link', { name: '카페 촬영자' })).toHaveAttribute('href', 'https://example.com/photographer')
   expect(screen.getByRole('link', { name: 'Google Maps' })).toHaveAttribute('href', 'https://maps.google.com/p1')
+})
+
+test('장소 사진은 최초 다섯 개만 표시하고 더 보기를 누르면 다음 사진을 표시한다', async () => {
+  writeCourseDraft(events)
+  const places = Array.from({ length: 6 }, (_, index) => ({
+    ...cafe,
+    placeId: `p${index + 1}`,
+    name: `카페 ${index + 1}`,
+    photoName: `places/p${index + 1}/photos/one`,
+  }))
+  getPlacesBetween.mockResolvedValue(places)
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
+  expect(await screen.findByRole('img', { name: '카페 5' })).toBeInTheDocument()
+  expect(screen.queryByRole('img', { name: '카페 6' })).not.toBeInTheDocument()
+  for (let index = 1; index <= 5; index += 1) {
+    expect(screen.getByRole('img', { name: `카페 ${index}` }).getAttribute('src')).toContain(`places%2Fp${index}%2Fphotos%2Fone`)
+  }
+
+  fireEvent.click(screen.getByRole('button', { name: '장소 더 보기' }))
+  const sixthImage = screen.getByRole('img', { name: '카페 6' })
+  await waitFor(() => expect(sixthImage.getAttribute('src')).toContain('places%2Fp6%2Fphotos%2Fone'))
+})
+
+test('코스 이름 없이 저장하면 이름 입력란으로 이동해 오류를 표시한다', async () => {
+  writeCourseDraft(events)
+  const scrollIntoView = jest.fn()
+  HTMLElement.prototype.scrollIntoView = scrollIntoView
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: '이 코스 저장하기' }))
+
+  const titleInput = screen.getByLabelText('코스 이름')
+  await waitFor(() => expect(titleInput).toHaveFocus())
+  expect(titleInput).toHaveAttribute('aria-invalid', 'true')
+  expect(titleInput).toHaveClass('border-[#B42318]')
+  expect(screen.getByText('코스 이름을 입력해 주세요.')).toHaveClass('text-xs')
+  expect(scrollIntoView).toHaveBeenCalled()
+  expect(createCourse).not.toHaveBeenCalled()
+
+  fireEvent.change(titleInput, { target: { value: '서울 산책' } })
+  expect(screen.queryByText('코스 이름을 입력해 주세요.')).not.toBeInTheDocument()
 })
 
 test('행사가 세 개면 순서에 따라 두 구간을 만들고 선택한 구간을 검색한다', async () => {
@@ -259,6 +304,34 @@ test('내 코스의 상세 동선을 확인하고 목록으로 돌아간다', as
   expect(screen.getByRole('button', { name: '상세 보기' })).toBeInTheDocument()
 })
 
+test('코스 상세에서 관심 상태를 변경해도 상세 동선을 유지한다', async () => {
+  const course = { courseId: 1, title: '서울 문화 산책', stopCount: 2, createdAt: '2026-09-28' }
+  getCourses.mockResolvedValue([course])
+  getCourseDetail.mockResolvedValue({
+    ...course,
+    stops: [
+      { type: 'EVENT', eventId: 'e1', name: '서울 전시', address: '서울광장', order: 0 },
+      { type: 'PLACE', placeId: 'p1', placeType: 'CAFE', name: '문화 카페', address: '서울 중구', order: 1 },
+    ],
+  })
+  getPlaceDetails.mockResolvedValue({ placeId: 'p1', name: '문화 카페', placeType: 'cafe' })
+  updateCourseFavorite.mockResolvedValue({ courseId: 1, favorited: true, stops: [] })
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  await screen.findByText('서울 문화 산책')
+  fireEvent.click(screen.getByRole('button', { name: '상세 보기' }))
+  expect(await screen.findByText('서울 전시')).toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: '서울 문화 산책 관심 코스 등록' }))
+  await waitFor(() => expect(updateCourseFavorite).toHaveBeenCalledWith(1, true))
+
+  const route = screen.getByRole('heading', { name: '코스 동선' }).closest('section')
+  expect(within(route).getAllByRole('listitem')).toHaveLength(2)
+  expect(within(route).getByText('서울 전시')).toBeInTheDocument()
+  expect(within(route).getByText('문화 카페')).toBeInTheDocument()
+})
+
 function deferred() {
   let resolve
   const promise = new Promise(done => { resolve = done })
@@ -336,8 +409,8 @@ test('코스 상세에서 수정 화면을 열고 version과 함께 저장한다
   fireEvent.click(screen.getByRole('button', { name: '수정 내용 저장' }))
 
   await waitFor(() => expect(updateCourse).toHaveBeenCalledWith(1, expect.objectContaining({ title: '수정한 코스', version: 3 })))
-  expect(await screen.findByText('코스를 수정했어요.')).toBeInTheDocument()
-  expect(screen.getByText('코스에 담긴 행사가 없어요')).toBeInTheDocument()
+  expect(await screen.findByRole('heading', { name: '내 코스' })).toBeInTheDocument()
+  expect(screen.queryByText('코스를 수정했어요.')).not.toBeInTheDocument()
   expect(screen.queryByLabelText('코스 이름')).not.toBeInTheDocument()
   expect(JSON.parse(localStorage.getItem('culturemate.course-draft.v1'))).toEqual([])
   expect(JSON.parse(localStorage.getItem('culturemate.course-builder.v1'))).toEqual({ title: '', stops: [] })

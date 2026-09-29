@@ -50,7 +50,7 @@ function StopCard({ stop, index, total, onMove, onRemove, onDragStart, onDrop })
   const badge = isEvent ? 'bg-[#FFF0EC] text-[#FF6B47]' : stop.placeType === 'restaurant' ? 'bg-[#FEF3C7] text-[#B45309]' : 'bg-[#E6FAF7] text-[#008F75]'
   return (
     <li draggable onDragStart={() => onDragStart(index)} onDragOver={event => event.preventDefault()} onDrop={() => onDrop(index)}
-      className="relative flex gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3 shadow-sm">
+      className="relative grid min-w-0 max-w-full grid-cols-[4rem_minmax(0,1fr)] gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3 shadow-sm md:flex">
       <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl">
         {isEvent
           ? <SpotImage src={stop.imageUrl || stop.img} alt={stop.title} className="h-full w-full" />
@@ -67,7 +67,7 @@ function StopCard({ stop, index, total, onMove, onRemove, onDragStart, onDrop })
         {!isEvent && <OpeningHours spot={stop} className="mt-1" />}
         {!isEvent && <GoogleMapsAttribution place={stop} className="mt-1" />}
       </div>
-      <div className="flex flex-shrink-0 items-center gap-1" aria-label={`${isEvent ? stop.title : stop.name} 순서 변경`}>
+      <div className="col-span-2 flex flex-shrink-0 items-center justify-end gap-1 md:col-span-1" aria-label={`${isEvent ? stop.title : stop.name} 순서 변경`}>
         <button type="button" disabled={index === 0} onClick={() => onMove(index, index - 1)} aria-label="위로 이동" className="h-8 w-8 rounded-lg bg-[#F3F4F6] text-sm disabled:opacity-30">↑</button>
         <button type="button" disabled={index === total - 1} onClick={() => onMove(index, index + 1)} aria-label="아래로 이동" className="h-8 w-8 rounded-lg bg-[#F3F4F6] text-sm disabled:opacity-30">↓</button>
         <button type="button" onClick={() => onRemove(stop.stopId)} aria-label={`${isEvent ? stop.title : stop.name} 삭제`} className="h-8 w-8 rounded-lg bg-[#FFF0EC] text-[#FF6B47]">×</button>
@@ -79,11 +79,11 @@ function StopCard({ stop, index, total, onMove, onRemove, onDragStart, onDrop })
 function PlaceCard({ place, added, onAdd }) {
   const restaurant = place.placeType === 'restaurant'
   return (
-    <article className="rounded-2xl border border-[#E5E7EB] bg-white">
-      <GooglePlacePhoto place={place} alt={place.name} imageClassName="h-32 w-full rounded-t-2xl" manualLoad />
+    <article className="min-w-0 max-w-full rounded-2xl border border-[#E5E7EB] bg-white">
+      <GooglePlacePhoto place={place} alt={place.name} imageClassName="aspect-video w-full rounded-t-2xl" eagerLoad />
       <div className="p-4">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${restaurant ? 'bg-[#FEF3C7] text-[#B45309]' : 'bg-[#E6FAF7] text-[#008F75]'}`}>{restaurant ? '음식점' : '카페'}</span>
           <h3 className="mt-2 truncate text-sm font-bold text-[#1A1A2E]">{place.name}</h3>
           <p className="mt-1 line-clamp-2 text-xs text-[#6B7280]">{place.address || '주소 정보 없음'}</p>
@@ -92,9 +92,9 @@ function PlaceCard({ place, added, onAdd }) {
       </div>
       <OpeningHours spot={place} />
       <GoogleMapsAttribution place={place} className="mt-2" />
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <p className="text-xs text-[#6B7280]">{place.rating != null ? `★ ${place.rating} · 리뷰 ${place.userRatingCount.toLocaleString('ko-KR')}` : '평점 정보 없음'}</p>
-        <div className="flex gap-2">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="min-w-0 text-xs text-[#6B7280]">{place.rating != null ? `★ ${place.rating} · 리뷰 ${place.userRatingCount.toLocaleString('ko-KR')}` : '평점 정보 없음'}</p>
+        <div className="ml-auto flex flex-shrink-0 gap-2">
           {place.mapUrl && <a href={place.mapUrl} target="_blank" rel="noreferrer" className="rounded-lg bg-[#F3F4F6] px-2.5 py-2 text-xs font-semibold text-[#374151]">지도</a>}
           <button type="button" disabled={added} onClick={() => onAdd(place)} className="rounded-lg bg-[#1A1A2E] px-3 py-2 text-xs font-bold text-white disabled:bg-[#D1D5DB]">{added ? '추가됨' : '+ 추가'}</button>
         </div>
@@ -321,7 +321,14 @@ function CourseLibrary({ onEdit }) {
     try {
       const updated = await updateCourseFavorite(courseId, favorite)
       setDetail(current => current.course && String(current.course.courseId ?? current.course.id) === String(courseId)
-        ? { ...current, course: { ...current.course, ...updated, favorite, favorited: favorite, isFavorite: favorite } }
+        ? { ...current, course: {
+          ...current.course,
+          ...updated,
+          stops: current.course.stops,
+          favorite,
+          favorited: favorite,
+          isFavorite: favorite,
+        } }
         : current)
     } catch {
       setRequest({ loading: false, courses: previous, error: '관심 코스 상태를 변경하지 못했습니다.' })
@@ -467,11 +474,13 @@ export default function Course() {
   const [visibleCount, setVisibleCount] = useState(5)
   const [dragIndex, setDragIndex] = useState(null)
   const [saveState, setSaveState] = useState({ loading: false, message: '', error: '' })
+  const [titleError, setTitleError] = useState('')
   const [coordinateLoading, setCoordinateLoading] = useState(false)
   const [pageTab, setPageTab] = useState(() => new URLSearchParams(location.search).get('tab') === 'library' ? 'library' : 'builder')
   const [editingCourse, setEditingCourse] = useState(null)
   const [segmentIndex, setSegmentIndex] = useState(0)
   const coordinateAttempts = useRef(new Set())
+  const titleInputRef = useRef(null)
   const events = stops.filter(stop => stop.stopType === 'EVENT')
   const segments = events.slice(0, -1).map((event, index) => ({ from: event, to: events[index + 1], index }))
   const selectedSegment = segments[segmentIndex] || segments[0] || null
@@ -579,6 +588,7 @@ export default function Course() {
     setEditingCourse({ courseId: course.courseId ?? course.id, version: course.version })
     setPlaceRequest({ loading: false, places: [], error: null, isMock: false, searched: false })
     setSaveState({ loading: false, message: '', error: '' })
+    setTitleError('')
     setPageTab('builder')
   }
 
@@ -590,6 +600,7 @@ export default function Course() {
     setVisibleCount(5)
     setPlaceRequest({ loading: false, places: [], error: null, isMock: false, searched: false })
     coordinateAttempts.current.clear()
+    setTitleError('')
     writeCourseDraft([])
     writeCourseBuilder({ title: '', stops: [] })
   }
@@ -604,19 +615,27 @@ export default function Course() {
   const save = async event => {
     event.preventDefault()
     const name = title.trim()
-    if (!name) { setSaveState({ loading: false, message: '', error: '코스 이름을 입력해 주세요.' }); return }
+    if (!name) {
+      setTitleError('코스 이름을 입력해 주세요.')
+      setSaveState({ loading: false, message: '', error: '' })
+      requestAnimationFrame(() => {
+        titleInputRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+        titleInputRef.current?.focus({ preventScroll: true })
+      })
+      return
+    }
+    setTitleError('')
     if (!events.length) { setSaveState({ loading: false, message: '', error: '행사를 한 개 이상 담아 주세요.' }); return }
     if (stops.length > 20) { setSaveState({ loading: false, message: '', error: '코스에는 장소를 최대 20개까지 담을 수 있습니다.' }); return }
     const payload = { title: name, stops }
     setSaveState({ loading: true, message: '', error: '' })
     try {
-      const wasEditing = Boolean(editingCourse)
-      const saved = editingCourse
-        ? await updateCourse(editingCourse.courseId, { ...payload, version: editingCourse.version })
-        : await createCourse(payload)
+      if (editingCourse) await updateCourse(editingCourse.courseId, { ...payload, version: editingCourse.version })
+      else await createCourse(payload)
       setEditingCourse(null)
-      setSaveState({ loading: false, message: saved?.isLocal ? '개발용 코스로 이 브라우저에 저장했어요.' : wasEditing ? '코스를 수정했어요.' : '코스를 저장했어요.', error: '' })
       clearCourseDraft()
+      setSaveState({ loading: false, message: '', error: '' })
+      setPageTab('library')
     } catch (error) {
       setSaveState({ loading: false, message: '', error: getCourseError(error) })
     }
@@ -624,7 +643,7 @@ export default function Course() {
 
   return (
     <div className="min-h-full bg-[#FAFAF8] pb-12">
-      <header className="bg-[#1A1A2E] px-5 pb-7 pt-12 md:px-8 lg:px-10">
+      <header className="sticky top-0 z-30 bg-[#1A1A2E] px-5 pb-7 pt-12 md:px-8 lg:px-10">
         <div className="mx-auto max-w-6xl">
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#FF8A70]">My course</p>
           <h1 className="font-display text-3xl font-bold text-white">코스</h1>
@@ -646,25 +665,29 @@ export default function Course() {
       </nav>
 
       {pageTab === 'builder' ? (
-      <main className="mx-auto max-w-6xl px-5 py-6 md:px-8 lg:px-10">
-        {!events.length ? <section className="rounded-3xl bg-white px-6 py-16 text-center shadow-sm">
+      <main className="mx-auto w-full min-w-0 max-w-6xl px-5 py-6 md:px-8 lg:px-10">
+        {!events.length ? <section className="min-w-0 rounded-3xl bg-white px-6 py-16 text-center shadow-sm">
           <span className="text-5xl" aria-hidden="true">🗺️</span>
           <h2 className="mt-5 text-lg font-bold text-[#1A1A2E]">코스에 담긴 행사가 없어요</h2>
           <p className="mt-2 text-sm text-[#6B7280]">행사 목록에서 가고 싶은 행사를 먼저 담아 주세요.</p>
           {saveState.message && <p role="status" className="mt-3 text-sm font-semibold text-[#008F75]">{saveState.message}</p>}
           <Link to="/events" className="mt-6 inline-block rounded-xl bg-[#FF6B47] px-5 py-3 text-sm font-bold text-white">행사 둘러보기</Link>
-        </section> : <form onSubmit={save}>
+        </section> : <form onSubmit={save} className="min-w-0 max-w-full">
           <section className="mb-5 rounded-2xl bg-white p-4 shadow-sm md:p-5">
             <div className="mb-2 flex items-center justify-between gap-3">
               <label htmlFor="course-title" className="block text-sm font-bold text-[#1A1A2E]">코스 이름</label>
               {editingCourse && <span className="rounded-full bg-[#FFF0EC] px-3 py-1 text-xs font-bold text-[#FF6B47]">수정 중</span>}
             </div>
-            <input id="course-title" value={title} onChange={event => setTitle(event.target.value)} maxLength={50} placeholder="예: 성수 전시와 카페 산책"
-              className="w-full rounded-xl border border-[#E5E7EB] bg-[#FAFAF8] px-4 py-3 text-sm outline-none focus:border-[#FF6B47]" />
+            <input ref={titleInputRef} id="course-title" value={title} onChange={event => {
+              setTitle(event.target.value)
+              if (titleError) setTitleError('')
+            }} maxLength={50} placeholder="예: 성수 전시와 카페 산책" aria-invalid={Boolean(titleError)} aria-describedby={titleError ? 'course-title-error' : undefined}
+              className={`w-full rounded-xl border bg-[#FAFAF8] px-4 py-3 text-sm outline-none ${titleError ? 'border-[#B42318] focus:border-[#B42318]' : 'border-[#E5E7EB] focus:border-[#FF6B47]'}`} />
+            {titleError && <p id="course-title-error" role="alert" className="mt-1.5 text-xs text-[#B42318]">{titleError}</p>}
           </section>
 
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
-            <section aria-labelledby="route-title" className="rounded-2xl bg-white p-4 shadow-sm md:p-5">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
+            <section aria-labelledby="route-title" className="min-w-0 max-w-full rounded-2xl bg-white p-4 shadow-sm md:p-5">
               <div className="mb-4 flex items-start justify-between gap-4">
                 <div><h2 id="route-title" className="font-bold text-[#1A1A2E]">코스 순서</h2><p className="mt-1 text-xs text-[#6B7280]">카드를 끌거나 화살표로 행사와 장소 순서를 바꿀 수 있어요.</p></div>
                 <span className="rounded-full bg-[#F3F4F6] px-3 py-1 text-xs font-bold text-[#6B7280]">{stops.length}곳</span>
@@ -676,12 +699,12 @@ export default function Course() {
               <Link to="/events" className="mt-4 block rounded-xl border border-dashed border-[#FF6B47] py-3 text-center text-sm font-bold text-[#FF6B47]">+ 행사 더 담기</Link>
             </section>
 
-            <section aria-labelledby="places-title" className="self-start rounded-2xl bg-white p-4 shadow-sm md:p-5 lg:sticky lg:top-5">
+            <section aria-labelledby="places-title" className="min-w-0 max-w-full self-start rounded-2xl bg-white p-4 shadow-sm md:p-5 lg:sticky lg:top-[10rem]">
               <div className="mb-4"><h2 id="places-title" className="font-bold text-[#1A1A2E]">코스 주변 장소</h2><p className="mt-1 text-xs text-[#6B7280]">행사 순서대로 구간을 선택하고 카페 또는 음식점을 검색해 보세요.</p></div>
               {segments.length > 0 && <div className="mb-4">
                 <label htmlFor="course-search-segment" className="mb-2 block text-xs font-bold text-[#1A1A2E]">검색할 행사 구간</label>
                 <select id="course-search-segment" value={segmentIndex} onChange={event => selectSegment(Number(event.target.value))}
-                  className="w-full rounded-xl border border-[#E5E7EB] bg-white px-3 py-3 text-sm font-semibold text-[#374151] outline-none focus:border-[#FF6B47]">
+                  className="min-w-0 w-full max-w-full rounded-xl border border-[#E5E7EB] bg-white px-3 py-3 text-sm font-semibold text-[#374151] outline-none focus:border-[#FF6B47]">
                   {segments.map(segment => <option key={`${segment.from.eventId}-${segment.to.eventId}`} value={segment.index}>
                     구간 {segment.index + 1} · {segment.index + 1}순위 {segment.from.title} → {segment.index + 2}순위 {segment.to.title}
                   </option>)}
@@ -693,13 +716,13 @@ export default function Course() {
                 <button type="button" aria-pressed={placeType === 'restaurant'} onClick={() => selectPlaceType('restaurant')} className={`rounded-lg py-2 text-sm font-bold ${placeType === 'restaurant' ? 'bg-white text-[#1A1A2E] shadow-sm' : 'text-[#9CA3AF]'}`}>🍽 음식점</button>
               </div>
               <div className="rounded-xl bg-[#F8F8F6] p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <p className="text-xs font-bold text-[#1A1A2E]">검색 기준</p>
                     <p className="mt-1 text-xs text-[#6B7280]">{events.length === 1 ? '선택 행사 주변 · 반경 1.5km' : `구간 ${segmentIndex + 1}의 두 행사 사이`}</p>
                   </div>
                   <button type="button" onClick={searchPlaces} disabled={!canSearchPlaces || coordinateLoading || placeRequest.loading}
-                    className="flex-shrink-0 rounded-xl bg-[#FF6B47] px-4 py-2.5 text-xs font-bold text-white disabled:bg-[#D1D5DB]">
+                    className="w-full flex-shrink-0 rounded-xl bg-[#FF6B47] px-4 py-2.5 text-xs font-bold text-white disabled:bg-[#D1D5DB] sm:w-auto">
                     {placeRequest.loading ? '검색 중...' : placeType === 'cafe' ? '카페 검색' : '음식점 검색'}
                   </button>
                 </div>
@@ -714,7 +737,7 @@ export default function Course() {
               {placeRequest.isMock && <DemoNotice />}
               {!placeRequest.loading && !placeRequest.error && !placeRequest.searched && <p className="mt-4 rounded-xl bg-[#F3F4F6] p-4 text-sm text-[#6B7280]">{placeType === 'cafe' ? '카페' : '음식점'} 검색 버튼을 눌러 장소를 찾아보세요.</p>}
               {!placeRequest.loading && placeRequest.searched && visiblePlaces.length === 0 && <p className="mt-4 rounded-xl bg-[#F3F4F6] p-4 text-sm text-[#6B7280]">선택한 구간에서 {placeType === 'cafe' ? '카페' : '음식점'}을 찾지 못했어요.</p>}
-              <div className="space-y-3">
+              <div className="min-w-0 max-w-full space-y-3">
                 {visiblePlaces.slice(0, visibleCount).map(place => <PlaceCard key={place.placeId} place={place}
                   added={stops.some(stop => stop.stopId === `place:${place.placeId}`)} onAdd={addPlace} />)}
               </div>

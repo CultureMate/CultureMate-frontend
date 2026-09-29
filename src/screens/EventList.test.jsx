@@ -5,12 +5,13 @@ import EventList from './EventList'
 import Search from './Search'
 import EventDetail from './EventDetail'
 import { getCurrentMember } from '../api/auth'
+import { writeCourseBuilder, writeCourseDraft } from '../utils/courseDraft'
 
 jest.mock('../api/axios', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn(), delete: jest.fn() } }))
 jest.mock('../api/comments', () => ({ getComments: () => Promise.resolve([]), createComment: jest.fn(), updateComment: jest.fn(), deleteComment: jest.fn(), getCommentError: () => '댓글 오류' }))
 jest.mock('../api/auth', () => ({ getCurrentMember: jest.fn() }))
 const eventId = 'https://culture.seoul.go.kr/event?id=12&name=서울'
-const event = { eventId, title: '서울 사진 전시', category: '전시/미술', district: '마포구', place: '문화회관', startDate: '2026-10-10', endDate: '2026-10-12', viewCount: 1234 }
+const event = { eventId, title: '서울 사진 전시', category: '전시/미술', district: '마포구', place: '문화회관', startDate: '2026-10-10', endDate: '2026-10-12', viewCount: 1234, imageUrl: '/event.jpg' }
 const result = events => ({ data: { events, count: events.length, totalCount: events.length } })
 
 function LocationControls() {
@@ -48,6 +49,7 @@ test('loads real results and preserves filters when returning from URL-ID detail
   renderEvents('/events?district=마포구&keyword=사진')
   expect(within(screen.getByRole('region', { name: '행사 검색 결과' })).getByRole('status')).toHaveTextContent('불러오는 중')
   const card = await screen.findByRole('link', { name: /서울 사진 전시/ })
+  expect(card.querySelector('img').parentElement).toHaveClass('aspect-video', 'w-full')
   expect(screen.getByText('1개의 행사')).toBeInTheDocument()
   expect(screen.getByLabelText('조회수 1,234')).toBeInTheDocument()
   fireEvent.click(card)
@@ -70,6 +72,28 @@ test('추가 버튼은 로그인 사용자에게만 표시한다', async () => {
   renderEvents()
   expect(await screen.findByRole('button', { name: /관심행사 추가/ })).toBeInTheDocument()
   expect(screen.getByRole('button', { name: /코스에 추가/ })).toBeInTheDocument()
+})
+
+test('코스 현황 배너는 행사와 주변 장소 수를 표시하고 헤더 아래에 고정된다', async () => {
+  getCurrentMember.mockResolvedValue({ memberId: 1 })
+  writeCourseDraft([
+    { eventId: 'e1', title: '첫 행사' },
+    { eventId: 'e2', title: '둘째 행사' },
+    { eventId: 'e3', title: '셋째 행사' },
+  ])
+  writeCourseBuilder({
+    title: '서울 산책',
+    stops: [
+      { stopType: 'PLACE', placeId: 'c1', placeType: 'cafe' },
+      { stopType: 'PLACE', placeId: 'r1', placeType: 'restaurant' },
+    ],
+  })
+  renderEvents()
+
+  const summary = await screen.findByText(/행사 3개 · 카페 1개 · 음식점 1개/)
+  expect(summary.closest('p')).toHaveTextContent('행사 3개 · 카페 1개 · 음식점 1개를 코스에 담았어요.')
+  expect(summary.closest('div')).toHaveClass('sticky', 'top-[8.75rem]')
+  expect(screen.getByRole('heading', { name: '행사 목록' }).closest('header')).toHaveClass('sticky', 'top-0')
 })
 
 test('a saved favorite can be cancelled from the card, and failures are shown', async () => {
