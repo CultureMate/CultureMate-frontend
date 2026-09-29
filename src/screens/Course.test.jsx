@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Course from './Course'
 import { createCourse, deleteCourse, getCourseDetail, getCourses, shareCourse, unshareCourse, updateCourse, updateCourseFavorite } from '../api/courses'
@@ -246,6 +246,63 @@ test('내 코스의 상세 동선을 확인하고 목록으로 돌아간다', as
 
   fireEvent.click(screen.getByRole('button', { name: '내 코스' }))
   expect(screen.getByRole('button', { name: '상세 보기' })).toBeInTheDocument()
+})
+
+function deferred() {
+  let resolve
+  const promise = new Promise(done => { resolve = done })
+  return { promise, resolve }
+}
+
+const courseDetail = (courseId, eventTitle) => ({
+  courseId,
+  title: `코스 ${courseId}`,
+  stopCount: 2,
+  stops: [
+    { type: 'EVENT', eventId: `e${courseId}`, name: eventTitle, order: 0 },
+    { type: 'PLACE', placeId: `p${courseId}`, placeType: 'CAFE', name: `카페 ${courseId}`, order: 1 },
+  ],
+})
+
+test('상세 로딩 중 목록으로 돌아가면 늦게 도착한 상세가 화면을 다시 열지 않는다', async () => {
+  getCourses.mockResolvedValue([{ courseId: 1, title: '코스 1', stopCount: 2 }])
+  getCourseDetail.mockResolvedValue(courseDetail(1, '첫 코스 행사'))
+  const place = deferred()
+  getPlaceDetails.mockReturnValue(place.promise)
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  await screen.findByText('코스 1')
+  fireEvent.click(screen.getByRole('button', { name: '상세 보기' }))
+  fireEvent.click(await screen.findByRole('button', { name: '내 코스' }))
+  await act(async () => { place.resolve({ placeId: 'p1', name: '카페 1', placeType: 'cafe' }) })
+
+  expect(screen.getByRole('button', { name: '상세 보기' })).toBeInTheDocument()
+  expect(screen.queryByText('첫 코스 행사')).not.toBeInTheDocument()
+})
+
+test('다른 코스 상세를 열면 이전 코스의 늦은 응답이 현재 상세를 덮지 않는다', async () => {
+  getCourses.mockResolvedValue([
+    { courseId: 1, title: '코스 1', stopCount: 2 },
+    { courseId: 2, title: '코스 2', stopCount: 2 },
+  ])
+  getCourseDetail.mockImplementation(courseId => Promise.resolve(courseDetail(courseId, courseId === 1 ? '첫 코스 행사' : '둘째 코스 행사')))
+  const firstPlace = deferred()
+  getPlaceDetails.mockImplementation(placeId => placeId === 'p1'
+    ? firstPlace.promise
+    : Promise.resolve({ placeId, name: '카페 2', placeType: 'cafe' }))
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  await screen.findByText('코스 1')
+  fireEvent.click(screen.getAllByRole('button', { name: '상세 보기' })[0])
+  fireEvent.click(await screen.findByRole('button', { name: '내 코스' }))
+  fireEvent.click(screen.getAllByRole('button', { name: '상세 보기' })[1])
+  await screen.findByText('둘째 코스 행사')
+  await act(async () => { firstPlace.resolve({ placeId: 'p1', name: '카페 1', placeType: 'cafe' }) })
+
+  expect(screen.getByText('둘째 코스 행사')).toBeInTheDocument()
+  expect(screen.queryByText('첫 코스 행사')).not.toBeInTheDocument()
 })
 
 test('코스 상세에서 수정 화면을 열고 version과 함께 저장한다', async () => {

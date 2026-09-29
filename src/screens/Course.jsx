@@ -12,12 +12,12 @@ import { readCourseBuilder, readCourseDraft, writeCourseBuilder, writeCourseDraf
 const asEventStop = event => ({ ...event, stopId: `event:${event.eventId}`, stopType: 'EVENT' })
 const asPlaceStop = place => ({ ...place, stopId: `place:${place.placeId}`, stopType: 'PLACE' })
 
-async function hydrateCoursePlaces(course, signal) {
+async function hydrateCoursePlaces(course) {
   if (!course?.stops) return course
   const stops = await Promise.all(course.stops.map(async stop => {
     if (stop.stopType === 'EVENT' || !stop.placeId) return stop
     try {
-      const place = await getPlaceDetails(stop.placeId, stop.placeType, signal)
+      const place = await getPlaceDetails(stop.placeId, stop.placeType)
       return place ? { ...stop, ...place, stopId: stop.stopId, stopType: 'PLACE', placeType: stop.placeType } : stop
     } catch {
       return stop
@@ -319,6 +319,9 @@ function CourseLibrary({ onEdit }) {
   const [detail, setDetail] = useState({ course: null, loading: false, error: '' })
   const [action, setAction] = useState({ loading: false, message: '', error: '' })
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const detailRequest = useRef(null)
+
+  useEffect(() => () => detailRequest.current?.abort(), [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -353,15 +356,24 @@ function CourseLibrary({ onEdit }) {
 
   const openCourse = course => {
     const courseId = course.courseId ?? course.id
+    detailRequest.current?.abort()
     const controller = new AbortController()
+    detailRequest.current = controller
     setDetail({ course, loading: true, error: '' })
     getCourseDetail(courseId, controller.signal)
-      .then(data => hydrateCoursePlaces(data || course, controller.signal))
+      .then(data => hydrateCoursePlaces(data || course))
       .then(data => {
-        const hydrated = data || course
-        setDetail({ course: hydrated, loading: false, error: '' })
+        if (controller.signal.aborted) return
+        setDetail({ course: data || course, loading: false, error: '' })
       })
-      .catch(() => setDetail({ course, loading: false, error: '코스 상세를 불러오지 못했습니다.' }))
+      .catch(() => {
+        if (!controller.signal.aborted) setDetail({ course, loading: false, error: '코스 상세를 불러오지 못했습니다.' })
+      })
+  }
+
+  const closeCourse = () => {
+    detailRequest.current?.abort()
+    setDetail({ course: null, loading: false, error: '' })
   }
 
   const removeCourse = async () => {
@@ -416,7 +428,7 @@ function CourseLibrary({ onEdit }) {
   if (detail.course) {
     return <>
       <CourseDetail course={detail.course} loading={detail.loading} error={detail.error} action={action}
-        onBack={() => setDetail({ course: null, loading: false, error: '' })} onToggleFavorite={toggleFavorite}
+        onBack={closeCourse} onToggleFavorite={toggleFavorite}
         onEdit={onEdit} onDelete={() => setDeleteOpen(true)} onToggleShare={toggleShare} onCopyShare={copyShare} />
       {deleteOpen && <EventDialog title="코스 삭제" id="course-delete-title" onClose={() => !action.loading && setDeleteOpen(false)}>
         <p className="text-sm text-[#6B7280]">이 코스를 삭제하면 다시 복구할 수 없습니다. 삭제할까요?</p>
@@ -510,7 +522,7 @@ export default function Course() {
     const pending = stops.filter(stop => stop.stopType === 'PLACE' && stop.placeId && !stop.name)
     if (!pending.length) return
     const controller = new AbortController()
-    Promise.all(pending.map(stop => getPlaceDetails(stop.placeId, stop.placeType, controller.signal)
+    Promise.all(pending.map(stop => getPlaceDetails(stop.placeId, stop.placeType)
       .then(place => ({ stopId: stop.stopId, place }))
       .catch(() => null)))
       .then(results => {
