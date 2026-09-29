@@ -72,12 +72,17 @@ test('주변 카페를 추가하고 행사와 함께 순서를 변경해 저장�
   expect(getNearbyPlaces).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: '카페 검색' }))
   expect(await screen.findByText('문화 카페')).toBeInTheDocument()
+  const places = screen.getByRole('heading', { name: '코스 주변 장소' }).closest('section')
+  expect(places).toHaveClass('min-w-0', 'max-w-full')
+  expect(screen.getByRole('img', { name: '문화 카페' }).parentElement).toHaveClass('aspect-video', 'w-full')
   expect(getNearbyPlaces).not.toHaveBeenCalled()
   expect(getPlacesBetween).toHaveBeenCalledTimes(1)
   expect(getPlacesBetween).toHaveBeenCalledWith({ eventId1: 'e1', eventId2: 'e2', type: 'cafe' }, expect.any(AbortSignal))
   fireEvent.click(screen.getByRole('button', { name: '+ 추가' }))
   const route = screen.getByRole('heading', { name: '코스 순서' }).closest('section')
+  expect(route).toHaveClass('min-w-0', 'max-w-full')
   expect(within(route).getByText('문화 카페')).toBeInTheDocument()
+  expect(within(route).getAllByRole('listitem')[0]).toHaveClass('grid-cols-[4rem_minmax(0,1fr)]', 'md:flex')
   const downButtons = within(route).getAllByRole('button', { name: '아래로 이동' })
   fireEvent.click(downButtons[0])
   fireEvent.change(screen.getByLabelText('코스 이름'), { target: { value: '서울 문화 산책' } })
@@ -257,6 +262,34 @@ test('내 코스의 상세 동선을 확인하고 목록으로 돌아간다', as
 
   fireEvent.click(screen.getByRole('button', { name: '내 코스' }))
   expect(screen.getByRole('button', { name: '상세 보기' })).toBeInTheDocument()
+})
+
+test('코스 상세에서 관심 상태를 변경해도 상세 동선을 유지한다', async () => {
+  const course = { courseId: 1, title: '서울 문화 산책', stopCount: 2, createdAt: '2026-09-28' }
+  getCourses.mockResolvedValue([course])
+  getCourseDetail.mockResolvedValue({
+    ...course,
+    stops: [
+      { type: 'EVENT', eventId: 'e1', name: '서울 전시', address: '서울광장', order: 0 },
+      { type: 'PLACE', placeId: 'p1', placeType: 'CAFE', name: '문화 카페', address: '서울 중구', order: 1 },
+    ],
+  })
+  getPlaceDetails.mockResolvedValue({ placeId: 'p1', name: '문화 카페', placeType: 'cafe' })
+  updateCourseFavorite.mockResolvedValue({ courseId: 1, favorited: true, stops: [] })
+  renderCourse()
+
+  fireEvent.click(screen.getByRole('button', { name: /📚 내 코스/ }))
+  await screen.findByText('서울 문화 산책')
+  fireEvent.click(screen.getByRole('button', { name: '상세 보기' }))
+  expect(await screen.findByText('서울 전시')).toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: '서울 문화 산책 관심 코스 등록' }))
+  await waitFor(() => expect(updateCourseFavorite).toHaveBeenCalledWith(1, true))
+
+  const route = screen.getByRole('heading', { name: '코스 동선' }).closest('section')
+  expect(within(route).getAllByRole('listitem')).toHaveLength(2)
+  expect(within(route).getByText('서울 전시')).toBeInTheDocument()
+  expect(within(route).getByText('문화 카페')).toBeInTheDocument()
 })
 
 function deferred() {

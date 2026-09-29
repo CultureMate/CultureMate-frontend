@@ -334,7 +334,7 @@ export default function MyPage() {
           {/* 왼쪽 */}
           <div className="flex flex-col gap-4">
             {/* 회원정보 */}
-            <div className="max-w-2xl bg-white rounded-2xl overflow-hidden shadow-sm">
+            <div className="w-full bg-white rounded-2xl overflow-hidden shadow-sm">
               <div className="px-4 py-3 border-b border-[#F3F4F6] flex items-center justify-between">
                 <p className="font-semibold text-[#1A1A2E] text-sm">
                   👤 회원 정보
@@ -483,7 +483,7 @@ export default function MyPage() {
 
             {/* 관심 카테고리 - 조회 모드 */}
             {!editMode && (
-              <div className="max-w-2xl bg-white rounded-2xl overflow-hidden shadow-sm">
+              <div className="w-full bg-white rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 py-3 border-b border-[#F3F4F6]">
                   <p className="font-semibold text-[#1A1A2E] text-sm">
                     ⭐ 관심 카테고리
