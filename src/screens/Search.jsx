@@ -10,7 +10,7 @@ export default function Search() {
   const filledSections = [filters.district.length, filters.category.length, filters.from].filter(Boolean).length
   return (
     <div className="flex flex-col min-h-full bg-[#FAFAF8]">
-      <header className="px-5 md:px-8 lg:px-10 pt-12 pb-5 bg-[#1A1A2E]">
+      <header className="sticky top-0 z-30 bg-[#1A1A2E] px-5 pb-5 pt-12 md:px-8 lg:px-10">
         <h1 className="font-display text-white text-3xl font-bold leading-tight">어떤 문화생활<br /><em className="text-[#FFD23F] not-italic">찾고 있어요?</em></h1>
         <p className="text-white/60 text-sm mt-2">원하는 조건을 골라 서울 문화행사를 찾아보세요.</p>
       </header>

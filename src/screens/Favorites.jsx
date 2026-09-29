@@ -344,7 +344,7 @@ export default function Favorites({ view = 'list' }) {
 
   return (
     <div className="flex flex-col min-h-full bg-[#FAFAF8]">
-      <div className="px-5 md:px-8 lg:px-10 pt-12 pb-4 bg-[#1A1A2E]">
+      <div className="sticky top-0 z-30 bg-[#1A1A2E] px-5 pb-4 pt-12 md:px-8 lg:px-10">
         <div className="max-w-5xl mx-auto">
           <h1 className="font-display text-white text-3xl font-bold leading-tight">
             관심 목록

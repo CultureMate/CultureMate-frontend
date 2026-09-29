@@ -209,6 +209,16 @@ describe('앱 메뉴 로그인 상태', () => {
     expect(screen.queryByRole('button', { name: '로그아웃' })).not.toBeInTheDocument()
   })
 
+  test('태블릿과 데스크톱 주 메뉴는 화면 높이로 고정된다', async () => {
+    getCurrentMember.mockResolvedValue(null)
+    render(<App />)
+
+    const navigation = await screen.findByRole('navigation', { name: '주 메뉴' })
+    expect(navigation).toHaveClass('sticky', 'top-0', 'h-dvh', 'self-start')
+    expect(navigation.parentElement).toHaveClass('overflow-x-clip')
+    expect(navigation.parentElement).not.toHaveClass('overflow-x-hidden')
+  })
+
   test('로그인 상태에서는 확인 후 로그아웃한다', async () => {
     getCurrentMember.mockResolvedValue({ memberId: 1 })
     api.post.mockResolvedValue({ status: 204 })

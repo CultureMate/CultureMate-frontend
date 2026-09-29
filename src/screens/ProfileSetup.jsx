@@ -226,7 +226,7 @@ export default function ProfileSetup() {
   return (
     <div className="min-h-dvh bg-[#FAFAF8] flex flex-col">
       {/* Header */}
-      <div className="bg-[#1A1A2E] px-6 pt-14 pb-8 md:px-10">
+      <div className="sticky top-0 z-30 bg-[#1A1A2E] px-6 pb-8 pt-14 md:px-10">
         {/* Progress */}
         <div className="flex items-center gap-2 mb-6">
           {STEPS.map((s, i) => (

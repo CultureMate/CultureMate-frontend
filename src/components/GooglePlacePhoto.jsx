@@ -29,7 +29,7 @@ export function GoogleMapsAttribution({ place, className = '' }) {
   )
 }
 
-export default function GooglePlacePhoto({ place, alt, imageClassName = '', autoLoad = false, manualLoad = false, children }) {
+export default function GooglePlacePhoto({ place, alt, imageClassName = '', autoLoad = false, eagerLoad = false, manualLoad = false, children }) {
   const [visible, setVisible] = useState(!autoLoad)
   const [requested, setRequested] = useState(false)
   const [loaded, setLoaded] = useState(false)
@@ -60,7 +60,7 @@ export default function GooglePlacePhoto({ place, alt, imageClassName = '', auto
     setFailed(false)
   }, [place?.photoName])
 
-  const shouldLoad = Boolean(place?.photoName && !failed && (requested || (autoLoad && visible)))
+  const shouldLoad = Boolean(place?.photoName && !failed && (eagerLoad || requested || (autoLoad && visible)))
   const imageUrl = shouldLoad ? getPlacePhotoUrl(place.photoName) : fallback
 
   return (

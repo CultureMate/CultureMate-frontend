@@ -74,7 +74,7 @@ const EVENT = {
   place: '서울광장',
   startDate: '2026-09-20',
   endDate: '2026-09-25',
-  imageUrl: '',
+  imageUrl: '/event-detail.jpg',
   organization: '서울시',
   fee: '무료',
   originalUrl: 'https://example.com/event',
@@ -147,6 +147,8 @@ test('행사 상세 정보를 표시한다', async () => {
   expect(
     await screen.findByText('서울 문화행사')
   ).toBeInTheDocument()
+
+  expect(screen.getByRole('img', { name: '서울 문화행사' }).parentElement).toHaveClass('aspect-video', 'w-full', 'max-w-5xl')
 
   expect(
     screen.getByText('서울광장')

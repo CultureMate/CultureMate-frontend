@@ -34,7 +34,7 @@ function HotCard({ event }) {
       to={eventPath(event)}
       className="snap-start flex-shrink-0 w-[200px] md:w-auto rounded-2xl overflow-hidden shadow-sm active:scale-95 transition-transform focus-visible:outline focus-visible:outline-[#FF6B47]"
     >
-      <div className="relative h-[130px] md:h-[160px] bg-gray-100">
+      <div className="relative aspect-video w-full bg-gray-100">
         {event.imageUrl && !imageFailed ? (
           <img
             src={event.imageUrl}
@@ -536,7 +536,7 @@ export default function Home({ showAllHot = false }) {
 
   return (
     <div className="flex flex-col min-h-full bg-[#FAFAF8]">
-      <header className="px-5 md:px-8 lg:px-10 pt-12 md:pt-8 pb-5 bg-[#1A1A2E]">
+      <header className="sticky top-0 z-30 bg-[#1A1A2E] px-5 pb-5 pt-12 md:px-8 md:pt-8 lg:px-10">
         <div className="max-w-5xl">
           <p className="text-[#9CA3AF] text-sm font-medium tracking-wide">
             서울 문화행사

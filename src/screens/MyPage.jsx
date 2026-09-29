@@ -277,7 +277,7 @@ export default function MyPage() {
   return (
     <div className="flex flex-col min-h-full bg-[#FAFAF8]">
       {/* Header */}
-      <div className="px-5 md:px-8 lg:px-10 pt-12 md:pt-8 pb-8 bg-[#1A1A2E]">
+      <div className="sticky top-0 z-30 bg-[#1A1A2E] px-5 pb-8 pt-12 md:px-8 md:pt-8 lg:px-10">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FF6B47] to-[#8B5CF6] flex items-center justify-center flex-shrink-0">

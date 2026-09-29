@@ -80,7 +80,7 @@ function PlaceCard({ place, added, onAdd }) {
   const restaurant = place.placeType === 'restaurant'
   return (
     <article className="min-w-0 max-w-full rounded-2xl border border-[#E5E7EB] bg-white">
-      <GooglePlacePhoto place={place} alt={place.name} imageClassName="aspect-video w-full rounded-t-2xl" manualLoad />
+      <GooglePlacePhoto place={place} alt={place.name} imageClassName="aspect-video w-full rounded-t-2xl" eagerLoad />
       <div className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -474,11 +474,13 @@ export default function Course() {
   const [visibleCount, setVisibleCount] = useState(5)
   const [dragIndex, setDragIndex] = useState(null)
   const [saveState, setSaveState] = useState({ loading: false, message: '', error: '' })
+  const [titleError, setTitleError] = useState('')
   const [coordinateLoading, setCoordinateLoading] = useState(false)
   const [pageTab, setPageTab] = useState(() => new URLSearchParams(location.search).get('tab') === 'library' ? 'library' : 'builder')
   const [editingCourse, setEditingCourse] = useState(null)
   const [segmentIndex, setSegmentIndex] = useState(0)
   const coordinateAttempts = useRef(new Set())
+  const titleInputRef = useRef(null)
   const events = stops.filter(stop => stop.stopType === 'EVENT')
   const segments = events.slice(0, -1).map((event, index) => ({ from: event, to: events[index + 1], index }))
   const selectedSegment = segments[segmentIndex] || segments[0] || null
@@ -586,6 +588,7 @@ export default function Course() {
     setEditingCourse({ courseId: course.courseId ?? course.id, version: course.version })
     setPlaceRequest({ loading: false, places: [], error: null, isMock: false, searched: false })
     setSaveState({ loading: false, message: '', error: '' })
+    setTitleError('')
     setPageTab('builder')
   }
 
@@ -597,6 +600,7 @@ export default function Course() {
     setVisibleCount(5)
     setPlaceRequest({ loading: false, places: [], error: null, isMock: false, searched: false })
     coordinateAttempts.current.clear()
+    setTitleError('')
     writeCourseDraft([])
     writeCourseBuilder({ title: '', stops: [] })
   }
@@ -611,19 +615,27 @@ export default function Course() {
   const save = async event => {
     event.preventDefault()
     const name = title.trim()
-    if (!name) { setSaveState({ loading: false, message: '', error: '코스 이름을 입력해 주세요.' }); return }
+    if (!name) {
+      setTitleError('코스 이름을 입력해 주세요.')
+      setSaveState({ loading: false, message: '', error: '' })
+      requestAnimationFrame(() => {
+        titleInputRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+        titleInputRef.current?.focus({ preventScroll: true })
+      })
+      return
+    }
+    setTitleError('')
     if (!events.length) { setSaveState({ loading: false, message: '', error: '행사를 한 개 이상 담아 주세요.' }); return }
     if (stops.length > 20) { setSaveState({ loading: false, message: '', error: '코스에는 장소를 최대 20개까지 담을 수 있습니다.' }); return }
     const payload = { title: name, stops }
     setSaveState({ loading: true, message: '', error: '' })
     try {
-      const wasEditing = Boolean(editingCourse)
-      const saved = editingCourse
-        ? await updateCourse(editingCourse.courseId, { ...payload, version: editingCourse.version })
-        : await createCourse(payload)
+      if (editingCourse) await updateCourse(editingCourse.courseId, { ...payload, version: editingCourse.version })
+      else await createCourse(payload)
       setEditingCourse(null)
-      setSaveState({ loading: false, message: saved?.isLocal ? '개발용 코스로 이 브라우저에 저장했어요.' : wasEditing ? '코스를 수정했어요.' : '코스를 저장했어요.', error: '' })
       clearCourseDraft()
+      setSaveState({ loading: false, message: '', error: '' })
+      setPageTab('library')
     } catch (error) {
       setSaveState({ loading: false, message: '', error: getCourseError(error) })
     }
@@ -631,7 +643,7 @@ export default function Course() {
 
   return (
     <div className="min-h-full bg-[#FAFAF8] pb-12">
-      <header className="bg-[#1A1A2E] px-5 pb-7 pt-12 md:px-8 lg:px-10">
+      <header className="sticky top-0 z-30 bg-[#1A1A2E] px-5 pb-7 pt-12 md:px-8 lg:px-10">
         <div className="mx-auto max-w-6xl">
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#FF8A70]">My course</p>
           <h1 className="font-display text-3xl font-bold text-white">코스</h1>
@@ -666,8 +678,12 @@ export default function Course() {
               <label htmlFor="course-title" className="block text-sm font-bold text-[#1A1A2E]">코스 이름</label>
               {editingCourse && <span className="rounded-full bg-[#FFF0EC] px-3 py-1 text-xs font-bold text-[#FF6B47]">수정 중</span>}
             </div>
-            <input id="course-title" value={title} onChange={event => setTitle(event.target.value)} maxLength={50} placeholder="예: 성수 전시와 카페 산책"
-              className="w-full rounded-xl border border-[#E5E7EB] bg-[#FAFAF8] px-4 py-3 text-sm outline-none focus:border-[#FF6B47]" />
+            <input ref={titleInputRef} id="course-title" value={title} onChange={event => {
+              setTitle(event.target.value)
+              if (titleError) setTitleError('')
+            }} maxLength={50} placeholder="예: 성수 전시와 카페 산책" aria-invalid={Boolean(titleError)} aria-describedby={titleError ? 'course-title-error' : undefined}
+              className={`w-full rounded-xl border bg-[#FAFAF8] px-4 py-3 text-sm outline-none ${titleError ? 'border-[#B42318] focus:border-[#B42318]' : 'border-[#E5E7EB] focus:border-[#FF6B47]'}`} />
+            {titleError && <p id="course-title-error" role="alert" className="mt-1.5 text-xs text-[#B42318]">{titleError}</p>}
           </section>
 
           <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
@@ -683,7 +699,7 @@ export default function Course() {
               <Link to="/events" className="mt-4 block rounded-xl border border-dashed border-[#FF6B47] py-3 text-center text-sm font-bold text-[#FF6B47]">+ 행사 더 담기</Link>
             </section>
 
-            <section aria-labelledby="places-title" className="min-w-0 max-w-full self-start rounded-2xl bg-white p-4 shadow-sm md:p-5 lg:sticky lg:top-5">
+            <section aria-labelledby="places-title" className="min-w-0 max-w-full self-start rounded-2xl bg-white p-4 shadow-sm md:p-5 lg:sticky lg:top-[10rem]">
               <div className="mb-4"><h2 id="places-title" className="font-bold text-[#1A1A2E]">코스 주변 장소</h2><p className="mt-1 text-xs text-[#6B7280]">행사 순서대로 구간을 선택하고 카페 또는 음식점을 검색해 보세요.</p></div>
               {segments.length > 0 && <div className="mb-4">
                 <label htmlFor="course-search-segment" className="mb-2 block text-xs font-bold text-[#1A1A2E]">검색할 행사 구간</label>

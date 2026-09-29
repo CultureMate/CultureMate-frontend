@@ -164,10 +164,10 @@ function AppLayout() {
   }
 
   return (
-    <div className="flex min-h-dvh w-full max-w-full overflow-x-hidden bg-[#FAFAF8]">
+    <div className="flex min-h-dvh w-full max-w-full overflow-x-clip bg-[#FAFAF8]">
       <nav
         aria-label="주 메뉴"
-        className="hidden md:flex flex-col bg-[#1A1A2E] md:w-16 lg:w-[220px] flex-shrink-0 sticky top-0 h-screen z-20"
+        className="sticky top-0 z-20 hidden h-dvh flex-shrink-0 self-start flex-col bg-[#1A1A2E] md:flex md:w-16 lg:w-[220px]"
       >
         <div className="px-3 lg:px-5 py-6 border-b border-white/10">
           <div className="flex items-center gap-3">
