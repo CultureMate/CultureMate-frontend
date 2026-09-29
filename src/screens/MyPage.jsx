@@ -60,10 +60,6 @@ export default function MyPage() {
         setInterests(
           new Set(data.interestCategories ?? [])
         )
-
-        if (openInterestEdit) {
-          setEditMode(true)
-        }
       } catch (err) {
         if (
           err.name === 'CanceledError' ||
@@ -82,7 +78,14 @@ export default function MyPage() {
     loadMember()
 
     return () => controller.abort()
-  }, [navigate, openInterestEdit])
+  }, [navigate])
+
+  useEffect(() => {
+    if (!openInterestEdit || !member) return
+
+    setEditMode(true)
+    navigate(location.pathname, { replace: true })
+  }, [openInterestEdit, member, navigate, location.pathname])
 
   const handleEditStart = () => {
     setNickname(member?.nickname ?? '')

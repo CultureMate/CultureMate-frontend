@@ -727,180 +727,109 @@ test('관심 카테고리 설정 버튼은 마이페이지 관심사 수정 경�
   )
 })
 
-/*
- * 새 요구사항 3
- * 백엔드에서 받은 전체 행사 중
- * 회원 관심 카테고리와 일치하는 행사만
- * 프론트에서 필터링한다.
- */
-test('관심 카테고리가 있으면 프론트에서 해당 카테고리 행사만 추천한다', async () => {
-  getCurrentMember.mockResolvedValue(
-    memberWithInterests
-  )
-
-  const interestExhibition = {
-    eventId: 'interest-exhibition-1',
-    title: '관심 전시 행사',
-    category: '전시',
-    place: '서울미술관',
-    startDate: '2026-10-10',
-    endDate: '2026-10-20',
-  }
-
-  const unrelatedMusic = {
-    eventId: 'interest-music-1',
-    title: '관심 없는 음악 행사',
-    category: '음악',
-    place: '서울공연장',
-    startDate: '2026-10-11',
-    endDate: '2026-10-12',
-  }
-
-  api.get.mockImplementation(
-    (path, config) => {
-      if (path.includes('hot-events')) {
-        return Promise.resolve({
-          data: { events: [hot] },
-        })
-      }
-
-      if (
-        path.includes('upcoming-events')
-      ) {
-        return Promise.resolve({
-          data: { events: [upcoming] },
-        })
-      }
-
-      if (path === '/events') {
-        return Promise.resolve({
-          data: {
-            events: [
-              interestExhibition,
-              unrelatedMusic,
-            ],
-            count: 2,
-            totalCount: 2,
-            page: Number(
-              config.params.get('page') || 0
-            ),
-            size: 6,
-          },
-        })
-      }
-
+function mockInterestEvents(events) {
+  api.get.mockImplementation(path => {
+    if (path.includes('hot-events')) {
       return Promise.resolve({
-        data: { events: [] },
+        data: { events: [hot] },
       })
     }
-  )
 
-  renderHome()
-
-  expect(
-    await screen.findByText(
-      '관심 전시 행사'
-    )
-  ).toBeInTheDocument()
-
-  expect(
-    screen.queryByText(
-      '관심 없는 음악 행사'
-    )
-  ).not.toBeInTheDocument()
-
-  const eventsRequest =
-    api.get.mock.calls.find(
-      ([path]) => path === '/events'
-    )
-
-  expect(eventsRequest).toBeTruthy()
-
-  /*
-   * /events 요청 자체에는 관심 카테고리를
-   * 전달하지 않는다.
-   * 즉 백엔드가 아니라 Home.jsx에서 필터링한다.
-   */
-  expect(
-    eventsRequest[1].params.getAll(
-      'category'
-    )
-  ).toEqual([])
-})
-
-/*
- * 빈 카테고리 행사 방어 테스트.
- * 이게 아까 Home.jsx에서 수정한 버그를 검증한다.
- */
-test('카테고리가 없는 행사는 관심 행사로 잘못 추천하지 않는다', async () => {
-  getCurrentMember.mockResolvedValue(
-    memberWithInterests
-  )
-
-  const noCategoryEvent = {
-    eventId: 'no-category-1',
-    title: '카테고리 없는 행사',
-    category: '',
-    place: '서울',
-    startDate: '2026-10-10',
-    endDate: '2026-10-20',
-  }
-
-  api.get.mockImplementation(
-    (path, config) => {
-      if (path.includes('hot-events')) {
-        return Promise.resolve({
-          data: { events: [hot] },
-        })
-      }
-
-      if (
-        path.includes('upcoming-events')
-      ) {
-        return Promise.resolve({
-          data: { events: [upcoming] },
-        })
-      }
-
-      if (path === '/events') {
-        return Promise.resolve({
-          data: {
-            events: [noCategoryEvent],
-            count: 1,
-            totalCount: 1,
-            page: Number(
-              config.params.get('page') || 0
-            ),
-            size: 6,
-          },
-        })
-      }
-
+    if (path.includes('upcoming-events')) {
       return Promise.resolve({
-        data: { events: [] },
+        data: { events: [upcoming] },
       })
     }
-  )
 
-  renderHome()
+    return Promise.resolve({
+      data: {
+        events,
+        count: events.length,
+        totalCount: events.length,
+        page: 0,
+        size: 6,
+      },
+    })
+  })
+}
 
-  await waitFor(() => {
-    expect(
-      screen.queryByText(
-        '관심 카테고리를 확인하는 중입니다.'
-      )
-    ).not.toBeInTheDocument()
+test('관심 카테고리를 원본 분류 검색어로 펼쳐 한 번만 요청하고 응답 순서대로 보여준다', async () => {
+  getCurrentMember.mockResolvedValue({
+    ...memberWithInterests,
+    interestCategories: ['공연', '전시'],
   })
 
-  expect(
-    screen.queryByText(
-      '카테고리 없는 행사'
-    )
-  ).not.toBeInTheDocument()
+  mockInterestEvents([
+    {
+      eventId: 'interest-theater-1',
+      title: '관심 연극',
+      category: '연극',
+      startDate: '2026-10-10',
+      endDate: '2026-10-20',
+    },
+    {
+      eventId: 'interest-exhibition-1',
+      title: '관심 전시',
+      category: '전시/미술',
+      startDate: '2026-10-11',
+      endDate: '2026-10-21',
+    },
+  ])
+
+  renderHome()
+
+  const section = within(
+    await screen.findByRole('region', {
+      name: '⭐ 관심있는 행사',
+    })
+  )
+
+  const titles = (
+    await section.findAllByRole('link')
+  ).map(link => link.textContent)
+
+  expect(titles[0]).toContain('관심 연극')
+  expect(titles[1]).toContain('관심 전시')
+
+  const eventsRequests = api.get.mock.calls.filter(
+    ([path]) => path === '/events'
+  )
+
+  expect(eventsRequests).toHaveLength(1)
+
+  const params = eventsRequests[0][1].params
+
+  expect(params.getAll('category')).toEqual([
+    '공연',
+    '연극',
+    '뮤지컬',
+    '오페라',
+    '무용',
+    '전시',
+  ])
+  expect(params.get('page')).toBe('0')
+  expect(params.get('size')).toBe('6')
+})
+
+test('관심 카테고리에 맞는 행사가 없으면 빈 상태 안내를 보여준다', async () => {
+  getCurrentMember.mockResolvedValue(
+    memberWithInterests
+  )
+
+  mockInterestEvents([])
+
+  renderHome()
+
+  const section = within(
+    await screen.findByRole('region', {
+      name: '⭐ 관심있는 행사',
+    })
+  )
 
   expect(
-    await screen.findByText(
+    await section.findByText(
       '표시할 행사가 없습니다.'
     )
   ).toBeInTheDocument()
 })
+

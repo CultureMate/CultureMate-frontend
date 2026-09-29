@@ -9,6 +9,7 @@ import {
   MemoryRouter,
   Route,
   Routes,
+  useLocation,
 } from 'react-router-dom'
 
 import MyPage from './MyPage'
@@ -481,6 +482,56 @@ test('관심 카테고리 설정 경로로 들어오면 바로 수정 모드가 
       name: '수정',
     })
   ).not.toBeInTheDocument()
+})
+
+function LocationProbe() {
+  const location = useLocation()
+
+  return (
+    <div data-testid="location">
+      {location.pathname}
+      {location.search}
+    </div>
+  )
+}
+
+test('수정 모드를 연 뒤에는 edit 쿼리를 지워 새로고침해도 다시 열리지 않는다', async () => {
+  render(
+    <MemoryRouter
+      initialEntries={['/my?edit=interests']}
+    >
+      <Routes>
+        <Route
+          path="/my"
+          element={
+            <>
+              <MyPage />
+              <LocationProbe />
+            </>
+          }
+        />
+      </Routes>
+    </MemoryRouter>
+  )
+
+  expect(
+    await screen.findByRole('button', {
+      name: '저장',
+    })
+  ).toBeInTheDocument()
+
+  await waitFor(() =>
+    expect(
+      screen.getByTestId('location')
+    ).toHaveTextContent(/^\/my$/)
+  )
+
+  expect(
+    screen.getByRole('button', {
+      name: '저장',
+    })
+  ).toBeInTheDocument()
+  expect(getCurrentMember).toHaveBeenCalledTimes(1)
 })
 
 /*

@@ -162,6 +162,19 @@ export const CATEGORIES = [
   '공연','전시','교육/체험','스포츠','음악','영화','축제/행사','문화/예술',
 ]
 
+// 서울시 원본 분류(클래식, 뮤지컬/오페라, 축제-문화/예술 등)는 화면 카테고리 이름을 포함하지 않아
+// 부분 일치 필터에 넘기기 전에 원본 분류 검색어로 펼친다.
+const CATEGORY_KEYWORDS = {
+  '공연': ['연극', '뮤지컬', '오페라', '무용'],
+  '음악': ['클래식', '콘서트', '국악', '독주', '독창회'],
+  '스포츠': ['체육'],
+  '축제/행사': ['축제'],
+}
+
+export function expandCategories(categories) {
+  return [...new Set(categories.flatMap(category => [category, ...(CATEGORY_KEYWORDS[category] ?? [])]))]
+}
+
 export const CATEGORY_COLOR = {
   '공연':    { bg: '#FFF0EC', text: '#FF6B47' },
   '전시':    { bg: '#F3EEFF', text: '#8B5CF6' },

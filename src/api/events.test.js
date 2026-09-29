@@ -26,6 +26,28 @@ test('serializes repeated filters without brackets or double encoding', async ()
   expect(config.params.get('size')).toBe(String(EVENT_PAGE_SIZE))
 })
 
+test('screen categories expand to Seoul source category keywords only in the API request', async () => {
+  api.get.mockResolvedValue({ data: { count: 0, totalCount: 0, events: [] } })
+  const filters = { ...empty(), category: ['음악', '축제/행사', '스포츠', '문화/예술'] }
+  await getEvents(filters)
+  expect(api.get.mock.calls[0][1].params.getAll('category')).toEqual(['음악', '클래식', '콘서트', '국악', '독주', '독창회', '축제/행사', '축제', '스포츠', '체육', '문화/예술'])
+  expect(createEventParams(filters).getAll('category')).toEqual(filters.category)
+})
+
+test('mock filter matches Seoul source categories through the same keywords', () => {
+  const events = [
+    { eventId: 'classic', category: '클래식', startDate: '2026-10-10', endDate: '2026-10-10' },
+    { eventId: 'festival', category: '축제-관광/체육', startDate: '2026-10-11', endDate: '2026-10-11' },
+    { eventId: 'sample', category: '공연', startDate: '2026-10-12', endDate: '2026-10-12' },
+    { eventId: 'theater', category: '연극', startDate: '2026-10-13', endDate: '2026-10-13' },
+  ]
+  const ids = category => filterMockEvents(events, { ...empty(), category, includePast: true }).map(event => event.eventId)
+  expect(ids(['음악'])).toEqual(['classic'])
+  expect(ids(['스포츠'])).toEqual(['festival'])
+  expect(ids(['축제/행사'])).toEqual(['festival'])
+  expect(ids(['공연'])).toEqual(['sample', 'theater'])
+})
+
 test('URL parsing removes duplicate and empty values and invalid dates/pages', () => {
   const filters = readEventFilters('district=마포구&district=마포구&district=&date=2026-02-30&date=2026-10-10&page=-2&keyword=++')
   expect(filters).toEqual({ district: ['마포구'], category: [], from: '2026-10-10', to: '2026-10-10', keyword: '', includePast: false, page: 0 })

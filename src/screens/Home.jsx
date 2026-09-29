@@ -20,9 +20,6 @@ import {
 import { getDataMode } from '../api/dataMode'
 import DemoNotice from '../components/DemoNotice'
 
-const INTEREST_EVENT_LIMIT = 6
-const INTEREST_EVENT_MAX_PAGES = 5
-
 function eventPath(event) {
   return `/events/${encodeURIComponent(event.eventId)}`
 }
@@ -466,8 +463,6 @@ export default function Home({ showAllHot = false }) {
     return () => controller.abort()
   }, [showAllHot])
 
-  // 백엔드에서는 관심 카테고리로 필터링하지 않고,
-  // 행사 데이터를 받은 뒤 프론트에서 회원 관심사와 비교한다.
   useEffect(() => {
     if (showAllHot || memberLoading) return
 
@@ -490,87 +485,22 @@ export default function Home({ showAllHot = false }) {
         setInterestError(null)
         setInterestMock(false)
 
-        const normalizedInterests = interests.map(
-          category =>
-            String(category).trim().toLowerCase()
+        const result = await getEvents(
+          {
+            district: [],
+            category: interests,
+            from: '',
+            to: '',
+            keyword: '',
+            includePast: false,
+            page: 0,
+          },
+          controller.signal
         )
 
-        const matchedEvents = []
-        let usedMock = false
-
-        for (
-          let page = 0;
-          page < INTEREST_EVENT_MAX_PAGES;
-          page += 1
-        ) {
-          const result = await getEvents(
-            {
-              district: [],
-              category: [],
-              from: '',
-              to: '',
-              keyword: '',
-              includePast: false,
-              page,
-            },
-            controller.signal
-          )
-
-          if (controller.signal.aborted) return
-
-          usedMock = usedMock || result.isMock
-
-          const matches = result.events.filter(event => {
-            const eventCategory = String(
-              event.category ?? ''
-            )
-              .trim()
-              .toLowerCase()
-
-            if (!eventCategory) return false
-
-            return normalizedInterests.some(
-              interest => eventCategory.includes(interest)
-            )
-          })
-
-          for (const event of matches) {
-            if (
-              !matchedEvents.some(
-                saved =>
-                  String(saved.eventId) ===
-                  String(event.eventId)
-              )
-            ) {
-              matchedEvents.push(event)
-            }
-
-            if (
-              matchedEvents.length >=
-              INTEREST_EVENT_LIMIT
-            ) {
-              break
-            }
-          }
-
-          if (
-            matchedEvents.length >=
-              INTEREST_EVENT_LIMIT ||
-            result.events.length < result.size ||
-            result.count === 0
-          ) {
-            break
-          }
-        }
-
         if (!controller.signal.aborted) {
-          setInterestEvents(
-            matchedEvents.slice(
-              0,
-              INTEREST_EVENT_LIMIT
-            )
-          )
-          setInterestMock(usedMock)
+          setInterestEvents(result.events)
+          setInterestMock(result.isMock)
         }
       } catch (error) {
         if (
