@@ -30,7 +30,16 @@ test('guests see blurred threaded comments and a login link', async () => {
   expect(screen.getByRole('link', { name: '로그인하기' })).toHaveAttribute('href', '/login')
   expect(screen.getByText('로그인하시면 댓글 작성 및 확인이 가능합니다.')).toBeInTheDocument()
   expect(screen.queryByRole('form', { name: '댓글 작성' })).not.toBeInTheDocument()
-  expect(screen.getByText('첫 댓글').closest('[aria-hidden="true"]')).toHaveClass('blur-sm')
+  expect(within(screen.getByTestId('locked-comments')).getByText('첫 댓글')).toBeInTheDocument()
+  expect(screen.getByTestId('locked-comments')).toHaveClass('blur-sm')
+})
+
+test('guest login guidance stays inside the comment card when there are no comments', async () => {
+  renderComments()
+  const guide = await screen.findByRole('group', { name: '댓글 로그인 안내' })
+  expect(within(guide).getByText('로그인하시면 댓글 작성 및 확인이 가능합니다.')).toBeInTheDocument()
+  expect(within(guide).getByRole('link', { name: '로그인하기' })).toHaveAttribute('href', '/login')
+  expect(guide).not.toHaveClass('absolute')
 })
 
 test('other members are identified by nickname and withdrawn authors without a member number', async () => {

@@ -154,25 +154,28 @@ export default function EventComments({ event }) {
     setComments(items => items.filter(item => item.commentId !== comment.commentId && item.parentId !== comment.commentId))
   })
 
+  const locked = !event.isMock && member === null
+
   return <section aria-label="댓글" className="mb-4 rounded-2xl bg-white px-4 py-4 shadow-card md:px-5">
     <div className="flex items-center justify-between gap-3">
       <h2 className="text-base font-bold text-ink">댓글 <span className="text-coral">{comments.length}</span></h2>
       {event.isMock && <span className="text-xs text-[#9CA3AF]">샘플 · 조회만 가능</span>}
     </div>
     {!event.isMock && member === undefined && <p role="status" className="mt-3 text-sm text-[#6B7280]">로그인 상태를 확인하고 있습니다.</p>}
-    {!event.isMock && member === null && <p className="mt-3 text-sm text-[#6B7280]">로그인하시면 댓글 작성 및 확인이 가능합니다.</p>}
     {member && <CommentForm label="댓글 작성" placeholder="행사에 대한 이야기를 남겨보세요" submitting={submitting} onSubmit={content => add(null, content)} />}
     {actionError && <p role="alert" className="mt-3 rounded-xl bg-[#FFF0EC] px-3 py-2 text-sm text-[#B93820]">{getCommentError(actionError, '처리')}</p>}
-    <div className="relative mt-4">
-      {!event.isMock && member === null && (
-        <div className="absolute inset-0 z-10 flex min-h-28 items-center justify-center rounded-xl bg-white/60 backdrop-blur-[1px]">
-          <Link to="/login" className="rounded-xl bg-[#FF6B47] px-5 py-3 text-sm font-bold text-white shadow-sm">
+    <div className={`mt-4 ${locked ? 'grid overflow-hidden rounded-xl' : ''}`}>
+      {locked && (
+        <div role="group" aria-label="댓글 로그인 안내"
+          className="z-10 flex flex-col items-center justify-center gap-3 bg-white/70 px-4 py-7 text-center backdrop-blur-[1px] [grid-area:1/1]">
+          <p className="text-sm font-medium text-ink-soft">로그인하시면 댓글 작성 및 확인이 가능합니다.</p>
+          <Link to="/login" className="rounded-xl bg-coral px-5 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-coral-dark">
             로그인하기
           </Link>
         </div>
       )}
-      <div className={!event.isMock && member === null ? 'pointer-events-none select-none blur-sm' : ''}
-        aria-hidden={!event.isMock && member === null ? 'true' : undefined}>
+      <div className={locked ? 'pointer-events-none max-h-64 select-none overflow-hidden blur-sm [grid-area:1/1]' : ''}
+        aria-hidden={locked ? 'true' : undefined} data-testid={locked ? 'locked-comments' : undefined}>
       {loading && <p role="status" className="py-5 text-sm text-[#6B7280]">댓글을 불러오는 중입니다.</p>}
       {error && <div role="alert" className="py-5 text-sm text-[#6B7280]"><p>{getCommentError(error)}</p>
         <button type="button" onClick={() => setRetry(value => value + 1)} className="mt-2 font-semibold text-[#FF6B47]">다시 시도</button></div>}
