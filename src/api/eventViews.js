@@ -1,6 +1,12 @@
 import api from './axios'
+import { getDataMode } from './dataMode'
+import { getMockEvents } from '../data/mockEvents'
 
 export async function increaseEventView(eventId, signal) {
+  if (getDataMode() === 'mock') {
+    const event = getMockEvents().find(item => item.eventId === eventId)
+    return Number(event?.viewCount || 0) + 1
+  }
   // eventId가 URL일 수 있으므로 path 대신 query parameter로 전달합니다.
   const { data } = await api.post('/events/views', null, { params: { eventId }, signal })
   if (!data || String(data.eventId) !== String(eventId)

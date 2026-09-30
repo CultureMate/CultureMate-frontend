@@ -15,9 +15,26 @@ jest.mock('./axios', () => ({
 }))
 
 beforeEach(() => {
+  process.env.REACT_APP_DATA_MODE = 'api'
+  localStorage.clear()
   api.get.mockReset()
   api.post.mockReset()
   api.delete.mockReset()
+})
+
+afterEach(() => { delete process.env.REACT_APP_DATA_MODE })
+
+test('mock mode stores favorites locally without the backend', async () => {
+  process.env.REACT_APP_DATA_MODE = 'mock'
+  await addFavorite('mock-1')
+  await expect(getFavorites()).resolves.toEqual([
+    expect.objectContaining({ eventId: 'mock-1' }),
+  ])
+  await removeFavorite('mock-1')
+  await expect(getFavorites()).resolves.toEqual([])
+  expect(api.get).not.toHaveBeenCalled()
+  expect(api.post).not.toHaveBeenCalled()
+  expect(api.delete).not.toHaveBeenCalled()
 })
 
 test('관심행사 목록을 조회한다', async () => {

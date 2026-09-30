@@ -5,6 +5,14 @@ jest.mock('./axios', () => ({ __esModule: true, default: { post: jest.fn() } }))
 
 beforeEach(() => { api.post.mockReset() })
 
+afterEach(() => { delete process.env.REACT_APP_DATA_MODE })
+
+test('mock mode increases a sample count without the backend', async () => {
+  process.env.REACT_APP_DATA_MODE = 'mock'
+  await expect(increaseEventView('mock-1')).resolves.toBeGreaterThan(0)
+  expect(api.post).not.toHaveBeenCalled()
+})
+
 test('increments URL-shaped event IDs through the query endpoint', async () => {
   const eventId = 'https://culture.seoul.go.kr/event?id=12&name=서울'
   const controller = new AbortController()

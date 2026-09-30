@@ -1,4 +1,12 @@
 import api from './axios'
+import { getDataMode } from './dataMode'
+
+export const DEMO_MEMBER = {
+  memberId: 1,
+  nickname: '문화메이트',
+  residence: '서울시',
+  interestCategories: ['전시', '축제/행사', '공연'],
+}
 
 let currentMemberRequest = null
 let currentMemberCache = null
@@ -20,6 +28,7 @@ export function resetCurrentMemberCache() {
 }
 
 export function getKakaoLoginUrl() {
+  if (getDataMode() === 'mock') return '#/'
   const defaultBaseUrl = process.env.NODE_ENV === 'production'
     ? '/api'
     : 'http://localhost:8080/api'
@@ -30,6 +39,10 @@ export function getKakaoLoginUrl() {
 }
 
 export function getCurrentMember() {
+  if (getDataMode() === 'mock') {
+    setCurrentMemberCache(DEMO_MEMBER)
+    return Promise.resolve(DEMO_MEMBER)
+  }
   if (hasCurrentMemberCache) {
     return Promise.resolve(currentMemberCache)
   }

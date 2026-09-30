@@ -67,3 +67,14 @@ test('실행 중인 장소 서버의 명시적 오류를 샘플 데이터로 숨
   api.get.mockRejectedValue(error)
   await expect(getNearbyPlaces({ latitude: 37.5, longitude: 127.1, types: ['cafe'] })).rejects.toBe(error)
 })
+
+test('mock mode supports nearby, between, and detail flows without the backend', async () => {
+  process.env.REACT_APP_DATA_MODE = 'mock'
+  const nearby = await getNearbyPlaces({ latitude: 37.5, longitude: 127.1, types: ['cafe'] })
+  const between = await getPlacesBetween({ eventId1: 'mock-1', eventId2: 'mock-2', type: 'restaurant' })
+  const detail = await getPlaceDetails(nearby.places[0].placeId, 'cafe')
+  expect(nearby.isMock).toBe(true)
+  expect(between).toHaveLength(5)
+  expect(detail).toEqual(expect.objectContaining({ name: '오후의 커피', placeType: 'cafe' }))
+  expect(api.get).not.toHaveBeenCalled()
+})

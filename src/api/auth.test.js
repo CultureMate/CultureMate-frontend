@@ -9,8 +9,22 @@ import {
 jest.mock('./axios', () => ({ __esModule: true, default: { get: jest.fn() } }))
 
 beforeEach(() => {
+  process.env.REACT_APP_DATA_MODE = 'api'
   api.get.mockReset()
   resetCurrentMemberCache()
+})
+
+afterEach(() => { delete process.env.REACT_APP_DATA_MODE })
+
+test('mock mode returns a complete demo member without the backend', async () => {
+  process.env.REACT_APP_DATA_MODE = 'mock'
+  await expect(getCurrentMember()).resolves.toEqual(expect.objectContaining({
+    memberId: 1,
+    nickname: '문화메이트',
+    residence: '서울시',
+  }))
+  expect(api.get).not.toHaveBeenCalled()
+  expect(getKakaoLoginUrl()).toBe('#/')
 })
 
 test('builds the Kakao login URL from the configured auth API base URL', () => {

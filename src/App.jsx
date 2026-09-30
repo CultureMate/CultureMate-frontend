@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import {
   BrowserRouter,
+  HashRouter,
   Link,
   Navigate,
   Outlet,
@@ -334,8 +335,12 @@ function RequireAuth({ children }) {
 }
 
 export default function App() {
+  const Router = process.env.REACT_APP_DATA_MODE === 'mock'
+    ? HashRouter
+    : BrowserRouter
+
   return (
-    <BrowserRouter>
+    <Router>
       <SplashScreen />
       <LoginResultHandler />
       <ScrollManager />
@@ -422,6 +427,6 @@ export default function App() {
           element={<Home />}
         />
       </Routes>
-    </BrowserRouter>
+    </Router>
   )
 }

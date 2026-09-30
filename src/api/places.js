@@ -1,5 +1,6 @@
 import api from './axios'
 import { canUseMock, getDataMode } from './dataMode'
+import { getMockEvents } from '../data/mockEvents'
 
 const SAMPLE_NAMES = {
   cafe: ['오후의 커피', '서울 로스터리', '담소 카페', '테라스 커피', '어반 브루'],
@@ -7,6 +8,7 @@ const SAMPLE_NAMES = {
 }
 
 const placeDetailRequests = new Map()
+const mockPlaceCatalog = new Map()
 
 const placeType = value => value === 'restaurant' ? 'restaurant' : 'cafe'
 
@@ -39,7 +41,7 @@ function normalizePlace(place, fallbackType) {
 }
 
 function mockPlaces({ latitude, longitude, types }) {
-  return types.flatMap((type, typeIndex) => SAMPLE_NAMES[placeType(type)].map((name, index) => ({
+  const places = types.flatMap((type, typeIndex) => SAMPLE_NAMES[placeType(type)].map((name, index) => ({
     placeId: `mock-${type}-${latitude}-${longitude}-${index}`,
     name,
     address: `행사장에서 도보 ${5 + index * 3}분`,
@@ -53,6 +55,8 @@ function mockPlaces({ latitude, longitude, types }) {
     todayHours: '오늘 10:00~22:00',
     placeType: placeType(type),
   })))
+  places.forEach(place => mockPlaceCatalog.set(place.placeId, place))
+  return places
 }
 
 function parsePlaces(data, types) {
@@ -77,11 +81,36 @@ export async function getNearbyPlaces({ latitude, longitude, types = ['cafe', 'r
 }
 
 export async function getPlacesBetween({ eventId1, eventId2, type = 'cafe' }, signal) {
+  if (getDataMode() === 'mock') {
+    const events = getMockEvents()
+    const first = events.find(event => String(event.eventId) === String(eventId1))
+    const second = events.find(event => String(event.eventId) === String(eventId2))
+    const latitude = ((Number(first?.latitude) || 37.5665) + (Number(second?.latitude) || 37.5665)) / 2
+    const longitude = ((Number(first?.longitude) || 126.978) + (Number(second?.longitude) || 126.978)) / 2
+    return mockPlaces({ latitude, longitude, types: [type] }).map((place, index) => ({
+      ...place,
+      nearEventId: index % 2 === 0 ? String(eventId1) : String(eventId2),
+    }))
+  }
   const { data } = await api.get('/places/between', { params: { eventId1, eventId2, type: placeType(type) }, signal })
   return parsePlaces(data, [type])
 }
 
 export async function getPlaceDetails(placeId, type = 'cafe') {
+  if (getDataMode() === 'mock') {
+    return normalizePlace(mockPlaceCatalog.get(placeId) || {
+      placeId,
+      name: placeType(type) === 'restaurant' ? '서울 한상' : '오후의 커피',
+      address: '서울 문화 산책길',
+      rating: 4.7,
+      userRatingCount: 128,
+      latitude: 37.5665,
+      longitude: 126.978,
+      openNow: true,
+      todayHours: '오늘 10:00~22:00',
+      placeType: type,
+    }, type)
+  }
   const key = `${placeType(type)}:${placeId}`
   if (!placeDetailRequests.has(key)) {
     // 공유 Promise가 특정 화면의 AbortSignal에 함께 취소되지 않도록 요청 자체에는 signal을 연결하지 않습니다.
